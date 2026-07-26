@@ -45,11 +45,29 @@ pub enum SignalNativeError {
     Storage(String),
     #[error("master key must be exactly 32 bytes, got {0}")]
     InvalidMasterKeyLength(usize),
+    /// The peer's identity key doesn't match what we last saw for them
+    /// (`FileIdentityKeyStore::is_trusted_identity` in store.rs, trust-on-
+    /// first-use) — either their app reinstalled and generated a fresh
+    /// identity, or a MITM is presenting a different key. Kept as its own
+    /// variant (not folded into `Protocol`) so the app can show a specific
+    /// "this contact's security key changed" message instead of a generic
+    /// decrypt-failed error — the equivalent of Signal's safety number
+    /// change warning. Callers must not silently retry past this.
+    #[error("untrusted identity for {user_id} (device {device_id}): their key changed since the last known session")]
+    UntrustedIdentity { user_id: String, device_id: u32 },
 }
 
 impl From<libsignal_protocol::SignalProtocolError> for SignalNativeError {
     fn from(e: libsignal_protocol::SignalProtocolError) -> Self {
-        SignalNativeError::Protocol(e.to_string())
+        match e {
+            libsignal_protocol::SignalProtocolError::UntrustedIdentity(address) => {
+                SignalNativeError::UntrustedIdentity {
+                    user_id: address.name().to_string(),
+                    device_id: u32::from(address.device_id()),
+                }
+            }
+            other => SignalNativeError::Protocol(other.to_string()),
+        }
     }
 }
 
@@ -535,6 +553,44 @@ mod tests {
             bob.decrypt("carol".to_string(), 1, from_carol).unwrap(),
             "hi from carol"
         );
+    }
+
+    /// Proves establish_session surfaces a distinguishable
+    /// `SignalNativeError::UntrustedIdentity` (not just a generic Protocol
+    /// error) when a peer's identity key changes — e.g. they reinstalled
+    /// and lost their old identity (see docs/threat-model.md). This is the
+    /// trust-on-first-use check in `FileIdentityKeyStore::is_trusted_identity`
+    /// (store.rs) actually doing its job, and the app-facing error type
+    /// that lets the UI show a "security key changed" message instead of a
+    /// generic failure (see SignalNativeExpoModule.{kt,swift}).
+    #[test]
+    fn establish_session_rejects_changed_peer_identity() {
+        let key = test_master_key();
+        let alice = SignalDevice::new("alice".to_string(), 1, key.clone(), temp_storage_dir("alice-untrusted")).unwrap();
+        let bob_original = SignalDevice::new("bob".to_string(), 1, key.clone(), temp_storage_dir("bob-untrusted-1")).unwrap();
+
+        let bob_original_bundle = bob_original.generate_prekey_bundle(1, 1, 1).unwrap();
+        alice
+            .establish_session("bob".to_string(), 1, bob_original_bundle)
+            .unwrap();
+
+        // Simulate Bob losing his identity (app reinstall, Keystore wiped —
+        // see docs/threat-model.md's "losing the device" gap) and getting a
+        // brand new one under a fresh storage_dir, same user_id/device_id.
+        let bob_reinstalled = SignalDevice::new("bob".to_string(), 1, key, temp_storage_dir("bob-untrusted-2")).unwrap();
+        let bob_reinstalled_bundle = bob_reinstalled.generate_prekey_bundle(1, 1, 1).unwrap();
+
+        let err = alice
+            .establish_session("bob".to_string(), 1, bob_reinstalled_bundle)
+            .unwrap_err();
+
+        match err {
+            SignalNativeError::UntrustedIdentity { user_id, device_id } => {
+                assert_eq!(user_id, "bob");
+                assert_eq!(device_id, 1);
+            }
+            other => panic!("expected UntrustedIdentity, got {other:?}"),
+        }
     }
 
     /// Milestone 2.5: proves persistence actually survives a restart, not

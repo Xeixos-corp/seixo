@@ -101,3 +101,18 @@ export function decryptMessage(
 export function resetSignalDevice(): void {
   deviceInitialized = false;
 }
+
+/**
+ * True when `establishSession`/`encryptMessage`/`decryptMessage` failed
+ * because the peer's identity key no longer matches what we saw in an
+ * earlier session — the equivalent of Signal's "safety number changed"
+ * warning (trust-on-first-use in
+ * packages/signal-native/rust/src/store.rs::FileIdentityKeyStore).
+ * `ERR_UNTRUSTED_IDENTITY` is set on the thrown error by
+ * SignalNativeExpoModule.kt/.swift; see those for why it's not just a
+ * generic decrypt failure. Callers should show a specific message, not
+ * silently retry or swallow it.
+ */
+export function isUntrustedIdentityError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ERR_UNTRUSTED_IDENTITY';
+}

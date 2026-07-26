@@ -49,6 +49,16 @@ Exposed via `#[uniffi::export]` on the `SignalDevice` object:
 - `encrypt(remote_user_id, remote_device_id, plaintext)` /
   `decrypt(remote_user_id, remote_device_id, envelope)`
 
+All three raise a distinguishable `SignalNativeError::UntrustedIdentity` (not
+a generic `Protocol` error) when a peer's identity key doesn't match what
+was seen in an earlier session — Signal's "safety number changed" case.
+Proven by `establish_session_rejects_changed_peer_identity` in
+`rust/src/lib.rs`. The Expo Module layer rethrows this as
+`error.code === "ERR_UNTRUSTED_IDENTITY"` on the JS side (see
+`app/src/crypto/index.ts::isUntrustedIdentityError` and the warning banners
+in `ConversationScreen.tsx`/`ConversationListScreen.tsx`) instead of a
+swallowed console.error.
+
 `app/src/crypto/index.ts` wraps the Expo Module (`SignalNativeExpoModule`)
 with this same shape, as free functions operating on one implicit
 per-process device (`initSignalDevice`, `generatePrekeyBundle`,

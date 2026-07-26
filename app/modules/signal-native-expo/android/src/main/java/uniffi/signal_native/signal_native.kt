@@ -1720,6 +1720,18 @@ sealed class SignalNativeException(message: String): kotlin.Exception(message) {
         
         class InvalidMasterKeyLength(message: String) : SignalNativeException(message)
         
+    /**
+     * The peer's identity key doesn't match what we last saw for them
+     * (`FileIdentityKeyStore::is_trusted_identity` in store.rs, trust-on-
+     * first-use) — either their app reinstalled and generated a fresh
+     * identity, or a MITM is presenting a different key. Kept as its own
+     * variant (not folded into `Protocol`) so the app can show a specific
+     * "this contact's security key changed" message instead of a generic
+     * decrypt-failed error — the equivalent of Signal's safety number
+     * change warning. Callers must not silently retry past this.
+     */
+        class UntrustedIdentity(message: String) : SignalNativeException(message)
+        
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<SignalNativeException> {
         override fun lift(error_buf: RustBuffer.ByValue): SignalNativeException = FfiConverterTypeSignalNativeError.lift(error_buf)
@@ -1739,6 +1751,7 @@ public object FfiConverterTypeSignalNativeError : FfiConverterRustBuffer<SignalN
             4 -> SignalNativeException.InvalidDeviceId(FfiConverterString.read(buf))
             5 -> SignalNativeException.Storage(FfiConverterString.read(buf))
             6 -> SignalNativeException.InvalidMasterKeyLength(FfiConverterString.read(buf))
+            7 -> SignalNativeException.UntrustedIdentity(FfiConverterString.read(buf))
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
         
@@ -1772,6 +1785,10 @@ public object FfiConverterTypeSignalNativeError : FfiConverterRustBuffer<SignalN
             }
             is SignalNativeException.InvalidMasterKeyLength -> {
                 buf.putInt(6)
+                Unit
+            }
+            is SignalNativeException.UntrustedIdentity -> {
+                buf.putInt(7)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }

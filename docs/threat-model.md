@@ -118,6 +118,21 @@ What this does **not** cover:
   jailbroken/rooted device with the app unlocked — this falls under "a
   compromised endpoint device" above, which no messaging app defends against.
 
+`FileIdentityKeyStore::is_trusted_identity` (store.rs) already does
+trust-on-first-use *and* rejects a peer whose identity key changed since the
+last session (proven by `establish_session_rejects_changed_peer_identity` in
+`rust/src/lib.rs`) — this is the equivalent of Signal's "safety number
+changed" warning, and it was already blocking silently before this was
+wired up further. What changed: this now surfaces to the UI as a specific,
+readable warning (`ERR_UNTRUSTED_IDENTITY` — see
+`SignalNativeExpoModule.kt`/`.swift`, `crypto/index.ts::isUntrustedIdentityError`,
+and the banners in `ConversationScreen.tsx`/`ConversationListScreen.tsx`)
+instead of a swallowed `console.error` with no UI signal at all. Still
+missing: any way to *deliberately* re-trust a peer after manually verifying
+their new key out of band (no safety-number/fingerprint comparison UI
+exists yet) — right now a changed identity permanently blocks that
+conversation until the on-disk identity store is wiped.
+
 ## Disappearing messages
 
 Every message carries a per-conversation TTL chosen by the sender

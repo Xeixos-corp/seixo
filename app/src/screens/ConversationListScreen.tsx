@@ -15,7 +15,7 @@ import { useConversationsStore, type Conversation, DEFAULT_TTL_SECONDS } from '.
 import { registerIdentity } from '../identity/registerIdentity';
 import { createDirectChannel } from '../transport/channels';
 import { claimPeerPrekeyBundle } from '../transport/identities';
-import { establishSession } from '../crypto';
+import { establishSession, isUntrustedIdentityError } from '../crypto';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConversationList'>;
@@ -54,7 +54,13 @@ export function ConversationListScreen({ navigation }: Props) {
       setPeerUserId('');
       navigation.navigate('Conversation', conversation);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      if (isUntrustedIdentityError(error)) {
+        setErrorMessage(
+          `A chave de segurança de ${trimmedPeerId} mudou desde a última vez (provavelmente reinstalou a app). Confirma a identidade da outra pessoa antes de voltar a tentar.`,
+        );
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setStarting(false);
     }

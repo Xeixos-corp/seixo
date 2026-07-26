@@ -74,28 +74,34 @@ public class SignalNativeExpoModule: Module {
     }
 
     Function("establishSession") { (remoteUserId: String, remoteDeviceId: Int, bundle: [String: Any]) in
-      try self.requireDevice().establishSession(
-        remoteUserId: remoteUserId,
-        remoteDeviceId: UInt32(remoteDeviceId),
-        bundle: try SignalNativeExpoModule.dictToBundle(bundle)
-      )
+      try SignalNativeExpoModule.translatingSignalErrors {
+        try self.requireDevice().establishSession(
+          remoteUserId: remoteUserId,
+          remoteDeviceId: UInt32(remoteDeviceId),
+          bundle: try SignalNativeExpoModule.dictToBundle(bundle)
+        )
+      }
     }
 
     Function("encrypt") { (remoteUserId: String, remoteDeviceId: Int, plaintext: String) -> [String: Any] in
-      let envelope = try self.requireDevice().encrypt(
-        remoteUserId: remoteUserId,
-        remoteDeviceId: UInt32(remoteDeviceId),
-        plaintext: plaintext
-      )
-      return SignalNativeExpoModule.envelopeToDict(envelope)
+      try SignalNativeExpoModule.translatingSignalErrors {
+        let envelope = try self.requireDevice().encrypt(
+          remoteUserId: remoteUserId,
+          remoteDeviceId: UInt32(remoteDeviceId),
+          plaintext: plaintext
+        )
+        return SignalNativeExpoModule.envelopeToDict(envelope)
+      }
     }
 
     Function("decrypt") { (remoteUserId: String, remoteDeviceId: Int, envelope: [String: Any]) -> String in
-      try self.requireDevice().decrypt(
-        remoteUserId: remoteUserId,
-        remoteDeviceId: UInt32(remoteDeviceId),
-        envelope: try SignalNativeExpoModule.dictToEnvelope(envelope)
-      )
+      try SignalNativeExpoModule.translatingSignalErrors {
+        try self.requireDevice().decrypt(
+          remoteUserId: remoteUserId,
+          remoteDeviceId: UInt32(remoteDeviceId),
+          envelope: try SignalNativeExpoModule.dictToEnvelope(envelope)
+        )
+      }
     }
   }
 
@@ -146,6 +152,18 @@ public class SignalNativeExpoModule: Module {
     )
   }
 
+  // Surfaced to JS as `error.code === "ERR_UNTRUSTED_IDENTITY"` (Expo's
+  // Exception.code convention) — see UntrustedIdentityException below and
+  // the matching Kotlin translatingSignalErrors in
+  // SignalNativeExpoModule.kt for why this exists.
+  private static func translatingSignalErrors<T>(_ block: () throws -> T) throws -> T {
+    do {
+      return try block()
+    } catch SignalNativeError.UntrustedIdentity(let message) {
+      throw UntrustedIdentityException(message)
+    }
+  }
+
   private static func oneTimePrekeyToDict(_ prekey: OneTimePrekeyPublic) -> [String: Any] {
     ["id": Int(prekey.id), "publicKeyBase64": prekey.publicKeyBase64]
   }
@@ -169,4 +187,16 @@ enum SignalNativeExpoError: Error {
   case notInitialized
   case invalidBundle
   case invalidEnvelope
+}
+
+class UntrustedIdentityException: Exception {
+  private let detail: String
+
+  init(_ detail: String) {
+    self.detail = detail
+    super.init()
+  }
+
+  override var reason: String { detail }
+  override var code: String { "ERR_UNTRUSTED_IDENTITY" }
 }

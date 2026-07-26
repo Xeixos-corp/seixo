@@ -1,12 +1,31 @@
 package expo.modules.signalnative
 
 import android.util.Base64
+import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import uniffi.signal_native.EncryptedEnvelope
 import uniffi.signal_native.OneTimePrekeyPublic
 import uniffi.signal_native.PreKeyBundleData
 import uniffi.signal_native.SignalDevice
+import uniffi.signal_native.SignalNativeException
+
+// Surfaced to JS as `error.code === "ERR_UNTRUSTED_IDENTITY"` (Expo Modules'
+// CodedException convention) so the UI can show a specific "this contact's
+// security key changed" message — see ConversationScreen.tsx /
+// ConversationListScreen.tsx — instead of a generic failure. Mirrors
+// uniffi.signal_native.SignalNativeException.UntrustedIdentity, which the
+// Rust side raises from FileIdentityKeyStore.is_trusted_identity's
+// trust-on-first-use check (packages/signal-native/rust/src/store.rs).
+class UntrustedIdentityException(message: String) :
+  CodedException("ERR_UNTRUSTED_IDENTITY", message, null)
+
+private inline fun <T> translatingSignalErrors(block: () -> T): T =
+  try {
+    block()
+  } catch (e: SignalNativeException.UntrustedIdentity) {
+    throw UntrustedIdentityException(e.message ?: "peer's security key changed")
+  }
 
 // Thin bridge between Expo's JS-facing Modules API and the uniffi-generated
 // Kotlin bindings (uniffi.signal_native, checked into
@@ -58,16 +77,22 @@ class SignalNativeExpoModule : Module() {
     }
 
     Function("establishSession") { remoteUserId: String, remoteDeviceId: Int, bundle: Map<String, Any?> ->
-      requireDevice().establishSession(remoteUserId, remoteDeviceId.toUInt(), mapToBundle(bundle))
+      translatingSignalErrors {
+        requireDevice().establishSession(remoteUserId, remoteDeviceId.toUInt(), mapToBundle(bundle))
+      }
       Unit
     }
 
     Function("encrypt") { remoteUserId: String, remoteDeviceId: Int, plaintext: String ->
-      envelopeToMap(requireDevice().encrypt(remoteUserId, remoteDeviceId.toUInt(), plaintext))
+      translatingSignalErrors {
+        envelopeToMap(requireDevice().encrypt(remoteUserId, remoteDeviceId.toUInt(), plaintext))
+      }
     }
 
     Function("decrypt") { remoteUserId: String, remoteDeviceId: Int, envelope: Map<String, Any?> ->
-      requireDevice().decrypt(remoteUserId, remoteDeviceId.toUInt(), mapToEnvelope(envelope))
+      translatingSignalErrors {
+        requireDevice().decrypt(remoteUserId, remoteDeviceId.toUInt(), mapToEnvelope(envelope))
+      }
     }
   }
 

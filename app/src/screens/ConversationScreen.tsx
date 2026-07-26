@@ -15,7 +15,7 @@ import { useAppTheme } from '../theme/ThemeProvider';
 import { useMessagesStore } from '../store/messagesStore';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
 import { fetchMessages, sendMessage, subscribeToChannelMessages, type FetchedMessage } from '../transport/messages';
-import { encryptMessage, decryptMessage } from '../crypto';
+import { encryptMessage, decryptMessage, isUntrustedIdentityError } from '../crypto';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
@@ -44,6 +44,13 @@ export function ConversationScreen({ route }: Props) {
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Set when establishSession/encrypt/decrypt fails because the peer's
+  // identity key changed since the last session (see
+  // crypto/index.ts::isUntrustedIdentityError) — the equivalent of Signal's
+  // "safety number changed" warning. Distinct from loadError/console.error
+  // below: without this, a changed identity used to fail completely
+  // silently (no UI signal at all that something needs attention).
+  const [securityWarning, setSecurityWarning] = useState<string | null>(null);
 
   // Local-side disappearing-message timers, keyed by message id, so we can
   // cancel them on unmount instead of leaking setTimeouts. This runs
@@ -104,6 +111,11 @@ export function ConversationScreen({ route }: Props) {
         });
         scheduleExpiry(fetched.id, fetched.expiresAt);
       } catch (error) {
+        if (isUntrustedIdentityError(error)) {
+          setSecurityWarning(
+            `A chave de segurança de ${peerUserId} mudou desde a última conversa. Esta mensagem não foi decifrada — confirma com a outra pessoa antes de continuar.`,
+          );
+        }
         console.error('[ConversationScreen] failed to decrypt message', fetched.id, error);
       }
     },
@@ -143,6 +155,11 @@ export function ConversationScreen({ route }: Props) {
       scheduleExpiry(id, expiresAt);
       setInputText('');
     } catch (error) {
+      if (isUntrustedIdentityError(error)) {
+        setSecurityWarning(
+          `A chave de segurança de ${peerUserId} mudou desde a última conversa. A mensagem não foi enviada — confirma com a outra pessoa antes de continuar.`,
+        );
+      }
       console.error('[ConversationScreen] failed to send message', error);
     } finally {
       setSending(false);
@@ -157,6 +174,12 @@ export function ConversationScreen({ route }: Props) {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {loadError ? (
           <Text style={[styles.errorText, { color: colors.danger }]}>{loadError}</Text>
+        ) : null}
+
+        {securityWarning ? (
+          <View style={[styles.securityWarning, { backgroundColor: colors.surfaceAlt, borderColor: colors.danger }]}>
+            <Text style={[styles.securityWarningText, { color: colors.danger }]}>{securityWarning}</Text>
+          </View>
         ) : null}
 
         <View style={styles.ttlRow}>
@@ -269,6 +292,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
+  },
+  securityWarning: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  securityWarningText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   messageBubble: {
     borderRadius: 12,

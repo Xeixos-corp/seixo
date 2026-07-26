@@ -1059,6 +1059,18 @@ public enum SignalNativeError {
     
     case InvalidMasterKeyLength(message: String)
     
+    /**
+     * The peer's identity key doesn't match what we last saw for them
+     * (`FileIdentityKeyStore::is_trusted_identity` in store.rs, trust-on-
+     * first-use) — either their app reinstalled and generated a fresh
+     * identity, or a MITM is presenting a different key. Kept as its own
+     * variant (not folded into `Protocol`) so the app can show a specific
+     * "this contact's security key changed" message instead of a generic
+     * decrypt-failed error — the equivalent of Signal's safety number
+     * change warning. Callers must not silently retry past this.
+     */
+    case UntrustedIdentity(message: String)
+    
 }
 
 
@@ -1099,6 +1111,10 @@ public struct FfiConverterTypeSignalNativeError: FfiConverterRustBuffer {
             message: try FfiConverterString.read(from: &buf)
         )
         
+        case 7: return .UntrustedIdentity(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
 
         default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -1122,6 +1138,8 @@ public struct FfiConverterTypeSignalNativeError: FfiConverterRustBuffer {
             writeInt(&buf, Int32(5))
         case .InvalidMasterKeyLength(_ /* message is ignored*/):
             writeInt(&buf, Int32(6))
+        case .UntrustedIdentity(_ /* message is ignored*/):
+            writeInt(&buf, Int32(7))
 
         
         }
