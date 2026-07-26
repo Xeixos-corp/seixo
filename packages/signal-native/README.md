@@ -8,7 +8,7 @@ apps. An earlier attempt to bridge via `uniffi-bindgen-react-native` (RN
 TurboModule generator) is abandoned — see `packages/signal-native-rn/README.md`
 for why (Expo's autolinking isn't what that tool was built/tested against).
 
-## Status: Android done end to end, iOS prepared but unbuilt (no Mac available)
+## Status: Android done end to end; iOS build verified via EAS (simulator profile), runtime still unverified
 
 `rust/src/lib.rs` wraps the **real** `libsignal-protocol` crate (fetched
 directly from `signalapp/libsignal` as a git dependency — no custom
@@ -91,20 +91,19 @@ restart), and proves the conversation keeps working on both sides afterward
 
 **What's still missing:**
 
-1. **iOS build itself.** Swift bindings ARE generated (`cargo run --bin
-   uniffi-bindgen -- generate --language swift`, checked into
-   `app/modules/signal-native-expo/ios/generated/`) and the Swift Expo Module
-   (`SignalNativeExpoModule.swift`) is written, mirroring the Android Kotlin
-   one. What's still untested is the actual Rust-for-iOS compilation
-   (`rust/build-ios.sh` — builds `aarch64-apple-ios` +
-   `aarch64-apple-ios-sim`/`x86_64-apple-ios`, assembles an
-   `.xcframework`) and the Xcode/CocoaPods linking of it all — none of that
-   can run without a Mac or Xcode, which this dev machine doesn't have.
-   Wired to run automatically via EAS Build's `eas-build-post-install` hook
-   (`app/scripts/eas-build-post-install.js`) on its macOS workers, but this
-   is genuinely the first time that path will execute — expect to debug it
-   on the first real `eas build --platform ios` run. See the caveats listed
-   at the top of `build-ios.sh`.
+1. ~~iOS build itself~~ **Done** — `eas build --profile development-simulator
+   --platform ios` succeeded on the first real run (2026-07-26): the
+   `eas-build-post-install` hook (`app/scripts/eas-build-post-install.js`)
+   ran `rust/build-ios.sh` on EAS's macOS workers, cross-compiling this
+   crate for `aarch64-apple-ios` + the simulator targets, assembling the
+   `.xcframework`, and the full Xcode/CocoaPods build linked it
+   successfully — no debugging needed, it worked first try. Still open:
+   this was a **simulator** build (no Apple Developer account needed — see
+   root `README.md`); a real-device build (`development` profile) still
+   needs that paid account, and hasn't been attempted. Simulator builds
+   also can't actually be launched without a Mac (Simulator.app is
+   macOS-only), so runtime behavior on iOS remains unverified even though
+   the build itself now proven to succeed.
 2. **Not actually run on a device/emulator yet, on either platform** — `gradlew assembleDebug`
    proves it *compiles and links*, not that `SignalDevice` calls succeed at
    runtime through the JNA/JNI boundary. That's the next verification step

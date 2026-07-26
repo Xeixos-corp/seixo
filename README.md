@@ -11,11 +11,12 @@ against and what it explicitly does not.
 - `app/modules/signal-native-expo/` — the real bridge between the app and the
   Rust crypto crate: a local **Expo Module** wrapping uniffi's standard
   Kotlin/Swift bindings. Android is built and verified (`gradlew
-  assembleDebug` succeeds, real `libsignal-protocol` linked in). iOS bindings
-  are generated and the Swift module is written, but the Rust-for-iOS build
-  itself has never run (no Mac/Xcode on this dev machine) — it's wired to
-  run automatically on EAS Build's macOS workers on the first `eas build
-  --platform ios` (see `packages/signal-native/README.md`).
+  assembleDebug` succeeds, real `libsignal-protocol` linked in). iOS: the
+  Rust-for-iOS cross-compile + Xcode/CocoaPods build now also succeeds, via
+  EAS Build's macOS workers (`eas build --profile development-simulator
+  --platform ios`, no Mac needed to trigger it) — confirmed working
+  2026-07-26 on the first real attempt. Runtime behavior on an actual
+  iOS Simulator/device is still unverified (see `packages/signal-native/README.md`).
 - `packages/signal-native/` — the Rust crate itself, wrapping
   `signalapp/libsignal`'s `libsignal-protocol`. No custom cryptography here —
   everything security-relevant is delegated to that audited crate. Real
@@ -40,26 +41,23 @@ npx expo prebuild --platform android
 cd android && ./gradlew assembleDebug
 ```
 
-## Getting started (app, iOS — needs EAS Build, untested end to end)
+## Getting started (app, iOS — needs EAS Build; Tier 1 confirmed working 2026-07-26)
 
-This dev machine has no Mac, so this path has been prepared but never
-actually run. Two tiers, cheapest first:
+This dev machine has no Mac, so this path had to be verified via EAS Build's
+cloud workers instead. Two tiers, cheapest first:
 
 ### Tier 1 — free, no Apple account, proves the Rust/Xcode build itself works
 
 `eas.json`'s `development-simulator` profile builds for the iOS **Simulator**
 (`ios.simulator: true`), which needs no Apple Developer Program membership
 at all (verified against Expo's current docs before adding this — simulator
-builds are explicitly Apple-account-free). Caveat: the *resulting build*
-only runs inside the Simulator app, which is macOS-only — without a Mac you
-can't actually launch what gets built. The value here is narrower than a
-real device test: it only proves `eas-build-post-install` (which runs
+builds are explicitly Apple-account-free). **Confirmed working on the first
+real attempt** (2026-07-26) — `eas-build-post-install` (which runs
 `packages/signal-native/rust/build-ios.sh`, building the Rust crate for iOS
-and assembling an `.xcframework`) actually succeeds — genuinely the first
-real execution of that script, so expect to debug something on the first
-run. See the caveats comment at the top of `build-ios.sh` for the likely
-failure points (exact toolchain install commands on the EAS image,
-xcframework output path).
+and assembling an `.xcframework`) succeeded, and the full Xcode build linked
+it in without any fixes needed. Caveat: the *resulting build* only runs
+inside the Simulator app, which is macOS-only — without a Mac you still
+can't actually launch what gets built, so runtime behavior is unverified.
 
 1. Create a free account at [expo.dev](https://expo.dev) if you don't have
    one, then `npm install -g eas-cli` and `eas login`.
@@ -80,8 +78,8 @@ xcframework output path).
 3. Once it succeeds, EAS gives you a link/QR code to install the dev client
    on your iPhone via TestFlight-style internal distribution.
 
-Report back what breaks — this is the one part of the whole stack that has
-had zero real-world execution yet.
+Tier 2 (real device) hasn't been attempted yet — report back what breaks,
+same as Tier 1's first run.
 
 ## Regenerating the Kotlin/Swift bindings after a Rust API change
 
