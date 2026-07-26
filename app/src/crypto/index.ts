@@ -103,6 +103,18 @@ export function resetSignalDevice(): void {
 }
 
 /**
+ * Deletes the on-disk encrypted Signal Protocol store (store.rs's *.enc
+ * files) so a later initSignalDevice() call generates a genuinely fresh
+ * identity instead of silently reloading the old one. Used by account
+ * deletion (identity/deleteAccount.ts) — NOT part of normal app logout,
+ * since normal logout should preserve the identity for next launch.
+ */
+export function wipeLocalSignalStore(): void {
+  SignalNativeExpoModule.wipeLocalStore();
+  deviceInitialized = false;
+}
+
+/**
  * True when `establishSession`/`encryptMessage`/`decryptMessage` failed
  * because the peer's identity key no longer matches what we saw in an
  * earlier session — the equivalent of Signal's "safety number changed"

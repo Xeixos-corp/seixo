@@ -59,6 +59,20 @@ public class SignalNativeExpoModule: Module {
       try self.requireDevice().identityPublicKeyBase64()
     }
 
+    // App Store Guideline 5.1.1(v) account deletion: mirrors the Kotlin
+    // wipeLocalStore() — see that file's comment for why this is needed
+    // (without it, a later createDevice() would silently reload the
+    // deleted account's old identity from disk).
+    Function("wipeLocalStore") {
+      self.device = nil
+      let storageDir = try SignalNativeExpoModule.resolveStorageDir()
+      let fileManager = FileManager.default
+      for name in ["identity.enc", "prekeys.enc", "signed_prekeys.enc", "kyber_prekeys.enc", "sessions.enc"] {
+        let path = (storageDir as NSString).appendingPathComponent(name)
+        try? fileManager.removeItem(atPath: path)
+      }
+    }
+
     Function("generatePrekeyBundle") { (oneTimePrekeyId: Int, signedPrekeyId: Int, kyberPrekeyId: Int) -> [String: Any] in
       let bundle = try self.requireDevice().generatePrekeyBundle(
         oneTimePrekeyId: UInt32(oneTimePrekeyId),

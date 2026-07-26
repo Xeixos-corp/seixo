@@ -60,8 +60,18 @@ supabase db push
   the Rust-side prekey ids (chosen by the caller of `generatePrekeyBundle`)
   need to be published too, not just the public key material, so a peer can
   embed the correct id in the X3DH/PQXDH message it sends.
+- `0007_blocking.sql` — `blocked_peers` table (self-manageable only) and an
+  updated `create_direct_channel()` that rejects new channels in either
+  direction once blocked. App Store Review Guideline 1.2 requirement — see
+  `docs/threat-model.md`'s "App Store compliance" section.
 
-All of 0003–0006 were applied against the live dev project
+There is also a `supabase/functions/delete-account/` Edge Function (not a
+migration) that deletes the caller's own `auth.users` row via the Admin API
+— Guideline 5.1.1(v). Deploy it with `supabase functions deploy delete-account`
+(or the Supabase MCP connector's `deploy_edge_function`, which is how it was
+first deployed).
+
+All of 0003–0007 were applied against the live dev project
 (`zopexbtdbqboijysmpuy`) via the Supabase MCP connector and verified with two
 real anonymous test users exercising the actual REST API before being
 committed here — see `app/src/transport/` for the client code that depends

@@ -3,6 +3,7 @@ import type { EncryptedEnvelope, OneTimePrekeyPublic, PreKeyBundleData } from '.
 
 declare class SignalNativeExpoModule extends NativeModule<{}> {
   createDevice(userId: string, deviceId: number, masterKeyBase64: string): void;
+  wipeLocalStore(): void;
   identityPublicKeyBase64(): string;
   generatePrekeyBundle(
     oneTimePrekeyId: number,

@@ -20,6 +20,7 @@ type ConversationsState = {
   addConversation: (conversation: Conversation) => void;
   hasConversation: (channelId: string) => boolean;
   setConversationTtl: (channelId: string, ttlSeconds: number) => void;
+  removeConversation: (channelId: string) => void;
 };
 
 // Persisted: the list of known conversations (including the chosen TTL)
@@ -43,6 +44,15 @@ export const useConversationsStore = create<ConversationsState>()(
           conversations: state.conversations.map((c) =>
             c.channelId === channelId ? { ...c, ttlSeconds } : c,
           ),
+        }));
+      },
+      // Used when blocking a peer (ConversationScreen.tsx) — hides the
+      // conversation locally. Doesn't touch server-side channel/message
+      // rows; those age out via the existing TTL purge like any other
+      // conversation (see supabase/migrations/0007_blocking.sql).
+      removeConversation: (channelId) => {
+        set((state) => ({
+          conversations: state.conversations.filter((c) => c.channelId !== channelId),
         }));
       },
     }),

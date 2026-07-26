@@ -1,0 +1,102 @@
+import React, { useState } from 'react';
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useAppTheme } from '../theme/ThemeProvider';
+import type { RootStackParamList } from '../navigation/RootNavigator';
+import { SUPPORT_CONTACT_EMAIL } from '../config/support';
+import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+
+export function SettingsScreen({ navigation }: Props) {
+  const { colors } = useAppTheme();
+  const [deleting, setDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setErrorMessage(null);
+    try {
+      await deleteAccountAndAllLocalData();
+      navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error));
+      setDeleting(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Eliminar conta',
+      'Isto apaga a tua identidade e todos os dados associados no servidor (chaves, prekeys, conversas iniciadas, bloqueios) e no dispositivo. Não é reversível.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: handleDelete },
+      ],
+    );
+  };
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Suporte</Text>
+        {SUPPORT_CONTACT_EMAIL ? (
+          <Pressable onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}`)}>
+            <Text style={[styles.link, { color: colors.accent }]}>{SUPPORT_CONTACT_EMAIL}</Text>
+          </Pressable>
+        ) : (
+          <Text style={{ color: colors.textSecondary }}>Contacto de suporte por definir.</Text>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Conta</Text>
+        {errorMessage ? (
+          <Text style={[styles.errorText, { color: colors.danger }]}>{errorMessage}</Text>
+        ) : null}
+        <Pressable
+          disabled={deleting}
+          onPress={confirmDelete}
+          style={({ pressed }) => [
+            styles.dangerButton,
+            { backgroundColor: colors.danger, opacity: pressed || deleting ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
+            {deleting ? 'A eliminar…' : 'Eliminar conta e todos os dados'}
+          </Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  section: {
+    marginTop: 24,
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  link: {
+    fontSize: 15,
+  },
+  errorText: {
+    fontSize: 13,
+  },
+  dangerButton: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+});

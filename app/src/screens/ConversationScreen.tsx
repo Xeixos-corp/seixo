@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -14,8 +16,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useMessagesStore } from '../store/messagesStore';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
+import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { fetchMessages, sendMessage, subscribeToChannelMessages, type FetchedMessage } from '../transport/messages';
+import { blockPeer } from '../transport/blocking';
+import { registerIdentity } from '../identity/registerIdentity';
 import { encryptMessage, decryptMessage, isUntrustedIdentityError } from '../crypto';
+import { SUPPORT_CONTACT_EMAIL } from '../config/support';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
@@ -30,7 +36,7 @@ const TTL_OPTIONS: Array<{ label: string; seconds: number }> = [
   { label: '1 semana', seconds: 7 * 24 * 60 * 60 },
 ];
 
-export function ConversationScreen({ route }: Props) {
+export function ConversationScreen({ route, navigation }: Props) {
   const { channelId, peerUserId } = route.params;
   const { colors } = useAppTheme();
   const messages = useMessagesStore((state) => state.messagesByChannel[channelId] ?? []);
@@ -40,6 +46,60 @@ export function ConversationScreen({ route }: Props) {
     (state) => state.conversations.find((c) => c.channelId === channelId)?.ttlSeconds ?? DEFAULT_TTL_SECONDS,
   );
   const setConversationTtl = useConversationsStore((state) => state.setConversationTtl);
+  const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
+  const addBlockedPeer = useBlockedPeersStore((state) => state.addBlockedPeer);
+  const removeConversation = useConversationsStore((state) => state.removeConversation);
+
+  const handleBlock = useCallback(() => {
+    Alert.alert(
+      'Bloquear contacto',
+      `Deixarás de conseguir trocar mensagens com ${peerUserId}. Podes desbloquear mais tarde em Definições > Bloqueados.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Bloquear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { userId } = await registerIdentity();
+              await blockPeer(userId, peerUserId);
+              addBlockedPeer(peerUserId);
+              removeConversation(channelId);
+              navigation.navigate('ConversationList');
+            } catch (error) {
+              console.error('[ConversationScreen] failed to block peer', error);
+            }
+          },
+        },
+      ],
+    );
+  }, [peerUserId, channelId, addBlockedPeer, removeConversation, navigation]);
+
+  const handleReport = useCallback(() => {
+    if (!SUPPORT_CONTACT_EMAIL) return;
+    const subject = encodeURIComponent('Denúncia de utilizador');
+    const body = encodeURIComponent(
+      `Quero denunciar o utilizador com user_id: ${peerUserId}\n\nDescreve aqui o que aconteceu (podes colar o texto da mensagem em causa):\n\n`,
+    );
+    Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}?subject=${subject}&body=${body}`);
+  }, [peerUserId]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerButtons}>
+          {SUPPORT_CONTACT_EMAIL ? (
+            <Pressable onPress={handleReport} hitSlop={8}>
+              <Text style={{ color: colors.accent, fontSize: 13 }}>Denunciar</Text>
+            </Pressable>
+          ) : null}
+          <Pressable onPress={handleBlock} hitSlop={8}>
+            <Text style={{ color: colors.danger, fontSize: 13 }}>Bloquear</Text>
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation, colors.accent, colors.danger, handleBlock, handleReport]);
 
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -85,6 +145,12 @@ export function ConversationScreen({ route }: Props) {
 
   const decryptAndStore = useCallback(
     (fetched: FetchedMessage) => {
+      // Defense in depth: normally unreachable, since blocking navigates
+      // away from this screen immediately (see handleBlock above), but a
+      // realtime event could theoretically arrive in the gap before that
+      // navigation completes.
+      if (isBlocked(peerUserId)) return;
+
       // Own just-sent messages are recorded locally at send time (we already
       // have the plaintext — see handleSend). Decrypting them again here
       // would desync the ratchet: a party can never decrypt its own sent
@@ -119,7 +185,7 @@ export function ConversationScreen({ route }: Props) {
         console.error('[ConversationScreen] failed to decrypt message', fetched.id, error);
       }
     },
-    [channelId, peerUserId, addMessage, scheduleExpiry],
+    [channelId, peerUserId, addMessage, scheduleExpiry, isBlocked],
   );
 
   useEffect(() => {
@@ -253,6 +319,11 @@ export function ConversationScreen({ route }: Props) {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 14,
+    paddingRight: 4,
   },
   container: {
     flex: 1,

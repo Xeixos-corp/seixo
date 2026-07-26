@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,9 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useConversationsStore, type Conversation, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
+import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { registerIdentity } from '../identity/registerIdentity';
 import { createDirectChannel } from '../transport/channels';
 import { claimPeerPrekeyBundle } from '../transport/identities';
+import { isBlockedChannelError } from '../transport/blocking';
 import { establishSession, isUntrustedIdentityError } from '../crypto';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -24,6 +26,23 @@ export function ConversationListScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
   const conversations = useConversationsStore((state) => state.conversations);
   const addConversation = useConversationsStore((state) => state.addConversation);
+  const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
+  const visibleConversations = conversations.filter((c) => !isBlocked(c.peerUserId));
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerButtons}>
+          <Pressable onPress={() => navigation.navigate('BlockedPeers')} hitSlop={8}>
+            <Text style={{ color: colors.accent, fontSize: 14 }}>Bloqueados</Text>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
+            <Text style={{ color: colors.accent, fontSize: 14 }}>Definições</Text>
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation, colors.accent]);
 
   const [peerUserId, setPeerUserId] = useState('');
   const [starting, setStarting] = useState(false);
@@ -58,6 +77,8 @@ export function ConversationListScreen({ navigation }: Props) {
         setErrorMessage(
           `A chave de segurança de ${trimmedPeerId} mudou desde a última vez (provavelmente reinstalou a app). Confirma a identidade da outra pessoa antes de voltar a tentar.`,
         );
+      } else if (isBlockedChannelError(error)) {
+        setErrorMessage('Não é possível iniciar esta conversa — um de vocês bloqueou o outro.');
       } else {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
@@ -102,7 +123,7 @@ export function ConversationListScreen({ navigation }: Props) {
       ) : null}
 
       <FlatList
-        data={conversations}
+        data={visibleConversations}
         keyExtractor={(item) => item.channelId}
         renderItem={({ item }) => (
           <Pressable
@@ -131,6 +152,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 14,
+    paddingRight: 4,
   },
   header: {
     fontSize: 24,

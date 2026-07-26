@@ -53,3 +53,16 @@ export async function getOrCreateMasterKeyBase64(): Promise<string> {
   cachedMasterKeyBase64 = base64Key;
   return base64Key;
 }
+
+/**
+ * Deletes the master key from expo-secure-store. Used by account deletion
+ * (identity/deleteAccount.ts) — the on-disk Signal Protocol store it
+ * protects is separately wiped via crypto/index.ts::wipeLocalSignalStore.
+ * Without both, a new master key would still be generated on next launch
+ * but the OLD encrypted store files would remain undecryptable-but-present
+ * on disk — harmless, but pointless to leave behind.
+ */
+export async function clearMasterKeyBase64(): Promise<void> {
+  cachedMasterKeyBase64 = null;
+  await SecureStore.deleteItemAsync(STORAGE_KEY);
+}

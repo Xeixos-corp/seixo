@@ -9,7 +9,9 @@ import {
   EXTRA_ONE_TIME_PREKEY_IDS,
 } from '../transport/identities';
 import { subscribeToMyNewMemberships, getOtherMember } from '../transport/channels';
+import { fetchBlockedPeerIds } from '../transport/blocking';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
+import { useBlockedPeersStore } from '../store/blockedPeersStore';
 
 export type RegisteredIdentity = {
   userId: string;
@@ -32,6 +34,15 @@ export function registerIdentity(): Promise<RegisteredIdentity> {
   return registerPromise;
 }
 
+/**
+ * Clears the memoized registration so the next registerIdentity() call
+ * actually re-registers instead of returning the old (now-deleted)
+ * identity. Used by identity/deleteAccount.ts after wiping local state.
+ */
+export function resetRegisteredIdentity(): void {
+  registerPromise = null;
+}
+
 async function doRegister(): Promise<RegisteredIdentity> {
   const userId = await signInAnonymouslyIfNeeded();
   await initSignalDevice(userId, 1);
@@ -45,6 +56,9 @@ async function doRegister(): Promise<RegisteredIdentity> {
 
   await upsertMyIdentity(userId, bundle.identityKeyBase64, bundle.registrationId);
   await publishPrekeyBundle(userId, bundle, extraOneTimePrekeys);
+
+  const blockedPeerIds = await fetchBlockedPeerIds(userId);
+  useBlockedPeersStore.getState().setBlockedPeerIds(blockedPeerIds);
 
   // Detect conversations other people start with us (the receiving side of
   // createDirectChannel — see app/src/transport/channels.ts).

@@ -5,11 +5,15 @@ import { useAppTheme } from '../theme/ThemeProvider';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { ConversationListScreen } from '../screens/ConversationListScreen';
 import { ConversationScreen } from '../screens/ConversationScreen';
+import { BlockedPeersScreen } from '../screens/BlockedPeersScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
   ConversationList: undefined;
   Conversation: { channelId: string; peerUserId: string };
+  BlockedPeers: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -45,6 +49,12 @@ export function RootNavigator() {
           options={{ title: 'Conversas' }}
         />
         <Stack.Screen name="Conversation" component={ConversationScreen} options={{ title: 'Conversa' }} />
+        <Stack.Screen
+          name="BlockedPeers"
+          component={BlockedPeersScreen}
+          options={{ title: 'Contactos bloqueados' }}
+        />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Definições' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

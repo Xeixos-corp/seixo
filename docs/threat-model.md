@@ -155,6 +155,56 @@ a message sent with a long timer stays available longer than Signal's
 "starts on read" semantics would. Worth revisiting if this becomes a real
 product decision rather than a first pass.
 
+## App Store compliance (block, delete account, report)
+
+Not a privacy/crypto requirement, but a hard launch blocker: Apple App Store
+Review Guideline 1.2 (User-Generated Content) requires "the ability to block
+abusive users" and "published contact information" for any app with
+user-to-user communication; Guideline 5.1.1(v) requires in-app account
+deletion for any app with account creation (anonymous sign-in counts).
+Verified against Apple's current published guideline text before
+implementing, not from memory.
+
+- **Block**: `blocked_peers` table (`supabase/migrations/0007_blocking.sql`),
+  enforced both directions inside `create_direct_channel` — a blocked
+  identity can't start a new channel with the blocker, or vice versa.
+  Verified live against the real API with two throwaway anonymous accounts
+  (block → both directions rejected → unblock → works again). Client side:
+  `store/blockedPeersStore.ts` (local cache, refreshed on
+  `registerIdentity()`), a "Bloquear" action in `ConversationScreen.tsx`
+  (hides the conversation locally too), and `BlockedPeersScreen.tsx` to
+  unblock. Existing channels/messages with a since-blocked peer are NOT
+  server-deleted — they age out via the existing TTL purge like any other
+  conversation; only new channel creation is blocked and the conversation
+  is hidden locally.
+- **Delete account**: `supabase/functions/delete-account` Edge Function
+  deletes the caller's own `auth.users` row via the Admin API (service-role
+  key never reaches the client) after verifying their JWT — this cascades
+  `identities`/`signed_prekeys`/`one_time_prekeys`/`channel_members`/
+  `blocked_peers` automatically via existing FK constraints. Verified live:
+  created a throwaway account, gave it real identity/channel/block data,
+  called the deployed function, confirmed via SQL that every row was gone.
+  Client side (`identity/deleteAccount.ts`) additionally wipes the on-disk
+  encrypted Signal Protocol store (`SignalNativeExpoModule.kt`/
+  `.swift::wipeLocalStore`) and the `expo-secure-store` master key — without
+  this, a later "Criar identidade" would have silently reloaded the deleted
+  account's old cryptographic identity from local disk instead of starting
+  fresh. Reachable from `SettingsScreen.tsx`, behind a confirmation dialog.
+- **Report**: given true E2EE, the server cannot see message content to
+  moderate it — guideline 1.2's "filtering objectionable material" doesn't
+  meaningfully apply here any more than it does to Signal itself. What's
+  implemented instead (matching Signal's own approach): a "Denunciar" action
+  in `ConversationScreen.tsx` that opens a prefilled `mailto:` to the
+  support contact with the peer's `user_id`, letting the reporter describe
+  or paste the offending content themselves.
+- **Still missing / blocking submission**: `config/support.ts`'s
+  `SUPPORT_CONTACT_EMAIL` is `null` — no real support email exists yet
+  (user needs to create one). The report action and the Settings contact
+  row both stay hidden while it's unset. **Do not submit to App Store
+  review until this is set to a real address** — 1.2 explicitly requires
+  it, and both UI code paths already exist and just need the constant
+  filled in.
+
 ## Launch gate
 
 This product must not be exposed to real users carrying real conversations

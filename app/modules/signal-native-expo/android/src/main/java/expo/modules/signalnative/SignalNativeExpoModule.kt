@@ -1,6 +1,7 @@
 package expo.modules.signalnative
 
 import android.util.Base64
+import java.io.File
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -46,15 +47,34 @@ class SignalNativeExpoModule : Module() {
       "SignalDevice not created — call createDevice(userId, deviceId, masterKeyBase64) first."
     )
 
+  private fun resolveStorageDir(): String =
+    requireNotNull(appContext.reactContext?.filesDir?.absolutePath) {
+      "Could not resolve the app's private storage directory"
+    }
+
   override fun definition() = ModuleDefinition {
     Name("SignalNativeExpo")
 
     Function("createDevice") { userId: String, deviceId: Int, masterKeyBase64: String ->
       val masterKey = Base64.decode(masterKeyBase64, Base64.NO_WRAP)
-      val storageDir = requireNotNull(appContext.reactContext?.filesDir?.absolutePath) {
-        "Could not resolve the app's private storage directory"
+      device = SignalDevice(userId, deviceId.toUInt(), masterKey, resolveStorageDir())
+      Unit
+    }
+
+    // App Store Guideline 5.1.1(v) account deletion: the JS side already
+    // deletes the server-side account (see app/src/transport/account.ts);
+    // this wipes the on-disk encrypted store (store.rs's *.enc files) so a
+    // later createDevice() call generates a genuinely fresh identity
+    // instead of silently reloading the deleted account's old one. Deleting
+    // known filenames rather than the whole directory recursively, since
+    // this directory is the app's shared private files root, not something
+    // owned exclusively by signal-native.
+    Function("wipeLocalStore") {
+      device = null
+      val storageDir = resolveStorageDir()
+      listOf("identity.enc", "prekeys.enc", "signed_prekeys.enc", "kyber_prekeys.enc", "sessions.enc").forEach { name ->
+        File(storageDir, name).delete()
       }
-      device = SignalDevice(userId, deviceId.toUInt(), masterKey, storageDir)
       Unit
     }
 
