@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "apple"],
+  "apple": {
+    "modules": ["SignalNativeExpoModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.signalnative.SignalNativeExpoModule"]
+  }
+}

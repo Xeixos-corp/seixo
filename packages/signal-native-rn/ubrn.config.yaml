@@ -1,0 +1,4 @@
+---
+rust:
+  directory: ../signal-native/rust
+  manifestPath: Cargo.toml

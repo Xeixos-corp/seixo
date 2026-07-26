@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Rust build output (multi-GB, fully regenerable via cargo build)
+target/
+
+# Env files with real keys — only *.env.example is tracked
+.env
+.env.local
+
+# Expo / React Native / native build output. Patterns are **/-prefixed so
+# they match at any depth — needed because there are multiple android/ios
+# dirs in this repo (app/, app/modules/signal-native-expo/,
+# packages/signal-native-rn/ and its example/), not just one at the root.
+.expo/
+**/android/build/
+**/android/app/build/
+**/android/app/.cxx/
+**/android/.gradle/
+**/android/app/debug.keystore
+**/ios/build/
+**/ios/Pods/
+**/ios/DerivedData/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# Scratch uniffi-bindgen regen output — the real, tracked copies live under
+# app/modules/signal-native-expo/{android,ios}/. See packages/signal-native/README.md.
+packages/signal-native/kotlin-out/
+packages/signal-native/swift-out/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Local Claude Code tool config/session state — machine-specific, not project source
+.claude/

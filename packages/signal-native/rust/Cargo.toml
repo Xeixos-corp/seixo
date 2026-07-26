@@ -1,0 +1,43 @@
+[package]
+name = "signal_native"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Real libsignal-protocol integration (see README.md for status). Bridged to
+# the app as an Expo Module (packages/signal-native-expo) using uniffi's
+# standard Kotlin bindgen — the same kind of binding Signal/Mozilla ship in
+# production Android apps — rather than uniffi-bindgen-react-native's RN
+# TurboModule/JSI generator, which turned out to be incompatible with Expo's
+# own autolinking (see packages/signal-native-rn/README.md for the abandoned
+# attempt and why).
+[lib]
+crate-type = ["staticlib", "cdylib", "lib"]
+name = "signal_native"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["cli"]
+
+[dependencies]
+uniffi = "0.28"
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal", package = "libsignal-protocol" }
+rand = "0.9"
+tokio = { version = "1", features = ["rt"] }
+base64 = "0.22"
+thiserror = "1"
+# Milestone 2.5 (persistent storage): AES-256-GCM is a thin at-rest
+# encryption envelope around bytes libsignal-protocol already knows how to
+# serialize — not a reimplementation of any Signal Protocol crypto. See
+# packages/signal-native/rust/src/store.rs.
+aes-gcm = "0.10"
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
+async-trait = "0.1"
+
+[features]
+cli = ["uniffi/cli"]
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }

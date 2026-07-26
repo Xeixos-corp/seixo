@@ -1,0 +1,149 @@
+# Threat model (initial draft — Milestone 0)
+
+This is a living document. It exists so that every later decision ("can we
+skip this?", "is this good enough to launch?") gets checked against something
+written down instead of vibes. Treat any claim here as invalid once the
+underlying implementation (linked file) changes without this doc being updated.
+
+## What we're protecting against
+
+- **A passive network observer** (ISP, Wi-Fi operator, on-path attacker)
+  should not learn message content, and — when Tor is enabled — should have a
+  much harder time correlating "device X talked to server Y at time Z."
+- **The backend operator** (us, or Supabase Inc. if Cloud is used during dev)
+  should never see plaintext message content or the raw sender-recipient
+  mapping of an individual message (sealed sender, see `supabase/migrations/0001_init.sql`).
+- **A device compromise after the fact** should not retroactively expose past
+  conversations forever — this is why messages carry `expires_at` and are
+  purged server-side by `pg_cron` regardless of whether the recipient ever
+  opened the app (`supabase/migrations/0002_pg_cron_ttl.sql`).
+
+## What we are explicitly NOT protecting against (yet, or ever)
+
+- **A compromised endpoint device** (malware, physical access with the device
+  unlocked, coerced unlock). No messaging app can defend against this; screen
+  lock + OS-level encryption is the user's responsibility.
+- **Global passive adversaries correlating traffic timing across the entire
+  network** (traffic analysis at nation-state scale). Tor raises the cost of
+  this; it does not make it impossible, especially for the party running both
+  ends of a conversation over long periods.
+- **Zero server-visible metadata.** This is not achievable with any
+  centralized backend, self-hosted or not. What we commit to is *minimizing
+  and time-limiting* what the server holds, not eliminating it. Concretely,
+  the server (whoever operates the Postgres instance) still learns:
+  - Which opaque `channel_id`s exist and which `user_id`s belong to them
+    (`channel_members` table) — this is unavoidable; the server has to know
+    who is authorized to read a channel to enforce RLS and route delivery.
+  - Connection IP and request timing, unless the client is using the Tor
+    toggle for that session.
+  - Approximate message size and frequency (ciphertext length, insert rate),
+    even though content and sender-within-a-message are hidden.
+
+## Known platform-specific gaps
+
+- **Tor on iOS is best-effort, not guaranteed.** Apple's review process and
+  background-execution restrictions make an always-on embedded Tor daemon
+  much less reliable on iOS than on Android. If App Store review rejects or
+  restricts this, the iOS build ships without the Tor toggle rather than
+  blocking the whole app — this must be decided explicitly, not discovered at
+  submission time.
+- **Push notifications leak "a message arrived" to Apple/Google by
+  necessity.** We send content-free wake pings and treat Supabase Realtime as
+  the actual delivery channel (see Milestone 3), but the existence and rough
+  timing of a wake ping is visible to Apple/Google infrastructure. This
+  matches Signal's own tradeoff, not a step back from it.
+
+## Cryptographic foundation
+
+We are not writing our own Double Ratchet / X3DH implementation. The crypto
+core is `signalapp/libsignal` (Rust, audited, official Signal library),
+wrapped for the app as a local Expo Module (`app/modules/signal-native-expo`,
+see `packages/signal-native/README.md` for current status and how the two
+relate). Any request to "just implement the crypto ourselves for
+flexibility" should be treated as a red flag and pushed back on.
+
+## Persistent key/session storage (Milestone 2.5 — done)
+
+`packages/signal-native`'s `SignalDevice` now persists identity, sessions,
+and prekeys to disk (`rust/src/store.rs`), encrypted with AES-256-GCM under
+a 32-byte key custodied by `expo-secure-store` (Keychain on iOS, Keystore on
+Android — see `app/src/crypto/masterKey.ts`). This closes the gap described
+in earlier drafts of this document, where every app restart silently
+generated a new identity and made all prior conversations permanently
+undecryptable. Verified by `cargo test` actually dropping and reconstructing
+a `SignalDevice` mid-conversation (`session_survives_simulated_restart`),
+not just by writing files and assuming it works.
+
+Persistence also surfaced a real bug worth naming: with only ever *one*
+published one-time prekey per identity, the second peer to start a
+conversation with someone (before that person's app relaunched) would find
+the prekey table already emptied by the first peer's claim
+(`claimPeerPrekeyBundle` deletes on claim — see
+`app/src/transport/identities.ts`). `registerIdentity()` now publishes a
+pool of 20 one-time prekeys per registration
+(`generate_extra_one_time_prekeys` in `rust/src/lib.rs`,
+`EXTRA_ONE_TIME_PREKEY_IDS` in `identities.ts`), proven by a dedicated
+`cargo test` (`pool_of_one_time_prekeys_allows_multiple_concurrent_peers`)
+where two peers independently claim different one-time prekeys from the same
+identity's pool and both end up with working sessions. See the "no automatic
+replenishment" gap below for what's still missing.
+
+What this does **not** cover:
+
+- **Losing the device, or the OS clearing Keychain/Keystore** (e.g. app
+  uninstall/reinstall) still permanently loses the identity — there is
+  intentionally no server-side backup of identity or session keys. A backup
+  path would defeat much of the point of this design; if backup/multi-device
+  is added later, it needs its own explicit threat-model entry, not a quiet
+  bolt-on.
+- **No key rotation yet.** The signed/Kyber prekey published at registration
+  is only replaced when `registerIdentity()` runs again with a reason to
+  (e.g. a fresh device), not on a schedule. Signal's own clients rotate
+  periodically; this app doesn't yet.
+- **The one-time prekey pool (20 per registration, see below) has no
+  automatic replenishment.** If more than 20 peers start a session with an
+  identity between two `registerIdentity()` calls, the 21st finds none left
+  and `claimPeerPrekeyBundle` fails outright — there's no background
+  top-up, only "the pool refills the next time the app restarts." Fine for
+  now given the expected scale of manual, user_id-based conversation
+  starts; would need real replenishment logic before this app has enough
+  users for it to matter.
+- **Decrypted plaintext is still never persisted** — `app/src/store/messagesStore.ts`
+  stays in-memory-only by design (a message can only be decrypted once; the
+  local plaintext is a cache of that one-time result, not something safe to
+  redo from ciphertext later). The conversation list itself
+  (`app/src/store/conversationsStore.ts`) is persisted, since it doesn't
+  depend on ratchet state.
+- **The local store file itself isn't further hardened** against a
+  jailbroken/rooted device with the app unlocked — this falls under "a
+  compromised endpoint device" above, which no messaging app defends against.
+
+## Disappearing messages
+
+Every message carries a per-conversation TTL chosen by the sender
+(`app/src/screens/ConversationScreen.tsx`, 30s to 1 week), enforced in two
+independent places:
+
+- **Server-side**: `expires_at` on the row, purged by `pg_cron` every minute
+  (`supabase/migrations/0002_pg_cron_ttl.sql`) regardless of whether anyone
+  ever opened the app to see the message.
+- **Client-side**: `ConversationScreen` schedules local removal from
+  `messagesStore` at the same `expires_at` — so a message vanishes from an
+  already-open conversation live, not just on next fetch. A message that
+  arrives already past its `expires_at` (a small race against the
+  once-a-minute purge) is never decrypted at all — no point spending a
+  one-time Double Ratchet message key on something about to disappear.
+
+This is not the same guarantee as Signal's "timer starts when read" model —
+here the timer starts at send time for everyone, which is simpler but means
+a message sent with a long timer stays available longer than Signal's
+"starts on read" semantics would. Worth revisiting if this becomes a real
+product decision rather than a first pass.
+
+## Launch gate
+
+This product must not be exposed to real users carrying real conversations
+before an external security audit of at least: the `signal-native` crypto
+integration, the Supabase RLS policies, and the TTL purge logic. This is
+listed as Milestone 5 in the project plan and is non-negotiable for a "real
+product" launch (as opposed to a personal prototype).

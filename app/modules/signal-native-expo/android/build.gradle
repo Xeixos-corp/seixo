@@ -1,0 +1,31 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+group = 'expo.modules.signalnative'
+version = '0.1.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useDefaultAndroidSdkVersions()
+useExpoPublishing()
+
+android {
+  namespace "expo.modules.signalnative"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // The generated Kotlin bindings (android/src/main/java/uniffi/signal_native)
+  // call into the compiled Rust cdylib (jniLibs/*/libsignal_native.so) via JNA,
+  // not raw JNI — this is uniffi's standard Kotlin bindgen output, the same
+  // approach Mozilla/Signal use for their production Android apps.
+  implementation "net.java.dev.jna:jna:5.14.0@aar"
+}

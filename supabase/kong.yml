@@ -1,0 +1,39 @@
+# Minimal declarative Kong config routing the public API surface to each
+# self-hosted service. Mirrors the routing Supabase Cloud's edge gateway does.
+# See supabase/docker-compose.yml header for the caveat about verifying this
+# against the official self-hosting repo before production use.
+
+_format_version: "2.1"
+
+services:
+  - name: auth-v1
+    url: http://auth:9999
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1
+
+  - name: rest-v1
+    url: http://rest:3000
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1
+
+  - name: realtime-v1
+    url: http://realtime:4000/socket
+    routes:
+      - name: realtime-v1-all
+        strip_path: true
+        paths:
+          - /realtime/v1
+
+  - name: storage-v1
+    url: http://storage:5000
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1

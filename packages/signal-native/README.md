@@ -1,0 +1,125 @@
+# signal-native
+
+Native crypto module: wraps [`signalapp/libsignal`](https://github.com/signalapp/libsignal)
+(Rust, `libsignal-protocol` crate). Bridged to the Expo app as a local **Expo
+Module** (`app/modules/signal-native-expo`) using uniffi's standard Kotlin
+bindgen — the same binding style Mozilla/Signal use in production Android
+apps. An earlier attempt to bridge via `uniffi-bindgen-react-native` (RN
+TurboModule generator) is abandoned — see `packages/signal-native-rn/README.md`
+for why (Expo's autolinking isn't what that tool was built/tested against).
+
+## Status: Android done end to end, iOS prepared but unbuilt (no Mac available)
+
+`rust/src/lib.rs` wraps the **real** `libsignal-protocol` crate (fetched
+directly from `signalapp/libsignal` as a git dependency — no custom
+cryptography is implemented in this repo). `cargo test` proves a full
+two-party flow works: PQXDH session establishment from a published prekey
+bundle, then Double Ratchet message exchange in both directions, verifying
+the ratchet advances (first message is a PreKey-type message, subsequent ones
+are ordinary Whisper-type messages).
+
+Beyond the Rust-level test, the full chain is now built and verified for
+Android: `cargo-ndk` cross-compiles this crate for all 4 Android ABIs,
+`cargo run --bin uniffi-bindgen -- generate --language kotlin` produces real
+Kotlin bindings (checked into
+`app/modules/signal-native-expo/android/src/main/java/uniffi/signal_native/`),
+and `app/android && ./gradlew assembleDebug` **succeeds**, producing a real
+debug APK with the crypto module linked in.
+
+Note this version of libsignal makes the Kyber/PQXDH prekey **mandatory**,
+not optional — so this integration is post-quantum-resistant key agreement by
+default, not just classic X3DH.
+
+Exposed via `#[uniffi::export]` on the `SignalDevice` object:
+- `SignalDevice::new(user_id, device_id, master_key, storage_dir)` — opens
+  the encrypted on-disk store at `storage_dir` if one already exists there
+  (loading the existing identity/sessions/prekeys), otherwise generates a
+  fresh identity and persists it immediately. See `rust/src/store.rs`.
+- `identity_public_key_base64()`
+- `generate_prekey_bundle(one_time_id, signed_id, kyber_id)` — the data to
+  publish to `supabase.signed_prekeys` / `supabase.one_time_prekeys`.
+- `generate_extra_one_time_prekeys(ids)` — generates and stores additional
+  one-time EC prekeys without touching the signed/Kyber prekey, so a pool of
+  many can be published instead of just the bundle's single one-time key.
+  Fixes a real bug: with only one published one-time prekey, only the first
+  peer to claim it before the next registration got one at all (claiming
+  deletes it server-side) — see `app/src/transport/identities.ts` and the
+  threat model's "Persistent key/session storage" section.
+- `establish_session(remote_user_id, remote_device_id, bundle)`
+- `encrypt(remote_user_id, remote_device_id, plaintext)` /
+  `decrypt(remote_user_id, remote_device_id, envelope)`
+
+`app/src/crypto/index.ts` wraps the Expo Module (`SignalNativeExpoModule`)
+with this same shape, as free functions operating on one implicit
+per-process device (`initSignalDevice`, `generatePrekeyBundle`,
+`establishSession`, `encryptMessage`, `decryptMessage`).
+
+## Persistent storage (Milestone 2.5 — done)
+
+`rust/src/store.rs` implements all five libsignal-protocol storage traits
+(`IdentityKeyStore`, `PreKeyStore`, `SignedPreKeyStore`, `KyberPreKeyStore`,
+`SessionStore`) backed by AES-256-GCM-encrypted files under `storage_dir`
+(one file per store; every mutation re-encrypts and atomically rewrites its
+file). This is not a reimplementation of any Signal Protocol cryptography —
+it's a thin at-rest encryption envelope (the `aes-gcm` crate, RustCrypto,
+not hand-written cipher code) around bytes libsignal-protocol already knows
+how to serialize.
+
+Custody of the 32-byte encryption key is JS-side: `app/src/crypto/masterKey.ts`
+generates it once via `expo-crypto` and stores it via `expo-secure-store`
+(Keychain-backed on iOS, Keystore-backed on Android) — no hand-written
+Keychain/Keystore integration code was needed. `storage_dir` is resolved
+natively (one line each in `SignalNativeExpoModule.kt`/`.swift` — the app's
+private files directory), never exposed to JS.
+
+Verified with a dedicated `cargo test`
+(`session_survives_simulated_restart`): establishes a real session between
+two devices, **drops and reconstructs** each `SignalDevice` mid-conversation
+from the same `storage_dir`/`master_key` (exactly what happens on a real app
+restart), and proves the conversation keeps working on both sides afterward
+— not just that files get written, that the round trip actually survives.
+
+**What's still missing:**
+
+1. **iOS build itself.** Swift bindings ARE generated (`cargo run --bin
+   uniffi-bindgen -- generate --language swift`, checked into
+   `app/modules/signal-native-expo/ios/generated/`) and the Swift Expo Module
+   (`SignalNativeExpoModule.swift`) is written, mirroring the Android Kotlin
+   one. What's still untested is the actual Rust-for-iOS compilation
+   (`rust/build-ios.sh` — builds `aarch64-apple-ios` +
+   `aarch64-apple-ios-sim`/`x86_64-apple-ios`, assembles an
+   `.xcframework`) and the Xcode/CocoaPods linking of it all — none of that
+   can run without a Mac or Xcode, which this dev machine doesn't have.
+   Wired to run automatically via EAS Build's `eas-build-post-install` hook
+   (`app/scripts/eas-build-post-install.js`) on its macOS workers, but this
+   is genuinely the first time that path will execute — expect to debug it
+   on the first real `eas build --platform ios` run. See the caveats listed
+   at the top of `build-ios.sh`.
+2. **Not actually run on a device/emulator yet, on either platform** — `gradlew assembleDebug`
+   proves it *compiles and links*, not that `SignalDevice` calls succeed at
+   runtime through the JNA/JNI boundary. That's the next verification step
+   once an emulator or physical Android device is available.
+3. **No key rotation, no backup/multi-device sync, no recovery if the local
+   store is lost or corrupted.** Losing the device (or the OS wiping
+   Keychain/Keystore, e.g. after an uninstall) means losing the identity
+   permanently — there is intentionally no server-side backup of any of
+   this. That is the correct security tradeoff for this app (a server-held
+   backup of identity/session keys would defeat much of the point), but
+   it's worth being explicit that "persistent" means "survives app
+   restarts," not "survives losing the device."
+
+## Local build requirements (now verified working on this machine)
+
+Building this crate needs, in addition to the Rust toolchain: the MSVC C++
+Build Tools (`link.exe`) and Windows SDK (`kernel32.lib` etc.) on Windows,
+`protoc` (Protocol Buffers compiler) on `PATH` (one of libsignal's
+dependencies compiles `.proto` files at build time), and for Android: the
+NDK + `cargo-ndk` + the four `*-linux-android*` Rust targets. All installed
+on this dev machine already.
+
+## Security note
+
+Private key material must never cross the JS/native boundary in plaintext.
+The `SignalDevice` design keeps the `IdentityKeyPair` and all session state
+inside the Rust object, only ever returning public key material
+(base64-encoded) or opaque ciphertext across the FFI boundary.
