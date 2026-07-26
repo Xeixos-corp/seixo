@@ -9,7 +9,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.app"
+      "bundleIdentifier": "com.anonymous.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": true
+      }
     },
     "android": {
       "adaptiveIcon": {
