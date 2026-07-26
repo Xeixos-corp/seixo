@@ -43,22 +43,42 @@ cd android && ./gradlew assembleDebug
 ## Getting started (app, iOS — needs EAS Build, untested end to end)
 
 This dev machine has no Mac, so this path has been prepared but never
-actually run. Steps for whoever has an Expo/Apple Developer account:
+actually run. Two tiers, cheapest first:
+
+### Tier 1 — free, no Apple account, proves the Rust/Xcode build itself works
+
+`eas.json`'s `development-simulator` profile builds for the iOS **Simulator**
+(`ios.simulator: true`), which needs no Apple Developer Program membership
+at all (verified against Expo's current docs before adding this — simulator
+builds are explicitly Apple-account-free). Caveat: the *resulting build*
+only runs inside the Simulator app, which is macOS-only — without a Mac you
+can't actually launch what gets built. The value here is narrower than a
+real device test: it only proves `eas-build-post-install` (which runs
+`packages/signal-native/rust/build-ios.sh`, building the Rust crate for iOS
+and assembling an `.xcframework`) actually succeeds — genuinely the first
+real execution of that script, so expect to debug something on the first
+run. See the caveats comment at the top of `build-ios.sh` for the likely
+failure points (exact toolchain install commands on the EAS image,
+xcframework output path).
 
 1. Create a free account at [expo.dev](https://expo.dev) if you don't have
    one, then `npm install -g eas-cli` and `eas login`.
-2. You'll need an Apple Developer Program membership (99 USD/year) to install
-   on a real iPhone — required by Apple, not by us.
-3. From `app/`: `eas build --profile development --platform ios`. This runs
-   entirely on Expo's macOS cloud workers — nothing more to install locally.
-4. Watch for failures in the `eas-build-post-install` hook step (runs
-   `packages/signal-native/rust/build-ios.sh`, which builds the Rust crate
-   for iOS and assembles an `.xcframework`) — this is genuinely the first
-   execution of that script. See the caveats comment at the top of
-   `build-ios.sh` for the most likely failure points (exact toolchain
-   install commands on the EAS image, xcframework output path).
-5. Once the build succeeds, EAS gives you a link/QR code to install the dev
-   client on your iPhone via TestFlight-style internal distribution.
+2. From `app/`: `eas build --profile development-simulator --platform ios`.
+   Runs entirely on Expo's macOS cloud workers — nothing more to install
+   locally, no Apple account prompt.
+3. Watch the build log for the `eas-build-post-install` step. Success here
+   is the actual milestone — it's fine to stop at "the build completed"
+   even without a Mac to install it on.
+
+### Tier 2 — real device, needs a paid Apple account
+
+1. Apple Developer Program membership (99 USD/year) — required by Apple to
+   sign a build for a real iPhone, not something this project can avoid.
+2. From `app/`: `eas build --profile development --platform ios` (the
+   plain `development` profile, not `-simulator` — that one targets a real
+   device and will prompt for Apple credentials during the build).
+3. Once it succeeds, EAS gives you a link/QR code to install the dev client
+   on your iPhone via TestFlight-style internal distribution.
 
 Report back what breaks — this is the one part of the whole stack that has
 had zero real-world execution yet.
