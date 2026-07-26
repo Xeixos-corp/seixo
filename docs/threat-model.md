@@ -205,6 +205,25 @@ implementing, not from memory.
   it, and both UI code paths already exist and just need the constant
   filled in.
 
+## US export compliance (encryption)
+
+Confirmed during the first `eas build --profile development-simulator
+--platform ios` run: this app implements real non-exempt encryption for
+message confidentiality (X3DH/PQXDH + Double Ratchet via
+`libsignal-protocol`, plus AES-256-GCM for the local store — see
+`packages/signal-native/`), not just OS-provided HTTPS/TLS. Answered
+accordingly in the EAS/App Store Connect encryption prompts
+(`ITSAppUsesNonExemptEncryption = true`).
+
+**Still missing / blocking real (non-simulator, non-internal) distribution**:
+actually filing the annual self-classification report with the US Bureau
+of Industry and Security (BIS) that this "Yes" answer commits to. This has
+no consequence for internal/simulator/dev-client builds — it only matters
+once the app is distributed outside the developer's own EAS/Apple account
+(TestFlight external testing, App Store release). Research and file this
+before that point; not legal advice, get an actual read on current BIS
+requirements before relying on this note.
+
 ## Launch gate
 
 This product must not be exposed to real users carrying real conversations

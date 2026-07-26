@@ -8,7 +8,8 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,6 +27,11 @@
     "plugins": [
       "expo-secure-store",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cbf8cd02-91c8-4758-a4ca-728804e0ae4d"
+      }
+    }
   }
 }
