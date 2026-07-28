@@ -197,13 +197,9 @@ implementing, not from memory.
   in `ConversationScreen.tsx` that opens a prefilled `mailto:` to the
   support contact with the peer's `user_id`, letting the reporter describe
   or paste the offending content themselves.
-- **Still missing / blocking submission**: `config/support.ts`'s
-  `SUPPORT_CONTACT_EMAIL` is `null` — no real support email exists yet
-  (user needs to create one). The report action and the Settings contact
-  row both stay hidden while it's unset. **Do not submit to App Store
-  review until this is set to a real address** — 1.2 explicitly requires
-  it, and both UI code paths already exist and just need the constant
-  filled in.
+- ~~Still missing~~ **Done**: `config/support.ts`'s `SUPPORT_CONTACT_EMAIL`
+  is now `seixo.app@proton.me` — the report action and the Settings contact
+  row both surface it.
 
 ## US export compliance (encryption)
 
