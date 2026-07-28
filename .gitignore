@@ -31,6 +31,15 @@ target/
 packages/signal-native/kotlin-out/
 packages/signal-native/swift-out/
 
+# packages/signal-native-rn is abandoned (see its README) — its prebuilt
+# per-ABI static libs (78-132MB each) exceeded GitHub's file size limits and
+# were stripped from git history entirely. Never re-add them; nothing still
+# builds against this package. Does NOT apply to
+# app/modules/signal-native-expo/android/src/main/jniLibs/ — those are the
+# real, actively used .so files for the working Expo Module (well under any
+# size limit) and must stay tracked.
+packages/signal-native-rn/android/src/main/jniLibs/
+
 # OS cruft
 .DS_Store
 Thumbs.db
