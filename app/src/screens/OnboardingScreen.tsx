@@ -32,6 +32,7 @@ export function OnboardingScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
+        <Text style={[styles.brand, { color: colors.accent }]}>Seixo</Text>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Mensagens privadas</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Cifra ponta-a-ponta. Sem número de telefone. Metadados mínimos e temporários.
@@ -72,6 +73,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     gap: 12,
+  },
+  brand: {
+    fontSize: 15,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
   },
   title: {
     fontSize: 28,

@@ -1,4 +1,4 @@
-# Signal-style E2EE messenger
+# Seixo — a Signal-style E2EE messenger
 
 See [`docs/threat-model.md`](docs/threat-model.md) for what this app protects
 against and what it explicitly does not.

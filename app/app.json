@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "Seixo",
+    "slug": "seixo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.app",
+      "bundleIdentifier": "com.xeixos.seixo",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": true
       }
@@ -22,7 +22,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.app"
+      "package": "com.xeixos.seixo"
     },
     "web": {
       "favicon": "./assets/favicon.png"
