@@ -14,6 +14,7 @@
     "expo-crypto": "~14.0.2",
     "expo-dev-client": "~5.0.20",
     "expo-localization": "~16.0.1",
+    "expo-screen-capture": "~7.0.1",
     "expo-secure-store": "~14.0.1",
     "expo-status-bar": "~2.0.1",
     "expo-system-ui": "~4.0.9",

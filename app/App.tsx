@@ -4,8 +4,11 @@ import './src/i18n';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { registerIdentity } from './src/identity/registerIdentity';
+import { useScreenshotProtection } from './src/hooks/useScreenshotProtection';
 
 export default function App() {
+  useScreenshotProtection();
+
   useEffect(() => {
     // Fire-and-forget: OnboardingScreen awaits the same memoized promise to
     // show loading/error state, this just gets it started as early as

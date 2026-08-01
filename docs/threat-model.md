@@ -155,6 +155,32 @@ a message sent with a long timer stays available longer than Signal's
 "starts on read" semantics would. Worth revisiting if this becomes a real
 product decision rather than a first pass.
 
+## Screenshot protection
+
+Always on app-wide (`App.tsx` → `hooks/useScreenshotProtection.ts`), no
+per-conversation or Settings toggle — deliberately, to match this app's
+private-by-default posture, unlike Signal's opt-in "Screen Security".
+
+- **Android**: `expo-screen-capture`'s `usePreventScreenCapture()` sets
+  `FLAG_SECURE`, which genuinely blocks screenshots and screen recording at
+  the OS level (the exact mechanism banking apps and Signal's own Screen
+  Security use) — not a false sense of security, it actually prevents the
+  capture. Also blanks the app's preview in the recent-apps switcher, for
+  free. Verified: `gradlew assembleDebug` succeeds with the module linked.
+- **iOS**: Apple provides no API to block screenshots for any app (only
+  screen *recording*, which the same hook call also covers on iOS 11+).
+  A screenshot can only be detected after it already happened
+  (`addScreenshotListener`), so the best available response is a local
+  warning to whoever took it — no attempt to notify the other party, and no
+  attempt to block. Deliberately not requesting Android's
+  `READ_EXTERNAL_STORAGE` permission for the equivalent listener there,
+  since Android already blocks the capture outright — there is nothing to
+  detect.
+- **What this does not do, on either platform**: stop someone from
+  photographing the screen with a second physical device. No software
+  mechanism can prevent that — this protects against casual in-app
+  screenshotting/screen-recording, not a determined leak.
+
 ## App Store compliance (block, delete account, report)
 
 Not a privacy/crypto requirement, but a hard launch blocker: Apple App Store

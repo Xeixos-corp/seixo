@@ -56,5 +56,9 @@
     "deleteConfirmTitle": "Eliminar conta",
     "deleteConfirmMessage": "Isto apaga a tua identidade e todos os dados associados no servidor (chaves, prekeys, conversas iniciadas, bloqueios) e no dispositivo. Não é reversível.",
     "deleteButtonConfirm": "Eliminar"
+  },
+  "screenshotWarning": {
+    "title": "Captura de ecrã",
+    "message": "Tiraste uma captura de ecrã. Lembra-te que as conversas aqui são privadas — evita partilhar."
   }
 }
