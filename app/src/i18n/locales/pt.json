@@ -1,0 +1,60 @@
+{
+  "navigation": {
+    "conversationList": "Conversas",
+    "conversation": "Conversa",
+    "blockedPeers": "Contactos bloqueados",
+    "settings": "Definições"
+  },
+  "onboarding": {
+    "title": "Mensagens privadas",
+    "subtitle": "Cifra ponta-a-ponta. Sem número de telefone. Metadados mínimos e temporários.",
+    "createIdentity": "Criar identidade",
+    "retry": "Tentar novamente"
+  },
+  "conversationList": {
+    "peerIdPlaceholder": "user_id da outra pessoa",
+    "newButton": "Nova",
+    "blockedHeaderButton": "Bloqueados",
+    "settingsHeaderButton": "Definições",
+    "selfConversationError": "Não podes iniciar uma conversa contigo próprio.",
+    "untrustedIdentityError": "A chave de segurança de {{peerId}} mudou desde a última vez (provavelmente reinstalou a app). Confirma a identidade da outra pessoa antes de voltar a tentar.",
+    "blockedChannelError": "Não é possível iniciar esta conversa — um de vocês bloqueou o outro.",
+    "emptyState": "Ainda sem conversas. Introduz o user_id de outra pessoa acima para começar — as mensagens trocadas aqui serão cifradas ponta-a-ponta."
+  },
+  "conversation": {
+    "ttl": {
+      "30s": "30s",
+      "5min": "5 min",
+      "1hour": "1 hora",
+      "1day": "1 dia",
+      "1week": "1 semana"
+    },
+    "emptyState": "Ainda sem mensagens nesta conversa.",
+    "inputPlaceholder": "Escrever mensagem…",
+    "sendButton": "Enviar",
+    "reportButton": "Denunciar",
+    "blockButton": "Bloquear",
+    "blockConfirmTitle": "Bloquear contacto",
+    "blockConfirmMessage": "Deixarás de conseguir trocar mensagens com {{peerId}}. Podes desbloquear mais tarde em Definições > Bloqueados.",
+    "cancel": "Cancelar",
+    "confirmBlock": "Bloquear",
+    "securityWarningDecrypt": "A chave de segurança de {{peerId}} mudou desde a última conversa. Esta mensagem não foi decifrada — confirma com a outra pessoa antes de continuar.",
+    "securityWarningSend": "A chave de segurança de {{peerId}} mudou desde a última conversa. A mensagem não foi enviada — confirma com a outra pessoa antes de continuar.",
+    "reportEmailSubject": "Denúncia de utilizador",
+    "reportEmailBody": "Quero denunciar o utilizador com user_id: {{peerId}}\n\nDescreve aqui o que aconteceu (podes colar o texto da mensagem em causa):\n\n"
+  },
+  "blockedPeers": {
+    "unblockButton": "Desbloquear",
+    "emptyState": "Não bloqueaste ninguém ainda."
+  },
+  "settings": {
+    "supportSection": "Suporte",
+    "supportUnset": "Contacto de suporte por definir.",
+    "accountSection": "Conta",
+    "deleteButton": "Eliminar conta e todos os dados",
+    "deleting": "A eliminar…",
+    "deleteConfirmTitle": "Eliminar conta",
+    "deleteConfirmMessage": "Isto apaga a tua identidade e todos os dados associados no servidor (chaves, prekeys, conversas iniciadas, bloqueios) e no dispositivo. Não é reversível.",
+    "deleteButtonConfirm": "Eliminar"
+  }
+}

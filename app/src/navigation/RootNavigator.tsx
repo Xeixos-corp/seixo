@@ -1,6 +1,7 @@
 import React from 'react';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { ConversationListScreen } from '../screens/ConversationListScreen';
@@ -20,6 +21,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { colors, colorScheme } = useAppTheme();
+  const { t } = useTranslation();
 
   const navigationTheme = {
     ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
@@ -46,15 +48,15 @@ export function RootNavigator() {
         <Stack.Screen
           name="ConversationList"
           component={ConversationListScreen}
-          options={{ title: 'Conversas' }}
+          options={{ title: t('navigation.conversationList') }}
         />
-        <Stack.Screen name="Conversation" component={ConversationScreen} options={{ title: 'Conversa' }} />
+        <Stack.Screen name="Conversation" component={ConversationScreen} options={{ title: t('navigation.conversation') }} />
         <Stack.Screen
           name="BlockedPeers"
           component={BlockedPeersScreen}
-          options={{ title: 'Contactos bloqueados' }}
+          options={{ title: t('navigation.blockedPeers') }}
         />
-        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Definições' }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('navigation.settings') }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

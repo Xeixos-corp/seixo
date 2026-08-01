@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useConversationsStore, type Conversation, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
@@ -24,6 +25,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ConversationList'>;
 
 export function ConversationListScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const conversations = useConversationsStore((state) => state.conversations);
   const addConversation = useConversationsStore((state) => state.addConversation);
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
@@ -34,15 +36,15 @@ export function ConversationListScreen({ navigation }: Props) {
       headerRight: () => (
         <View style={styles.headerButtons}>
           <Pressable onPress={() => navigation.navigate('BlockedPeers')} hitSlop={8}>
-            <Text style={{ color: colors.accent, fontSize: 14 }}>Bloqueados</Text>
+            <Text style={{ color: colors.accent, fontSize: 14 }}>{t('conversationList.blockedHeaderButton')}</Text>
           </Pressable>
           <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
-            <Text style={{ color: colors.accent, fontSize: 14 }}>Definições</Text>
+            <Text style={{ color: colors.accent, fontSize: 14 }}>{t('conversationList.settingsHeaderButton')}</Text>
           </Pressable>
         </View>
       ),
     });
-  }, [navigation, colors.accent]);
+  }, [navigation, colors.accent, t]);
 
   const [peerUserId, setPeerUserId] = useState('');
   const [starting, setStarting] = useState(false);
@@ -57,7 +59,7 @@ export function ConversationListScreen({ navigation }: Props) {
     try {
       const { userId } = await registerIdentity();
       if (trimmedPeerId === userId) {
-        throw new Error('Não podes iniciar uma conversa contigo próprio.');
+        throw new Error(t('conversationList.selfConversationError'));
       }
 
       const channelId = await createDirectChannel(trimmedPeerId);
@@ -74,11 +76,9 @@ export function ConversationListScreen({ navigation }: Props) {
       navigation.navigate('Conversation', conversation);
     } catch (error) {
       if (isUntrustedIdentityError(error)) {
-        setErrorMessage(
-          `A chave de segurança de ${trimmedPeerId} mudou desde a última vez (provavelmente reinstalou a app). Confirma a identidade da outra pessoa antes de voltar a tentar.`,
-        );
+        setErrorMessage(t('conversationList.untrustedIdentityError', { peerId: trimmedPeerId }));
       } else if (isBlockedChannelError(error)) {
-        setErrorMessage('Não é possível iniciar esta conversa — um de vocês bloqueou o outro.');
+        setErrorMessage(t('conversationList.blockedChannelError'));
       } else {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
@@ -89,12 +89,12 @@ export function ConversationListScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.header, { color: colors.textPrimary }]}>Conversas</Text>
+      <Text style={[styles.header, { color: colors.textPrimary }]}>{t('navigation.conversationList')}</Text>
 
       <View style={[styles.newConversationRow, { borderColor: colors.border }]}>
         <TextInput
           style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-          placeholder="user_id da outra pessoa"
+          placeholder={t('conversationList.peerIdPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           value={peerUserId}
           onChangeText={setPeerUserId}
@@ -114,7 +114,7 @@ export function ConversationListScreen({ navigation }: Props) {
           {starting ? (
             <ActivityIndicator color={colors.onAccent} size="small" />
           ) : (
-            <Text style={[styles.newConversationButtonText, { color: colors.onAccent }]}>Nova</Text>
+            <Text style={[styles.newConversationButtonText, { color: colors.onAccent }]}>{t('conversationList.newButton')}</Text>
           )}
         </Pressable>
       </View>
@@ -138,8 +138,7 @@ export function ConversationListScreen({ navigation }: Props) {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Ainda sem conversas. Introduz o user_id de outra pessoa acima para começar — as
-              mensagens trocadas aqui serão cifradas ponta-a-ponta.
+              {t('conversationList.emptyState')}
             </Text>
           </View>
         }

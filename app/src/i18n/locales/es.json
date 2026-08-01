@@ -1,0 +1,60 @@
+{
+  "navigation": {
+    "conversationList": "Conversaciones",
+    "conversation": "Conversación",
+    "blockedPeers": "Contactos bloqueados",
+    "settings": "Ajustes"
+  },
+  "onboarding": {
+    "title": "Mensajería privada",
+    "subtitle": "Cifrado de extremo a extremo. Sin número de teléfono. Metadatos mínimos y temporales.",
+    "createIdentity": "Crear identidad",
+    "retry": "Intentar de nuevo"
+  },
+  "conversationList": {
+    "peerIdPlaceholder": "user_id de la otra persona",
+    "newButton": "Nueva",
+    "blockedHeaderButton": "Bloqueados",
+    "settingsHeaderButton": "Ajustes",
+    "selfConversationError": "No puedes iniciar una conversación contigo mismo.",
+    "untrustedIdentityError": "La clave de seguridad de {{peerId}} cambió desde la última vez (probablemente reinstaló la app). Confirma la identidad de la otra persona antes de volver a intentarlo.",
+    "blockedChannelError": "No es posible iniciar esta conversación: uno de los dos ha bloqueado al otro.",
+    "emptyState": "Aún no hay conversaciones. Introduce el user_id de otra persona arriba para empezar — los mensajes aquí están cifrados de extremo a extremo."
+  },
+  "conversation": {
+    "ttl": {
+      "30s": "30s",
+      "5min": "5 min",
+      "1hour": "1 hora",
+      "1day": "1 día",
+      "1week": "1 semana"
+    },
+    "emptyState": "Aún no hay mensajes en esta conversación.",
+    "inputPlaceholder": "Escribe un mensaje…",
+    "sendButton": "Enviar",
+    "reportButton": "Denunciar",
+    "blockButton": "Bloquear",
+    "blockConfirmTitle": "Bloquear contacto",
+    "blockConfirmMessage": "Dejarás de poder intercambiar mensajes con {{peerId}}. Puedes desbloquearlo más tarde en Ajustes > Bloqueados.",
+    "cancel": "Cancelar",
+    "confirmBlock": "Bloquear",
+    "securityWarningDecrypt": "La clave de seguridad de {{peerId}} cambió desde la última conversación. Este mensaje no se descifró — confirma con la otra persona antes de continuar.",
+    "securityWarningSend": "La clave de seguridad de {{peerId}} cambió desde la última conversación. El mensaje no se envió — confirma con la otra persona antes de continuar.",
+    "reportEmailSubject": "Denuncia de usuario",
+    "reportEmailBody": "Quiero denunciar al usuario con user_id: {{peerId}}\n\nDescribe aquí lo que ocurrió (puedes pegar el texto del mensaje en cuestión):\n\n"
+  },
+  "blockedPeers": {
+    "unblockButton": "Desbloquear",
+    "emptyState": "Aún no has bloqueado a nadie."
+  },
+  "settings": {
+    "supportSection": "Soporte",
+    "supportUnset": "Contacto de soporte aún no definido.",
+    "accountSection": "Cuenta",
+    "deleteButton": "Eliminar cuenta y todos los datos",
+    "deleting": "Eliminando…",
+    "deleteConfirmTitle": "Eliminar cuenta",
+    "deleteConfirmMessage": "Esto elimina tu identidad y todos los datos asociados en el servidor (claves, prekeys, conversaciones iniciadas, bloqueos) y en el dispositivo. No se puede deshacer.",
+    "deleteButtonConfirm": "Eliminar"
+  }
+}

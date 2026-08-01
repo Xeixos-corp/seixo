@@ -1,0 +1,60 @@
+{
+  "navigation": {
+    "conversationList": "Conversations",
+    "conversation": "Conversation",
+    "blockedPeers": "Blocked contacts",
+    "settings": "Settings"
+  },
+  "onboarding": {
+    "title": "Private messaging",
+    "subtitle": "End-to-end encrypted. No phone number. Minimal, temporary metadata.",
+    "createIdentity": "Create identity",
+    "retry": "Try again"
+  },
+  "conversationList": {
+    "peerIdPlaceholder": "the other person's user_id",
+    "newButton": "New",
+    "blockedHeaderButton": "Blocked",
+    "settingsHeaderButton": "Settings",
+    "selfConversationError": "You can't start a conversation with yourself.",
+    "untrustedIdentityError": "{{peerId}}'s security key changed since last time (they probably reinstalled the app). Confirm the other person's identity before trying again.",
+    "blockedChannelError": "This conversation can't be started — one of you has blocked the other.",
+    "emptyState": "No conversations yet. Enter someone's user_id above to start — messages here are end-to-end encrypted."
+  },
+  "conversation": {
+    "ttl": {
+      "30s": "30s",
+      "5min": "5 min",
+      "1hour": "1 hour",
+      "1day": "1 day",
+      "1week": "1 week"
+    },
+    "emptyState": "No messages in this conversation yet.",
+    "inputPlaceholder": "Write a message…",
+    "sendButton": "Send",
+    "reportButton": "Report",
+    "blockButton": "Block",
+    "blockConfirmTitle": "Block contact",
+    "blockConfirmMessage": "You won't be able to exchange messages with {{peerId}} anymore. You can unblock them later in Settings > Blocked.",
+    "cancel": "Cancel",
+    "confirmBlock": "Block",
+    "securityWarningDecrypt": "{{peerId}}'s security key changed since your last conversation. This message wasn't decrypted — confirm with the other person before continuing.",
+    "securityWarningSend": "{{peerId}}'s security key changed since your last conversation. The message wasn't sent — confirm with the other person before continuing.",
+    "reportEmailSubject": "User report",
+    "reportEmailBody": "I want to report the user with user_id: {{peerId}}\n\nDescribe what happened here (you can paste the message text in question):\n\n"
+  },
+  "blockedPeers": {
+    "unblockButton": "Unblock",
+    "emptyState": "You haven't blocked anyone yet."
+  },
+  "settings": {
+    "supportSection": "Support",
+    "supportUnset": "Support contact not set yet.",
+    "accountSection": "Account",
+    "deleteButton": "Delete account and all data",
+    "deleting": "Deleting…",
+    "deleteConfirmTitle": "Delete account",
+    "deleteConfirmMessage": "This deletes your identity and all associated data on the server (keys, prekeys, started conversations, blocks) and on this device. This can't be undone.",
+    "deleteButtonConfirm": "Delete"
+  }
+}

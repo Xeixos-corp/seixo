@@ -26,6 +26,11 @@ against and what it explicitly does not.
   the Rust crate as a React Native TurboModule via
   `uniffi-bindgen-react-native`. Kept only as a record of why it didn't work
   with Expo's autolinking — see its README before reviving this approach.
+- `app/src/i18n/` — Portuguese/English/Spanish translations (`i18next` +
+  `react-i18next` + `expo-localization`), auto-selected by device language
+  with a Portuguese fallback. No manual language switcher. Every screen
+  string lives in `locales/{pt,en,es}.json` — add a key there, not inline
+  text, when adding UI copy.
 - `supabase/` — database schema/migrations (metadata-minimized, TTL-purged,
   RLS-enforced) and the self-hosted Docker stack for later. Development
   currently targets Supabase Cloud — see `supabase/README.md`.

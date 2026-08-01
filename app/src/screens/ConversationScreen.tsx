@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useMessagesStore } from '../store/messagesStore';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
@@ -28,17 +29,18 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
 
 const REMOTE_DEVICE_ID = 1; // single device per identity for now
 
-const TTL_OPTIONS: Array<{ label: string; seconds: number }> = [
-  { label: '30s', seconds: 30 },
-  { label: '5 min', seconds: 5 * 60 },
-  { label: '1 hora', seconds: 60 * 60 },
-  { label: '1 dia', seconds: 24 * 60 * 60 },
-  { label: '1 semana', seconds: 7 * 24 * 60 * 60 },
+const TTL_OPTIONS: Array<{ key: string; seconds: number }> = [
+  { key: '30s', seconds: 30 },
+  { key: '5min', seconds: 5 * 60 },
+  { key: '1hour', seconds: 60 * 60 },
+  { key: '1day', seconds: 24 * 60 * 60 },
+  { key: '1week', seconds: 7 * 24 * 60 * 60 },
 ];
 
 export function ConversationScreen({ route, navigation }: Props) {
   const { channelId, peerUserId } = route.params;
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const messages = useMessagesStore((state) => state.messagesByChannel[channelId] ?? []);
   const addMessage = useMessagesStore((state) => state.addMessage);
   const removeMessage = useMessagesStore((state) => state.removeMessage);
@@ -52,12 +54,12 @@ export function ConversationScreen({ route, navigation }: Props) {
 
   const handleBlock = useCallback(() => {
     Alert.alert(
-      'Bloquear contacto',
-      `Deixarás de conseguir trocar mensagens com ${peerUserId}. Podes desbloquear mais tarde em Definições > Bloqueados.`,
+      t('conversation.blockConfirmTitle'),
+      t('conversation.blockConfirmMessage', { peerId: peerUserId }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('conversation.cancel'), style: 'cancel' },
         {
-          text: 'Bloquear',
+          text: t('conversation.confirmBlock'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -73,16 +75,14 @@ export function ConversationScreen({ route, navigation }: Props) {
         },
       ],
     );
-  }, [peerUserId, channelId, addBlockedPeer, removeConversation, navigation]);
+  }, [peerUserId, channelId, addBlockedPeer, removeConversation, navigation, t]);
 
   const handleReport = useCallback(() => {
     if (!SUPPORT_CONTACT_EMAIL) return;
-    const subject = encodeURIComponent('Denúncia de utilizador');
-    const body = encodeURIComponent(
-      `Quero denunciar o utilizador com user_id: ${peerUserId}\n\nDescreve aqui o que aconteceu (podes colar o texto da mensagem em causa):\n\n`,
-    );
+    const subject = encodeURIComponent(t('conversation.reportEmailSubject'));
+    const body = encodeURIComponent(t('conversation.reportEmailBody', { peerId: peerUserId }));
     Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}?subject=${subject}&body=${body}`);
-  }, [peerUserId]);
+  }, [peerUserId, t]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -90,16 +90,16 @@ export function ConversationScreen({ route, navigation }: Props) {
         <View style={styles.headerButtons}>
           {SUPPORT_CONTACT_EMAIL ? (
             <Pressable onPress={handleReport} hitSlop={8}>
-              <Text style={{ color: colors.accent, fontSize: 13 }}>Denunciar</Text>
+              <Text style={{ color: colors.accent, fontSize: 13 }}>{t('conversation.reportButton')}</Text>
             </Pressable>
           ) : null}
           <Pressable onPress={handleBlock} hitSlop={8}>
-            <Text style={{ color: colors.danger, fontSize: 13 }}>Bloquear</Text>
+            <Text style={{ color: colors.danger, fontSize: 13 }}>{t('conversation.blockButton')}</Text>
           </Pressable>
         </View>
       ),
     });
-  }, [navigation, colors.accent, colors.danger, handleBlock, handleReport]);
+  }, [navigation, colors.accent, colors.danger, handleBlock, handleReport, t]);
 
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -178,14 +178,12 @@ export function ConversationScreen({ route, navigation }: Props) {
         scheduleExpiry(fetched.id, fetched.expiresAt);
       } catch (error) {
         if (isUntrustedIdentityError(error)) {
-          setSecurityWarning(
-            `A chave de segurança de ${peerUserId} mudou desde a última conversa. Esta mensagem não foi decifrada — confirma com a outra pessoa antes de continuar.`,
-          );
+          setSecurityWarning(t('conversation.securityWarningDecrypt', { peerId: peerUserId }));
         }
         console.error('[ConversationScreen] failed to decrypt message', fetched.id, error);
       }
     },
-    [channelId, peerUserId, addMessage, scheduleExpiry, isBlocked],
+    [channelId, peerUserId, addMessage, scheduleExpiry, isBlocked, t],
   );
 
   useEffect(() => {
@@ -222,9 +220,7 @@ export function ConversationScreen({ route, navigation }: Props) {
       setInputText('');
     } catch (error) {
       if (isUntrustedIdentityError(error)) {
-        setSecurityWarning(
-          `A chave de segurança de ${peerUserId} mudou desde a última conversa. A mensagem não foi enviada — confirma com a outra pessoa antes de continuar.`,
-        );
+        setSecurityWarning(t('conversation.securityWarningSend', { peerId: peerUserId }));
       }
       console.error('[ConversationScreen] failed to send message', error);
     } finally {
@@ -264,7 +260,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                 ]}
               >
                 <Text style={{ color: selected ? colors.onAccent : colors.textSecondary, fontSize: 12 }}>
-                  {option.label}
+                  {t(`conversation.ttl.${option.key}`)}
                 </Text>
               </Pressable>
             );
@@ -283,7 +279,7 @@ export function ConversationScreen({ route, navigation }: Props) {
           ListEmptyComponent={
             <View style={styles.messages}>
               <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
-                Ainda sem mensagens nesta conversa.
+                {t('conversation.emptyState')}
               </Text>
             </View>
           }
@@ -292,7 +288,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         <View style={[styles.inputBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
             style={[styles.input, { color: colors.textPrimary }]}
-            placeholder="Escrever mensagem…"
+            placeholder={t('conversation.inputPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             value={inputText}
             onChangeText={setInputText}
@@ -308,7 +304,7 @@ export function ConversationScreen({ route, navigation }: Props) {
               (sending || !inputText.trim()) && styles.sendButtonDisabled,
             ]}
           >
-            <Text style={{ color: colors.onAccent, fontWeight: '600' }}>Enviar</Text>
+            <Text style={{ color: colors.onAccent, fontWeight: '600' }}>{t('conversation.sendButton')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

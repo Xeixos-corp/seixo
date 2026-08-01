@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { registerIdentity } from '../identity/registerIdentity';
@@ -8,6 +9,7 @@ import { unblockPeer } from '../transport/blocking';
 
 export function BlockedPeersScreen() {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const blockedPeerIds = useBlockedPeersStore((state) => state.blockedPeerIds);
   const removeBlockedPeer = useBlockedPeersStore((state) => state.removeBlockedPeer);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export function BlockedPeersScreen() {
               ]}
             >
               <Text style={{ color: colors.onAccent, fontWeight: '600', fontSize: 13 }}>
-                {unblockingId === item ? '...' : 'Desbloquear'}
+                {unblockingId === item ? '...' : t('blockedPeers.unblockButton')}
               </Text>
             </Pressable>
           </View>
@@ -58,7 +60,7 @@ export function BlockedPeersScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Não bloqueaste ninguém ainda.
+              {t('blockedPeers.emptyState')}
             </Text>
           </View>
         }

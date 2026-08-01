@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { SUPPORT_CONTACT_EMAIL } from '../config/support';
@@ -11,6 +12,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -28,11 +30,11 @@ export function SettingsScreen({ navigation }: Props) {
 
   const confirmDelete = () => {
     Alert.alert(
-      'Eliminar conta',
-      'Isto apaga a tua identidade e todos os dados associados no servidor (chaves, prekeys, conversas iniciadas, bloqueios) e no dispositivo. Não é reversível.',
+      t('settings.deleteConfirmTitle'),
+      t('settings.deleteConfirmMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: handleDelete },
+        { text: t('conversation.cancel'), style: 'cancel' },
+        { text: t('settings.deleteButtonConfirm'), style: 'destructive', onPress: handleDelete },
       ],
     );
   };
@@ -40,18 +42,18 @@ export function SettingsScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Suporte</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.supportSection')}</Text>
         {SUPPORT_CONTACT_EMAIL ? (
           <Pressable onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}`)}>
             <Text style={[styles.link, { color: colors.accent }]}>{SUPPORT_CONTACT_EMAIL}</Text>
           </Pressable>
         ) : (
-          <Text style={{ color: colors.textSecondary }}>Contacto de suporte por definir.</Text>
+          <Text style={{ color: colors.textSecondary }}>{t('settings.supportUnset')}</Text>
         )}
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Conta</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.accountSection')}</Text>
         {errorMessage ? (
           <Text style={[styles.errorText, { color: colors.danger }]}>{errorMessage}</Text>
         ) : null}
@@ -64,7 +66,7 @@ export function SettingsScreen({ navigation }: Props) {
           ]}
         >
           <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
-            {deleting ? 'A eliminar…' : 'Eliminar conta e todos os dados'}
+            {deleting ? t('settings.deleting') : t('settings.deleteButton')}
           </Text>
         </Pressable>
       </View>

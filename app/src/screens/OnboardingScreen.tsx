@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { registerIdentity } from '../identity/registerIdentity';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -12,6 +13,7 @@ type Status = 'idle' | 'loading' | 'error';
 
 export function OnboardingScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
+  const { t } = useTranslation();
   const [status, setStatus] = useState<Status>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -33,10 +35,8 @@ export function OnboardingScreen({ navigation }: Props) {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <Text style={[styles.brand, { color: colors.accent }]}>Seixo</Text>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Mensagens privadas</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Cifra ponta-a-ponta. Sem número de telefone. Metadados mínimos e temporários.
-        </Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('onboarding.title')}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('onboarding.subtitle')}</Text>
         {status === 'error' && errorMessage ? (
           <Text style={[styles.errorText, { color: colors.danger }]}>{errorMessage}</Text>
         ) : null}
@@ -55,7 +55,7 @@ export function OnboardingScreen({ navigation }: Props) {
           <ActivityIndicator color={colors.onAccent} />
         ) : (
           <Text style={[styles.primaryButtonText, { color: colors.onAccent }]}>
-            {status === 'error' ? 'Tentar novamente' : 'Criar identidade'}
+            {status === 'error' ? t('onboarding.retry') : t('onboarding.createIdentity')}
           </Text>
         )}
       </Pressable>
