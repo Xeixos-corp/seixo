@@ -2,6 +2,11 @@
 
 **Última atualização: 2 de agosto de 2026**
 
+> Este ficheiro é a fonte/rascunho de revisão. A versão publicada (com
+> páginas também em inglês e espanhol) vive no repositório público
+> separado `Xeixos-corp/Seixo-Legal` (GitHub Pages) — mantém as duas em
+> sincronia manualmente se este texto for alterado.
+
 Esta política descreve, de forma exata e verificável em relação ao
 código-fonte real da app, que dados a app Seixo recolhe, quem mais tem
 acesso a eles, durante quanto tempo, e como podes pedir a sua eliminação.
