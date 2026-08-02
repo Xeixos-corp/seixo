@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { SUPPORT_CONTACT_EMAIL } from '../config/support';
+import { SUPPORT_CONTACT_EMAIL, PRIVACY_POLICY_URL } from '../config/support';
 import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
 import { MyIdCard } from '../components/MyIdCard';
 
@@ -56,6 +56,13 @@ export function SettingsScreen({ navigation }: Props) {
         ) : (
           <Text style={{ color: colors.textSecondary }}>{t('settings.supportUnset')}</Text>
         )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.legalSection')}</Text>
+        <Pressable onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+          <Text style={[styles.link, { color: colors.accent }]}>{t('settings.privacyPolicy')}</Text>
+        </Pressable>
       </View>
 
       <View style={styles.section}>

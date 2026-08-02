@@ -52,6 +52,8 @@
   "settings": {
     "supportSection": "Soporte",
     "supportUnset": "Contacto de soporte aún no definido.",
+    "legalSection": "Legal",
+    "privacyPolicy": "Política de privacidad",
     "accountSection": "Cuenta",
     "deleteButton": "Eliminar cuenta y todos los datos",
     "deleting": "Eliminando…",
