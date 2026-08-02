@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { useAppTheme } from '../theme/ThemeProvider';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { SUPPORT_CONTACT_EMAIL } from '../config/support';
 import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
+import { MyIdCard } from '../components/MyIdCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -41,6 +42,11 @@ export function SettingsScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.section}>
+        <MyIdCard />
+      </View>
+
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.supportSection')}</Text>
         {SUPPORT_CONTACT_EMAIL ? (
@@ -70,6 +76,7 @@ export function SettingsScreen({ navigation }: Props) {
           </Text>
         </Pressable>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -77,7 +84,10 @@ export function SettingsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   section: {
     marginTop: 24,

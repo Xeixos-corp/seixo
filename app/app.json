@@ -30,7 +30,14 @@
     "plugins": [
       "expo-secure-store",
       "expo-asset",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Seixo usa a câmara só para ler o código QR de outra pessoa e iniciar uma conversa cifrada com ela.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

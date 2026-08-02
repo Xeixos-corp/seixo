@@ -12,13 +12,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
-import { useConversationsStore, type Conversation, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
+import { useConversationsStore } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
-import { registerIdentity } from '../identity/registerIdentity';
-import { createDirectChannel } from '../transport/channels';
-import { claimPeerPrekeyBundle } from '../transport/identities';
+import { startConversationWithPeer, SelfConversationError } from '../identity/startConversation';
 import { isBlockedChannelError } from '../transport/blocking';
-import { establishSession, isUntrustedIdentityError } from '../crypto';
+import { isUntrustedIdentityError } from '../crypto';
+import { MyIdCard } from '../components/MyIdCard';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConversationList'>;
@@ -27,7 +26,6 @@ export function ConversationListScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
   const conversations = useConversationsStore((state) => state.conversations);
-  const addConversation = useConversationsStore((state) => state.addConversation);
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
   const visibleConversations = conversations.filter((c) => !isBlocked(c.peerUserId));
 
@@ -35,6 +33,9 @@ export function ConversationListScreen({ navigation }: Props) {
     navigation.setOptions({
       headerRight: () => (
         <View style={styles.headerButtons}>
+          <Pressable onPress={() => navigation.navigate('ScanQr')} hitSlop={8}>
+            <Text style={{ color: colors.accent, fontSize: 14 }}>{t('conversationList.scanHeaderButton')}</Text>
+          </Pressable>
           <Pressable onPress={() => navigation.navigate('BlockedPeers')} hitSlop={8}>
             <Text style={{ color: colors.accent, fontSize: 14 }}>{t('conversationList.blockedHeaderButton')}</Text>
           </Pressable>
@@ -57,25 +58,13 @@ export function ConversationListScreen({ navigation }: Props) {
     setStarting(true);
     setErrorMessage(null);
     try {
-      const { userId } = await registerIdentity();
-      if (trimmedPeerId === userId) {
-        throw new Error(t('conversationList.selfConversationError'));
-      }
-
-      const channelId = await createDirectChannel(trimmedPeerId);
-      const bundle = await claimPeerPrekeyBundle(trimmedPeerId);
-      establishSession(trimmedPeerId, bundle.deviceId, bundle);
-
-      const conversation: Conversation = {
-        channelId,
-        peerUserId: trimmedPeerId,
-        ttlSeconds: DEFAULT_TTL_SECONDS,
-      };
-      addConversation(conversation);
+      const conversation = await startConversationWithPeer(trimmedPeerId);
       setPeerUserId('');
       navigation.navigate('Conversation', conversation);
     } catch (error) {
-      if (isUntrustedIdentityError(error)) {
+      if (error instanceof SelfConversationError) {
+        setErrorMessage(t('conversationList.selfConversationError'));
+      } else if (isUntrustedIdentityError(error)) {
         setErrorMessage(t('conversationList.untrustedIdentityError', { peerId: trimmedPeerId }));
       } else if (isBlockedChannelError(error)) {
         setErrorMessage(t('conversationList.blockedChannelError'));
@@ -140,6 +129,9 @@ export function ConversationListScreen({ navigation }: Props) {
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {t('conversationList.emptyState')}
             </Text>
+            <View style={styles.myIdCardWrapper}>
+              <MyIdCard />
+            </View>
           </View>
         }
       />
@@ -202,6 +194,10 @@ const styles = StyleSheet.create({
     marginTop: 48,
     alignItems: 'center',
     paddingHorizontal: 24,
+  },
+  myIdCardWrapper: {
+    marginTop: 24,
+    width: '100%',
   },
   emptyText: {
     fontSize: 15,

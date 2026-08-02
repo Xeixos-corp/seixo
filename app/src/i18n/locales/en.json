@@ -3,7 +3,8 @@
     "conversationList": "Conversations",
     "conversation": "Conversation",
     "blockedPeers": "Blocked contacts",
-    "settings": "Settings"
+    "settings": "Settings",
+    "scanQr": "Scan QR code"
   },
   "onboarding": {
     "title": "Private messaging",
@@ -16,6 +17,7 @@
     "newButton": "New",
     "blockedHeaderButton": "Blocked",
     "settingsHeaderButton": "Settings",
+    "scanHeaderButton": "Scan QR",
     "selfConversationError": "You can't start a conversation with yourself.",
     "untrustedIdentityError": "{{peerId}}'s security key changed since last time (they probably reinstalled the app). Confirm the other person's identity before trying again.",
     "blockedChannelError": "This conversation can't be started — one of you has blocked the other.",
@@ -60,5 +62,15 @@
   "screenshotWarning": {
     "title": "Screenshot",
     "message": "You took a screenshot. Remember conversations here are private — avoid sharing them."
+  },
+  "myId": {
+    "label": "My ID",
+    "copy": "Copy",
+    "copied": "Copied!"
+  },
+  "scanQr": {
+    "hint": "Point the camera at the other person's QR code.",
+    "permissionDenied": "Camera access is needed to scan QR codes.",
+    "requestPermission": "Allow camera access"
   }
 }

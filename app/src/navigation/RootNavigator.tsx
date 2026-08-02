@@ -8,6 +8,7 @@ import { ConversationListScreen } from '../screens/ConversationListScreen';
 import { ConversationScreen } from '../screens/ConversationScreen';
 import { BlockedPeersScreen } from '../screens/BlockedPeersScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { ScanQrScreen } from '../screens/ScanQrScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -15,6 +16,7 @@ export type RootStackParamList = {
   Conversation: { channelId: string; peerUserId: string };
   BlockedPeers: undefined;
   Settings: undefined;
+  ScanQr: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -57,6 +59,7 @@ export function RootNavigator() {
           options={{ title: t('navigation.blockedPeers') }}
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('navigation.settings') }} />
+        <Stack.Screen name="ScanQr" component={ScanQrScreen} options={{ title: t('navigation.scanQr') }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

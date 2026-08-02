@@ -181,6 +181,39 @@ private-by-default posture, unlike Signal's opt-in "Screen Security".
   mechanism can prevent that — this protects against casual in-app
   screenshotting/screen-recording, not a determined leak.
 
+## Contact discovery
+
+Until now, starting a conversation required already knowing the other
+person's raw `user_id` (uuid) — and there was no screen anywhere showing a
+user their *own* id, so in practice nobody could actually give it to anyone.
+Closed by:
+
+- **`MyIdCard.tsx`** (shown in `ConversationListScreen`'s empty state and in
+  `SettingsScreen`) — displays the local user's own `user_id` as copyable
+  text (`expo-clipboard`) and as a QR code (`react-native-qrcode-svg`).
+- **`ScanQrScreen.tsx`** (`expo-camera`) — scans another device's QR and
+  starts a conversation with the encoded `user_id`, via the same
+  `startConversationWithPeer()` the manual-entry flow uses (extracted to
+  `identity/startConversation.ts` so both share one code path instead of
+  two).
+
+This intentionally still doesn't add a username system or any
+server-side lookup/search — the QR/text-share path never touches the
+server at all (the id is exchanged directly between the two devices, or
+through whatever channel the two people already trust to send it), keeping
+the "no way to enumerate who's on this service" property intact. A
+username-based discovery system remains a possible future addition but
+trades away some of that property, so it wasn't the default choice here.
+
+**Known cost**: `expo-camera`'s own Android manifest unconditionally
+declares `RECORD_AUDIO` (it supports video capture generally, not just
+barcode scanning, and Expo's config plugin option only suppresses the iOS
+permission string, not the Android manifest entry) — this app never
+requests or uses that permission at runtime, but it will still show up in
+the Play Store's permissions disclosure. Not something fixable without a
+custom manifest-patching config plugin, which isn't worth the fragility for
+a permission that's declared but never actually invoked.
+
 ## App Store compliance (block, delete account, report)
 
 Not a privacy/crypto requirement, but a hard launch blocker: Apple App Store
