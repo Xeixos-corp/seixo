@@ -58,22 +58,26 @@ cloud workers instead. Two tiers, cheapest first:
 `eas.json`'s `development-simulator` profile builds for the iOS **Simulator**
 (`ios.simulator: true`), which needs no Apple Developer Program membership
 at all (verified against Expo's current docs before adding this — simulator
-builds are explicitly Apple-account-free). **Confirmed working on the first
-real attempt** (2026-07-26) — `eas-build-post-install` (which runs
-`packages/signal-native/rust/build-ios.sh`, building the Rust crate for iOS
-and assembling an `.xcframework`) succeeded, and the full Xcode build linked
-it in without any fixes needed. Caveat: the *resulting build* only runs
-inside the Simulator app, which is macOS-only — without a Mac you still
-can't actually launch what gets built, so runtime behavior is unverified.
+builds are explicitly Apple-account-free). The build itself succeeds
+(`packages/signal-native/rust/build-ios.sh` genuinely cross-compiles the
+Rust crate and assembles an `.xcframework` on EAS's macOS workers), but a
+first real device run (2026-08-06, see `docs/threat-model.md`) found that
+the module was never actually being linked in, because the build hook ran
+too late (see `eas-build-pre-install` below) — now fixed. A fresh simulator
+build hasn't been re-run to double-confirm this specific profile since the
+fix; Tier 2 below has been re-verified.
 
 1. Create a free account at [expo.dev](https://expo.dev) if you don't have
    one, then `npm install -g eas-cli` and `eas login`.
 2. From `app/`: `eas build --profile development-simulator --platform ios`.
    Runs entirely on Expo's macOS cloud workers — nothing more to install
    locally, no Apple account prompt.
-3. Watch the build log for the `eas-build-post-install` step. Success here
-   is the actual milestone — it's fine to stop at "the build completed"
-   even without a Mac to install it on.
+3. Watch the build log for the `eas-build-pre-install` step (runs before
+   `npm install`, building the `.xcframework` so it exists in time for
+   `pod install` to find it — see `docs/threat-model.md` for why this used
+   to be `eas-build-post-install`, which ran too late). Success here is the
+   actual milestone — it's fine to stop at "the build completed" even
+   without a Mac to install it on.
 
 ### Tier 2 — real device, needs a paid Apple account
 

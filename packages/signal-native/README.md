@@ -112,14 +112,26 @@ restart), and proves the conversation keeps working on both sides afterward
 
 **What's still missing:**
 
-1. ~~iOS build itself~~ **Done** — `eas build --profile development-simulator
-   --platform ios` succeeded on the first real run (2026-07-26): the
-   `eas-build-post-install` hook (`app/scripts/eas-build-post-install.js`)
-   ran `rust/build-ios.sh` on EAS's macOS workers, cross-compiling this
-   crate for `aarch64-apple-ios` + the simulator targets, assembling the
-   `.xcframework`, and the full Xcode/CocoaPods build linked it
-   successfully — no debugging needed, it worked first try. Still open:
-   this was a **simulator** build (no Apple Developer account needed — see
+1. ~~iOS build itself~~ **Done, with a real correction** — `eas build
+   --profile development-simulator --platform ios` succeeded on the first
+   real run (2026-07-26), and `rust/build-ios.sh` genuinely does
+   cross-compile this crate for `aarch64-apple-ios` + the simulator targets
+   and assemble the `.xcframework` correctly on EAS's macOS workers. But
+   the original claim that "the full Xcode/CocoaPods build linked it
+   successfully" was wrong: the hook that runs this script was wired as
+   `eas-build-post-install`, which Expo's own docs confirm runs *after*
+   `pod install` — meaning the `.xcframework` didn't exist yet when
+   CocoaPods tried to resolve `SignalNativeExpo.podspec`'s
+   `vendored_frameworks`, so the module was silently never included at
+   all. Found on the first real device run (2026-08-06,
+   `Cannot find native module 'SignalNativeExpo'`) and fixed by renaming
+   the hook to `eas-build-pre-install`
+   (`app/scripts/eas-build-pre-install.js`), which runs before `npm
+   install` — well before `pod install`. See
+   docs/threat-model.md's "Native crypto module autolinking" entry for
+   the full story, including the separate, compounding autolinking bug
+   found at the same time. Still open: this was a **simulator** build (no
+   Apple Developer account needed — see
    root `README.md`); a real-device build (`development` profile) still
    needs that paid account, and hasn't been attempted. Simulator builds
    also can't actually be launched without a Mac (Simulator.app is

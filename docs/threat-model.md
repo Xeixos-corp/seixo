@@ -310,6 +310,33 @@ succeeded" is not evidence a specific native module was included in it —
 check for that module's own build tasks/output explicitly, the way this
 entry now describes doing for Android.
 
+### Follow-up: a second, compounding bug (same day)
+
+A fresh EAS iOS build with the fix above still failed the same way on the
+real device. Live debugging through the actual EAS build log (step by
+step, with the user pasting each section) found a second, independent bug:
+the `eas-build-post-install` hook that builds `SignalNative.xcframework`
+(`packages/signal-native/rust/build-ios.sh`) was misnamed for what it
+needed. Expo's own docs confirm `eas-build-post-install` runs *after*
+`npm install`, `expo prebuild`, **and** `pod install` — but
+`SignalNativeExpo.podspec` declares `s.vendored_frameworks =
+'SignalNative.xcframework'`, a file only that hook produces. So at the
+moment CocoaPods tried to resolve the podspec, the framework didn't exist
+yet, and the pod was silently excluded (confirmed by comparing the "Install
+pods" log's full list of installed pods against the "Fingerprint" step's
+output, which *did* correctly list `signal-native-expo` — proving discovery
+worked and the framework-timing was the actual remaining gap). Fixed by
+renaming the hook to `eas-build-pre-install`
+(`app/scripts/eas-build-pre-install.js`), which runs before `npm install` —
+comfortably before `pod install` too. Rust/Xcode command line tools don't
+need `node_modules` to exist first, so moving it earlier has no downside.
+
+**Second lesson**: when a native module depends on a build artifact
+produced by an EAS lifecycle hook, the hook's *name* determines pipeline
+timing, not its filename or intent — verify the exact documented ordering
+(https://docs.expo.dev/build-reference/npm-hooks/) rather than assuming
+"post-install" means "right after `npm install`."
+
 ## Launch gate
 
 This product must not be exposed to real users carrying real conversations
