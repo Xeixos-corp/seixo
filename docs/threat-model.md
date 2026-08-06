@@ -337,7 +337,25 @@ timing, not its filename or intent — verify the exact documented ordering
 (https://docs.expo.dev/build-reference/npm-hooks/) rather than assuming
 "post-install" means "right after `npm install`."
 
-## Launch gate
+### Follow-up 2: still missing after the hook fix — a third suspect (unconfirmed)
+
+A third build, with the hook now confirmed running at the right point in the
+pipeline (verified in the build's own step list — "Pre-install hook" now
+runs second, right after "Spin up build environment"), *still* produced the
+exact same 88-pods-no-SignalNativeExpo result in "Install pods." This means
+the framework-timing theory, while a real and worthwhile fix, was not the
+(or not the only) actual cause.
+
+Found by comparing `SignalNativeExpo.podspec` against Expo SDK 52's own
+minimum iOS target: the podspec declared `:ios => '16.4'`, but SDK 52 /
+React Native 0.76 default to **iOS 15.1** project-wide — a real mismatch,
+with nothing in `SignalNativeExpoModule.swift` or the uniffi-generated
+Swift bindings actually requiring anything past basic Swift. Lowered to
+`15.1` to match, and cleaned up two other podspec smells found at the same
+time (`s.author = ''` and `s.source = { git: '' }`, both empty — set to a
+real author and `{ path: '.' }` respectively). **Not yet confirmed as the
+actual fix** — a subsequent build is needed to know whether this was it or
+whether the real cause is still elsewhere.
 
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
