@@ -8,7 +8,7 @@ apps. An earlier attempt to bridge via `uniffi-bindgen-react-native` (RN
 TurboModule generator) is abandoned — see `packages/signal-native-rn/README.md`
 for why (Expo's autolinking isn't what that tool was built/tested against).
 
-## Status: Android done end to end (verified for real, see caveat below); iOS build verified via EAS with all three linking bugs fixed and confirmed, runtime pending a real-device install
+## Status: Android and iOS both link and load the native module for real (verified on a real device, not just a successful build); iOS Signal Protocol calls (session establishment, encrypt/decrypt) not yet runtime-tested through the module
 
 `rust/src/lib.rs` wraps the **real** `libsignal-protocol` crate (fetched
 directly from `signalapp/libsignal` as a git dependency — no custom
@@ -126,11 +126,15 @@ restart), and proves the conversation keeps working on both sides afterward
    => '16.4' }` against the project's actual iOS 15.1 baseline (Expo SDK
    52 / RN 0.76's default) — CocoaPods silently drops a pod whose minimum
    platform exceeds what it can reconcile, with no error in the log,
-   rather than failing loudly. **Confirmed fixed**: the "Install pods" log
-   went from 88 pods (no `SignalNativeExpo`) to 89 pods including
-   `Installing SignalNativeExpo (1.0.0)`. Runtime confirmation on the real
-   device (installing this build and checking the "Cannot find native
-   module" error is gone) is the last remaining step.
+   rather than failing loudly. **Confirmed fixed end to end**: the
+   "Install pods" log went from 88 pods (no `SignalNativeExpo`) to 89 pods
+   including `Installing SignalNativeExpo (1.0.0)`, and the build installed
+   cleanly on a real iPhone with the `Cannot find native module` error
+   gone. What's left: actually exercising `initSignalDevice`,
+   `establishSession`, `encrypt`/`decrypt` through the loaded module on
+   iOS — module-loading and protocol-correctness are different claims, and
+   only the former is verified on iOS so far (Android has both, via its
+   own Rust `cargo test` suite plus the Gradle build).
 2. **Not actually run on a device/emulator yet, on either platform** — `gradlew assembleDebug`
    proves it *compiles and links*, not that `SignalDevice` calls succeed at
    runtime through the JNA/JNI boundary. That's the next verification step

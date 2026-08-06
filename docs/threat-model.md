@@ -378,9 +378,14 @@ excludes the pod. When a pod is missing from "Install pods" with no error
 anywhere in the log, check its `s.platforms` against the rest of the
 project's actual baseline, not just autolinking discovery and hook timing.
 
-Runtime confirmation on the real device (installing this build and checking
-that `Cannot find native module 'SignalNativeExpo'` no longer appears) is
-the next and final step to fully close this out.
+**Fully confirmed (2026-08-06)**: the build installed cleanly on the real
+iPhone and `Cannot find native module 'SignalNativeExpo'` no longer
+appears. All three bugs (autolinking discovery, hook ordering, deployment
+target) are now closed — the native crypto module is loaded and callable
+from JS on both Android (real Gradle build) and iOS (real device). Runtime
+correctness of the actual crypto calls (`initSignalDevice`,
+`establishSession`, `encrypt`/`decrypt`) through this module on iOS is the
+next thing to verify, not just that the module loads.
 
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto

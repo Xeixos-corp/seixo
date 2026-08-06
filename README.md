@@ -93,12 +93,12 @@ same `expo-module.config.json`/hook/podspec, but it's untested.
 Tier 2 has been run multiple times against a real Apple Developer account
 and a real iPhone (2026-08-06). The first real install surfaced `Cannot
 find native module 'SignalNativeExpo'` at runtime, which turned out to be
-three separate linking bugs, all now fixed and documented in
+three separate linking bugs, all now fixed, verified, and documented in
 `docs/threat-model.md`'s "Native crypto module autolinking" section — the
-latest build's "Install pods" log confirms `SignalNativeExpo` is finally
-included (89/89 pods, previously 88/88 without it). Installing that build
-on the device and confirming the runtime error is gone is the next step;
-report back what happens,
+module now loads cleanly on a real device. Still open: exercising the
+actual Signal Protocol calls (register identity, establish a session,
+send/receive an encrypted message) through it on iOS, which hasn't been
+attempted yet;
 same as Tier 1's first run.
 
 ## Regenerating the Kotlin/Swift bindings after a Rust API change
