@@ -337,7 +337,7 @@ timing, not its filename or intent — verify the exact documented ordering
 (https://docs.expo.dev/build-reference/npm-hooks/) rather than assuming
 "post-install" means "right after `npm install`."
 
-### Follow-up 2: still missing after the hook fix — a third suspect (unconfirmed)
+### Follow-up 2: still missing after the hook fix — a third suspect, confirmed
 
 A third build, with the hook now confirmed running at the right point in the
 pipeline (verified in the build's own step list — "Pre-install hook" now
@@ -353,9 +353,34 @@ with nothing in `SignalNativeExpoModule.swift` or the uniffi-generated
 Swift bindings actually requiring anything past basic Swift. Lowered to
 `15.1` to match, and cleaned up two other podspec smells found at the same
 time (`s.author = ''` and `s.source = { git: '' }`, both empty — set to a
-real author and `{ path: '.' }` respectively). **Not yet confirmed as the
-actual fix** — a subsequent build is needed to know whether this was it or
-whether the real cause is still elsewhere.
+real author and `{ path: '.' }` respectively).
+
+**Confirmed**: the very next build's "Install pods" log shows
+`Installing SignalNativeExpo (1.0.0)` and "89 dependencies... 89 total
+pods installed" (previously always 88). The deployment-target mismatch was
+the actual remaining cause — CocoaPods appears to silently drop a pod whose
+declared minimum platform version exceeds what it can reconcile against the
+rest of the Podfile's targets, rather than raising a hard error, which is
+why this took three iterations to isolate (the two earlier bugs — missing
+`package.json`/wrong platform key, and the hook-ordering issue — were both
+real and worth fixing, but neither was sufficient on its own; all three
+needed to be fixed together). The build log also shows some
+`Can't merge pod_target_xcconfig for pod targets: [...]. Singular build
+setting DEFINES_MODULE has different values` warnings involving a
+`"Vendored"` target — these did not block `pod install` and are expected to
+be harmless (CocoaPods warning about differing `DEFINES_MODULE` values
+across unrelated pods), but are worth watching for if a subsequent Xcode
+build step fails.
+
+**Third lesson**: CocoaPods' own diagnostics (a plain `pod install` log)
+don't surface a deployment-target mismatch as an error — it just silently
+excludes the pod. When a pod is missing from "Install pods" with no error
+anywhere in the log, check its `s.platforms` against the rest of the
+project's actual baseline, not just autolinking discovery and hook timing.
+
+Runtime confirmation on the real device (installing this build and checking
+that `Cannot find native module 'SignalNativeExpo'` no longer appears) is
+the next and final step to fully close this out.
 
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto

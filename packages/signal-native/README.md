@@ -8,7 +8,7 @@ apps. An earlier attempt to bridge via `uniffi-bindgen-react-native` (RN
 TurboModule generator) is abandoned — see `packages/signal-native-rn/README.md`
 for why (Expo's autolinking isn't what that tool was built/tested against).
 
-## Status: Android done end to end (verified for real, see caveat below); iOS build verified via EAS, autolinking bug fixed, runtime pending a fresh build
+## Status: Android done end to end (verified for real, see caveat below); iOS build verified via EAS with all three linking bugs fixed and confirmed, runtime pending a real-device install
 
 `rust/src/lib.rs` wraps the **real** `libsignal-protocol` crate (fetched
 directly from `signalapp/libsignal` as a git dependency — no custom
@@ -112,31 +112,25 @@ restart), and proves the conversation keeps working on both sides afterward
 
 **What's still missing:**
 
-1. ~~iOS build itself~~ **Done, with a real correction** — `eas build
-   --profile development-simulator --platform ios` succeeded on the first
-   real run (2026-07-26), and `rust/build-ios.sh` genuinely does
-   cross-compile this crate for `aarch64-apple-ios` + the simulator targets
-   and assemble the `.xcframework` correctly on EAS's macOS workers. But
-   the original claim that "the full Xcode/CocoaPods build linked it
-   successfully" was wrong: the hook that runs this script was wired as
-   `eas-build-post-install`, which Expo's own docs confirm runs *after*
-   `pod install` — meaning the `.xcframework` didn't exist yet when
-   CocoaPods tried to resolve `SignalNativeExpo.podspec`'s
-   `vendored_frameworks`, so the module was silently never included at
-   all. Found on the first real device run (2026-08-06,
-   `Cannot find native module 'SignalNativeExpo'`) and fixed by renaming
-   the hook to `eas-build-pre-install`
-   (`app/scripts/eas-build-pre-install.js`), which runs before `npm
-   install` — well before `pod install`. See
-   docs/threat-model.md's "Native crypto module autolinking" entry for
-   the full story, including the separate, compounding autolinking bug
-   found at the same time. Still open: this was a **simulator** build (no
-   Apple Developer account needed — see
-   root `README.md`); a real-device build (`development` profile) still
-   needs that paid account, and hasn't been attempted. Simulator builds
-   also can't actually be launched without a Mac (Simulator.app is
-   macOS-only), so runtime behavior on iOS remains unverified even though
-   the build itself now proven to succeed.
+1. ~~iOS build itself~~ **Done — three real bugs found and fixed on the path
+   to a real device run (2026-08-06), all documented in
+   `docs/threat-model.md`'s "Native crypto module autolinking" section and
+   its two follow-ups**: (a) the module was missing `package.json` and
+   declared the wrong iOS platform key (`"apple"` instead of `"ios"`) in
+   `expo-module.config.json`, so Expo's autolinking never discovered it at
+   all; (b) the `eas-build-post-install` hook that builds
+   `SignalNative.xcframework` ran *after* `pod install` (Expo's own docs
+   confirm the ordering), so the framework didn't exist yet when the
+   podspec's `vendored_frameworks` was resolved — renamed to
+   `eas-build-pre-install`; (c) the podspec declared `s.platforms = { :ios
+   => '16.4' }` against the project's actual iOS 15.1 baseline (Expo SDK
+   52 / RN 0.76's default) — CocoaPods silently drops a pod whose minimum
+   platform exceeds what it can reconcile, with no error in the log,
+   rather than failing loudly. **Confirmed fixed**: the "Install pods" log
+   went from 88 pods (no `SignalNativeExpo`) to 89 pods including
+   `Installing SignalNativeExpo (1.0.0)`. Runtime confirmation on the real
+   device (installing this build and checking the "Cannot find native
+   module" error is gone) is the last remaining step.
 2. **Not actually run on a device/emulator yet, on either platform** — `gradlew assembleDebug`
    proves it *compiles and links*, not that `SignalDevice` calls succeed at
    runtime through the JNA/JNI boundary. That's the next verification step

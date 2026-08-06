@@ -15,10 +15,12 @@ against and what it explicitly does not.
   confirmed this time, not just "build succeeded"; see the 2026-08-06
   correction in `packages/signal-native/README.md` about a real autolinking
   bug that made every earlier version of this claim a false positive). iOS:
-  the Rust-for-iOS cross-compile + Xcode/CocoaPods build succeeds via EAS
-  Build, and a real device run on 2026-08-06 surfaced the same autolinking
-  bug (now fixed) — a fresh build to confirm the fix on-device is the next
-  step.
+  three separate linking bugs were found and fixed via real device runs on
+  2026-08-06 (autolinking discovery, EAS hook ordering, podspec deployment
+  target) — see `docs/threat-model.md`'s "Native crypto module autolinking"
+  section and follow-ups. The "Install pods" log now confirms
+  `SignalNativeExpo` is included (89/89 pods); installing this build on the
+  real device to confirm the runtime error is gone is the next step.
 - `packages/signal-native/` — the Rust crate itself, wrapping
   `signalapp/libsignal`'s `libsignal-protocol`. No custom cryptography here —
   everything security-relevant is delegated to that audited crate. Real
@@ -60,12 +62,11 @@ cloud workers instead. Two tiers, cheapest first:
 at all (verified against Expo's current docs before adding this — simulator
 builds are explicitly Apple-account-free). The build itself succeeds
 (`packages/signal-native/rust/build-ios.sh` genuinely cross-compiles the
-Rust crate and assembles an `.xcframework` on EAS's macOS workers), but a
-first real device run (2026-08-06, see `docs/threat-model.md`) found that
-the module was never actually being linked in, because the build hook ran
-too late (see `eas-build-pre-install` below) — now fixed. A fresh simulator
-build hasn't been re-run to double-confirm this specific profile since the
-fix; Tier 2 below has been re-verified.
+Rust crate and assembles an `.xcframework` on EAS's macOS workers). This
+profile hasn't been re-run since the three linking bugs below were fixed
+(all verification since has happened via Tier 2's real-device profile
+instead) — no reason to expect it behaves differently, since both share the
+same `expo-module.config.json`/hook/podspec, but it's untested.
 
 1. Create a free account at [expo.dev](https://expo.dev) if you don't have
    one, then `npm install -g eas-cli` and `eas login`.
@@ -89,7 +90,15 @@ fix; Tier 2 below has been re-verified.
 3. Once it succeeds, EAS gives you a link/QR code to install the dev client
    on your iPhone via TestFlight-style internal distribution.
 
-Tier 2 (real device) hasn't been attempted yet — report back what breaks,
+Tier 2 has been run multiple times against a real Apple Developer account
+and a real iPhone (2026-08-06). The first real install surfaced `Cannot
+find native module 'SignalNativeExpo'` at runtime, which turned out to be
+three separate linking bugs, all now fixed and documented in
+`docs/threat-model.md`'s "Native crypto module autolinking" section — the
+latest build's "Install pods" log confirms `SignalNativeExpo` is finally
+included (89/89 pods, previously 88/88 without it). Installing that build
+on the device and confirming the runtime error is gone is the next step;
+report back what happens,
 same as Tier 1's first run.
 
 ## Regenerating the Kotlin/Swift bindings after a Rust API change
