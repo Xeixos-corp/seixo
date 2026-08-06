@@ -279,6 +279,37 @@ once the app is distributed outside the developer's own EAS/Apple account
 before that point; not legal advice, get an actual read on current BIS
 requirements before relying on this note.
 
+## Native crypto module autolinking (found and fixed 2026-08-06)
+
+The first real device run (a real iPhone, with a real Apple Developer
+account) crashed on launch with `Cannot find native module
+'SignalNativeExpo'`. Root cause: `app/modules/signal-native-expo` was
+missing its own `package.json` and was never listed as a dependency of
+`app/package.json`, so Expo's autolinking silently never discovered it on
+*either* platform — Gradle/Xcode built the rest of the app and reported
+success without ever attempting to compile this module. Compounding it,
+`expo-module.config.json` declared the iOS platform as `"apple"` where this
+Expo SDK's autolinking expects `"ios"`.
+
+This means every prior "`gradlew assembleDebug` succeeds, crypto module
+linked in" claim in this project's history (this file included) was a false
+positive — the build succeeding never actually proved the module was part
+of it. It stayed hidden because Android was never runtime-tested (no
+emulator, no physical device ever available), and iOS had never been run at
+all until this point. Fixed by adding the missing `package.json`, linking it
+as a `file:` dependency, and correcting the platform key. Re-verified
+properly this time: Android's `assembleDebug` output now shows real
+`:signal-native-expo:*` Gradle subproject tasks (not just overall build
+success), and `npx expo-modules-autolinking resolve --platform apple` — the
+actual command the generated Podfile invokes — now correctly resolves the
+module. A fresh EAS iOS build (the one that surfaced the bug predates the
+fix) is still needed to confirm this on a real device.
+
+**Lesson for future verification claims in this document**: "the build
+succeeded" is not evidence a specific native module was included in it —
+check for that module's own build tasks/output explicitly, the way this
+entry now describes doing for Android.
+
 ## Launch gate
 
 This product must not be exposed to real users carrying real conversations

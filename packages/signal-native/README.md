@@ -8,7 +8,7 @@ apps. An earlier attempt to bridge via `uniffi-bindgen-react-native` (RN
 TurboModule generator) is abandoned — see `packages/signal-native-rn/README.md`
 for why (Expo's autolinking isn't what that tool was built/tested against).
 
-## Status: Android done end to end; iOS build verified via EAS (simulator profile), runtime still unverified
+## Status: Android done end to end (verified for real, see caveat below); iOS build verified via EAS, autolinking bug fixed, runtime pending a fresh build
 
 `rust/src/lib.rs` wraps the **real** `libsignal-protocol` crate (fetched
 directly from `signalapp/libsignal` as a git dependency — no custom
@@ -25,6 +25,27 @@ Kotlin bindings (checked into
 `app/modules/signal-native-expo/android/src/main/java/uniffi/signal_native/`),
 and `app/android && ./gradlew assembleDebug` **succeeds**, producing a real
 debug APK with the crypto module linked in.
+
+**Important correction (2026-08-06)**: every "`gradlew assembleDebug`
+succeeds" claim before this date was a false positive. The module was
+missing `app/modules/signal-native-expo/package.json` and never listed as a
+dependency in `app/package.json`, so Expo's autolinking silently never
+discovered it on *either* platform — Gradle happily built the rest of the
+app and reported success without ever attempting to compile our module at
+all. This stayed hidden because Android was never runtime-tested (no
+emulator, no physical device) — the bug only surfaced once the app actually
+ran on a real iPhone for the first time and threw `Cannot find native
+module 'SignalNativeExpo'`. Separately, `expo-module.config.json` declared
+`"apple"` as the iOS platform key/value where this Expo SDK's autolinking
+(`expo-modules-autolinking`) expects `"ios"` — both bugs are now fixed, and
+this time verified properly: the `:signal-native-expo:*` Gradle subproject
+tasks were confirmed present in the `assembleDebug` output (not just
+"BUILD SUCCESSFUL" on its own, which doesn't prove inclusion), and
+`npx expo-modules-autolinking resolve --platform apple` — the actual
+command the generated Podfile uses — now correctly resolves the module,
+its podspec, and its Swift module name. A fresh EAS iOS build is still
+needed to confirm this same fix carries through to a real device (the
+device run that surfaced the bug used a build compiled before the fix).
 
 Note this version of libsignal makes the Kyber/PQXDH prekey **mandatory**,
 not optional — so this integration is post-quantum-resistant key agreement by

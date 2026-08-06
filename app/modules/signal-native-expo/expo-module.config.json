@@ -1,6 +1,6 @@
 {
-  "platforms": ["android", "apple"],
-  "apple": {
+  "platforms": ["android", "ios"],
+  "ios": {
     "modules": ["SignalNativeExpoModule"]
   },
   "android": {

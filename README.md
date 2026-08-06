@@ -11,12 +11,14 @@ against and what it explicitly does not.
 - `app/modules/signal-native-expo/` — the real bridge between the app and the
   Rust crypto crate: a local **Expo Module** wrapping uniffi's standard
   Kotlin/Swift bindings. Android is built and verified (`gradlew
-  assembleDebug` succeeds, real `libsignal-protocol` linked in). iOS: the
-  Rust-for-iOS cross-compile + Xcode/CocoaPods build now also succeeds, via
-  EAS Build's macOS workers (`eas build --profile development-simulator
-  --platform ios`, no Mac needed to trigger it) — confirmed working
-  2026-07-26 on the first real attempt. Runtime behavior on an actual
-  iOS Simulator/device is still unverified (see `packages/signal-native/README.md`).
+  assembleDebug` succeeds, real `libsignal-protocol` linked in — genuinely
+  confirmed this time, not just "build succeeded"; see the 2026-08-06
+  correction in `packages/signal-native/README.md` about a real autolinking
+  bug that made every earlier version of this claim a false positive). iOS:
+  the Rust-for-iOS cross-compile + Xcode/CocoaPods build succeeds via EAS
+  Build, and a real device run on 2026-08-06 surfaced the same autolinking
+  bug (now fixed) — a fresh build to confirm the fix on-device is the next
+  step.
 - `packages/signal-native/` — the Rust crate itself, wrapping
   `signalapp/libsignal`'s `libsignal-protocol`. No custom cryptography here —
   everything security-relevant is delegated to that audited crate. Real

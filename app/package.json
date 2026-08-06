@@ -31,6 +31,7 @@
     "react-native-svg": "15.8.0",
     "react-native-url-polyfill": "^4.0.0",
     "react-native-web": "~0.19.13",
+    "signal-native-expo": "file:./modules/signal-native-expo",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

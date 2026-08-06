@@ -22,7 +22,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.xeixos.seixo"
+      "package": "com.xeixos.seixo",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,6 +42,11 @@
           "microphonePermission": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8c4d5fbf-50a3-4968-9956-f1efee3d4e3d"
+      }
+    }
   }
 }

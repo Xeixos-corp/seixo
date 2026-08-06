@@ -1,0 +1,12 @@
+{
+  "name": "signal-native-expo",
+  "version": "1.0.0",
+  "description": "Local Expo Module bridging the signal-native Rust crate (libsignal-protocol)",
+  "main": "src/SignalNativeExpoModule.ts",
+  "types": "src/SignalNativeExpoModule.ts",
+  "license": "MIT",
+  "private": true,
+  "peerDependencies": {
+    "expo": "*"
+  }
+}
