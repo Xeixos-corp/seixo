@@ -28,7 +28,11 @@
         "buildType": "apk"
       }
     },
-    "production": {}
+    "production": {
+      "ios": {
+        "image": "macos-tahoe-26.5-xcode-26.6"
+      }
+    }
   },
   "submit": {
     "production": {}

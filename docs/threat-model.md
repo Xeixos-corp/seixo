@@ -387,6 +387,27 @@ correctness of the actual crypto calls (`initSignalDevice`,
 `establishSession`, `encrypt`/`decrypt`) through this module on iOS is the
 next thing to verify, not just that the module loads.
 
+### Follow-up 3: App Store submission needs a newer EAS build image (Xcode 26)
+
+Separate from the native module bugs above: the first `production` profile
+build (triggered from the EAS/expo.dev dashboard via the GitHub
+integration, not the CLI — see root `README.md`) succeeded but errored on
+submission with `Starting April 28, 2026, Apple requires apps submitted to
+the App Store to be built with Xcode 26 or newer. This build used Xcode
+16.` Today's date is well past that deadline, so this is Apple's real,
+currently-enforced requirement, not a future warning. EAS's default build
+image for this project's Expo SDK version (52) predates Xcode 26.
+
+Fixed by pinning a newer image explicitly for the `production` profile
+only in `eas.json` (`ios.image: "macos-tahoe-26.5-xcode-26.6"`) —
+deliberately not changed for `development`/`development-simulator`, which
+are already confirmed working against the older default image and don't
+need to satisfy Apple's App Store submission requirement (only builds
+actually submitted to App Store Connect do). Worth watching: Xcode 26
+compiling an Expo SDK 52 / RN 0.76 project is untested territory — if this
+surfaces new Xcode/toolchain-version issues distinct from the three
+already-fixed linking bugs, this is the first place to look.
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is
