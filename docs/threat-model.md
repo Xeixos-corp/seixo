@@ -536,8 +536,19 @@ one lives under `node_modules/` and exists as soon as `npm install`
 finishes — it didn't strictly need to run this late in the pipeline, but
 there was no reason to split it into a different hook either.
 
-**Not yet build-verified** — next EAS build will confirm both patches
-together get all the way through the archive step.
+**First version of this patch had a bug too**: it assumed the switch's
+`case`/`return`/closing-`}` used 0/2/0-space indentation (matching a
+top-level declaration), and failed loudly (as designed) with "could not
+find" rather than silently no-op'ing — but it still needed a second
+iteration to actually work. The real cause: `getUnicodeCalendarIdentifier`
+is a `static func`, so its switch sits one indentation level deeper than
+assumed (4-space `case`, 6-space `return`, 4-space closing `}`). Fixed by
+fetching the *exact* published `expo-localization@16.0.1` package source
+(not just eyeballing a similar-looking snippet) and byte-for-byte
+confirming the corrected target string matches before shipping the patch —
+this project's `~16.0.1` semver range resolves to exactly that version (no
+newer non-canary 16.0.x release exists), so there's no ambiguity about
+which source to check against.
 
 Remove once `expo-localization` ships a fix and this project upgrades to
 that version.

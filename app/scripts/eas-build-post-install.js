@@ -163,8 +163,16 @@ patchFile(
   '@unknown default:',
   [
     {
-      target: 'case .iso8601:\n  return "iso8601"\n}',
-      replacement: 'case .iso8601:\n  return "iso8601"\n@unknown default:\n  return "gregory"\n}',
+      // Exact indentation (4-space case, 6-space return, 4-space closing
+      // brace) confirmed against the actual published expo-localization
+      // 16.0.1 package source -- this switch sits inside a static func, one
+      // level deeper than a top-level declaration. A first version of this
+      // patch assumed 0/2/0-space indentation and never matched, which
+      // surfaced immediately as a loud "could not find" failure rather than
+      // silently no-op'ing.
+      target: '    case .iso8601:\n      return "iso8601"\n    }',
+      replacement:
+        '    case .iso8601:\n      return "iso8601"\n    @unknown default:\n      return "gregory"\n    }',
     },
   ]
 );
