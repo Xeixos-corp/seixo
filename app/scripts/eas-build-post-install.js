@@ -79,6 +79,12 @@ if (!original.includes(target)) {
 }
 
 const patched = original.replace(target, `${target} && !defined(__apple_build_version__)`);
+
+// CocoaPods installs vendored pod sources read-only (to discourage editing
+// them directly) -- confirmed by a real build failing here with EACCES.
+// Make it writable just for this one write; no need to restore the
+// original mode afterward, nothing else in the pipeline cares.
+fs.chmodSync(fmtBaseHeaderPath, 0o644);
 fs.writeFileSync(fmtBaseHeaderPath, patched);
 console.log(
   '[eas-build-post-install] Patched fmt/base.h: disabled FMT_USE_CONSTEVAL on Apple Clang (Xcode 26 consteval-vs-fmt-11.0.2 incompatibility workaround).'
