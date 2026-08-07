@@ -40,7 +40,8 @@
           "cameraPermission": "Seixo usa a câmara só para ler o código QR de outra pessoa e iniciar uma conversa cifrada com ela.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "./plugins/withFmtConstevalFix"
     ],
     "extra": {
       "eas": {

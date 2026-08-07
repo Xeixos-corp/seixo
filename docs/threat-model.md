@@ -408,6 +408,36 @@ compiling an Expo SDK 52 / RN 0.76 project is untested territory — if this
 surfaces new Xcode/toolchain-version issues distinct from the three
 already-fixed linking bugs, this is the first place to look.
 
+That risk materialized immediately: the first `production` build under
+Xcode 26 failed in "Run fastlane" with several `call to consteval function
+'fmt::basic_format_string<...>' is not a constant expression` errors. This
+is a known, widely-reported incompatibility (not specific to this
+project): Xcode 26's Clang enforces stricter C++20 `consteval` rules than
+the `fmt` 11.0.2 pod (pulled in transitively via `RCT-Folly`, this React
+Native version's dependency) satisfies. Fixed upstream in `fmt` 12.1.0,
+which only ships with React Native ≥ 0.83.9 / Expo SDK 56 — well past this
+project's SDK 52, so a full SDK upgrade wasn't a reasonable fix to do in
+the middle of debugging a build pipeline.
+
+Instead, added `app/plugins/withFmtConstevalFix.js`, a small local Expo
+config plugin (registered in `app.json`'s `plugins` array) that patches the
+generated `ios/Podfile`'s `post_install` block to compile only the `fmt`
+pod against the C++17 standard (where `consteval` doesn't exist as a
+language feature, so `fmt` falls back to its working `constexpr` path) —
+every other pod keeps the project's normal C++ standard. Written as a local
+plugin rather than pulling in the third-party `expo-fmt-consteval-fix`
+npm package that implements the same fix, specifically to avoid adding an
+unaudited dependency into the build pipeline of an E2EE app — this
+project's threat model is exactly the kind of context where "just install
+a package for it" carries real cost. `ios/Podfile` is gitignored (generated
+fresh by `expo prebuild` on every build, per `app/.gitignore`'s `/ios`
+entry), so this has to be a config plugin, not a one-off manual edit.
+**Not yet build-verified** — this is a community-confirmed fix for the
+exact error text seen, applied via a plugin whose Podfile-block-insertion
+regex was tested against a representative sample post_install block, but
+not yet run through an actual EAS build. Remove this plugin once the
+project upgrades past React Native 0.83.9 / Expo SDK 56.
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is
