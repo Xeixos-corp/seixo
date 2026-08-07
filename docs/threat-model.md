@@ -588,6 +588,41 @@ TestFlight and an on-device install are the next steps — see root
 correctly through the now-confirmed-loading native module on iOS, as
 opposed to just Android (see `packages/signal-native/README.md`).
 
+### Follow-up 5: first App Store Connect submission rejected — export compliance documentation
+
+The first `eas submit` of the successful build above uploaded cleanly but
+was rejected minutes later by Apple with `ITMS-90592: Invalid Export
+Compliance Code` — `app.json`'s `ITSAppUsesNonExemptEncryption: true` is
+correct (the app genuinely implements E2EE beyond HTTPS, via
+`signal-native`/`libsignal`), but that declaration alone isn't sufficient
+for a first-ever submission: Apple also requires "App Encryption
+Documentation" to be filed once per app, separately, in App Store
+Connect's own UI (App Information → App Encryption Documentation), and
+rejects any binary uploaded before that's on file.
+
+**Important — this is not the same thing as toggling
+`ITSAppUsesNonExemptEncryption` to `false`** to make the error disappear;
+several online guides suggest exactly that, but it would misrepresent an
+app that has real non-exempt encryption to Apple, which this app does. The
+correct fix is filling out the actual questionnaire honestly:
+
+1. Purpose/description of the app (free text).
+2. Which category of algorithm the app uses: proprietary/non-standard
+   (unchecked — `libsignal` uses standard, published algorithms: AES-256-GCM,
+   Curve25519/X25519, Kyber, HKDF) vs. standard algorithms used *instead
+   of, or in addition to,* Apple's own OS-level encryption (checked — the
+   app embeds its own crypto via `libsignal` rather than relying solely on
+   Apple's Security/CryptoKit frameworks).
+3. Whether the app should be available for distribution in France
+   specifically (that country has its own additional cryptography import
+   declaration requirement via ANSSI) — answered "No" for now, during the
+   testing phase; revisit before any real public/multi-country launch.
+
+This qualified for an immediate self-classification answer, no BIS
+paperwork or multi-day Apple review needed. After filing it, the *same*
+already-built binary (no new `eas build` needed) was resubmitted via
+`eas submit` again, selecting the same build ID from EAS's build list.
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is
