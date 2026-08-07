@@ -419,38 +419,60 @@ which only ships with React Native ≥ 0.83.9 / Expo SDK 56 — well past this
 project's SDK 52, so a full SDK upgrade wasn't a reasonable fix to do in
 the middle of debugging a build pipeline.
 
-Instead, added `app/plugins/withFmtConstevalFix.js`, a small local Expo
-config plugin (registered in `app.json`'s `plugins` array) that patches the
-generated `ios/Podfile`'s `post_install` block to compile only the `fmt`
-pod against the C++17 standard (where `consteval` doesn't exist as a
-language feature, so `fmt` falls back to its working `constexpr` path) —
-every other pod keeps the project's normal C++ standard. Written as a local
-plugin rather than pulling in the third-party `expo-fmt-consteval-fix`
-npm package that implements the same fix, specifically to avoid adding an
-unaudited dependency into the build pipeline of an E2EE app — this
-project's threat model is exactly the kind of context where "just install
-a package for it" carries real cost. `ios/Podfile` is gitignored (generated
-fresh by `expo prebuild` on every build, per `app/.gitignore`'s `/ios`
-entry), so this has to be a config plugin, not a one-off manual edit.
+**Attempt 1 (Podfile plugin, abandoned)**: added
+`app/plugins/withFmtConstevalFix.js`, a local Expo config plugin patching
+the generated `ios/Podfile`'s `post_install` block to compile only the
+`fmt` pod against the C++17 standard (where `consteval` doesn't exist as a
+language feature). Written as a local plugin rather than pulling in the
+third-party `expo-fmt-consteval-fix` npm package that implements the same
+fix, specifically to avoid adding an unaudited dependency into the build
+pipeline of an E2EE app. Its first version had a real bug of its own:
+it located the injection point by regex-matching the `end` that *closes*
+the `post_install do |installer|` block, and the non-greedy regex matched
+a *nested* block's `end` instead (RN's own `post_install` body has further
+`installer....each do |x| ... end` constructs) — `pod install` failed with
+`undefined local variable or method 'installer'`, since the injected code
+landed just after the outer block had already closed. Fixed by inserting
+right after the block's *opening* line instead, sidestepping the "find the
+matching close" problem entirely — `pod install` then succeeded and
+`SignalNativeExpo` still installed correctly. But the actual Xcode archive
+step **still failed with the identical consteval error, unchanged** — the
+C++17 override on the `fmt` target evidently didn't survive to the actual
+compile. Most likely explanation: React Native's own `react_native_post_install`
+helper (called earlier in the same block, since our injected code runs
+right after the block opens but the RN call is the next statement) also
+normalizes C++-language-standard build settings across pods, plausibly
+superseding our per-target override. Rather than chase exact Podfile
+statement ordering/precedence further, abandoned this approach — deleted
+`app/plugins/withFmtConstevalFix.js` and its `app.json` registration.
 
-**First attempt had a real bug**: the first version located the injection
-point by regex-matching the `end` that *closes* the `post_install do
-|installer|` block. `pod install` failed with `undefined local variable or
-method 'installer'` — the non-greedy regex matched the first `\nend`
-it found, which turned out to be a *nested* block's `end` (RN's own
-`post_install` body includes further `installer....each do |x| ... end`
-constructs), so the injected code landed just after the outer block had
-already closed, out of `installer`'s scope. Locating a Ruby block's closing
-`end` by regex isn't reliable in general — Ruby's grammar isn't regular,
-and nested `do...end` constructs make "the next `end`" ambiguous. Fixed by
-inserting immediately *after* the block's opening line instead
-(`post_install do |installer|\n`) — unconditionally inside the block no
-matter what follows, sidestepping the whole "find the matching close"
-problem. Verified against a sample Podfile shape with nested `each` blocks
-mimicking the real one that broke the first attempt.
+**Attempt 2 (header patch via a new EAS hook, applied)**: added
+`app/scripts/eas-build-post-install.js`, wired to `package.json`'s
+`eas-build-post-install` hook — deliberately the sibling of, not a
+replacement for, the project's existing `eas-build-pre-install` hook (see
+the earlier "Follow-up: a second, compounding bug" entry above): that one
+must run *before* `pod install` (to build the xcframework in time), this
+one must run *after* it (it patches a file, `ios/Pods/fmt/include/fmt/base.h`,
+that doesn't exist until CocoaPods has vendored `fmt`). Both hook names are
+independent and EAS runs both at their respective correct pipeline stages.
+The patch itself: flip a single line in `fmt`'s own `FMT_USE_CONSTEVAL`
+feature-detection (`#elif defined(__cpp_consteval)` →
+`#elif defined(__cpp_consteval) && !defined(__apple_build_version__)`),
+so `fmt` never takes the broken consteval code path when compiled by any
+Apple Clang fork specifically (detected via the `__apple_build_version__`
+macro), falling back to its ordinary working `constexpr`-based path
+instead — a small, well-scoped, community-confirmed fix
+(https://bleepingswift.com/blog/fmt-consteval-error-xcode-26-4-react-native)
+that patches source text directly rather than relying on build-setting
+precedence that turned out to be unreliable. Exact target string verified
+against fmt 11.0.2's actual `include/fmt/base.h` source before writing the
+patch. Fails loudly (non-zero exit) if the target string isn't found,
+rather than silently shipping an unpatched build. **Not yet
+build-verified** — next EAS build will confirm.
 
-Remove this plugin once the project upgrades past React Native 0.83.9 /
-Expo SDK 56.
+Remove this hook once the project upgrades past React Native 0.83.9 /
+Expo SDK 56, at which point `fmt` itself (bumped to 12.1.0) no longer
+needs the workaround.
 
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
