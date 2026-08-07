@@ -618,10 +618,47 @@ correct fix is filling out the actual questionnaire honestly:
    declaration requirement via ANSSI) — answered "No" for now, during the
    testing phase; revisit before any real public/multi-country launch.
 
-This qualified for an immediate self-classification answer, no BIS
-paperwork or multi-day Apple review needed. After filing it, the *same*
+Each time, App Store Connect's own wizard determined "no document upload
+is required" — implying an immediate self-classification, no BIS paperwork
+or multi-day Apple review needed. After filing it, the *same*
 already-built binary (no new `eas build` needed) was resubmitted via
 `eas submit` again, selecting the same build ID from EAS's build list.
+
+**This did not actually fix it.** The identical `ITMS-90592` rejection
+recurred on resubmission of the exact same binary, twice, across two
+separate completions of the questionnaire (once via the "+" entry point,
+once via "Carregar" — both landed on the same 3-question flow and the same
+"no document needed" outcome, but the app-level "App Encryption
+Documentation" summary view kept showing an empty/unfilled state
+afterward each time, suggesting neither attempt actually persisted a
+record App Store Connect's own ingest-time validator can see).
+
+Ruled out a client-side/EAS bug as the cause: downloaded the actual
+uploaded `.ipa`, extracted it, and parsed `Payload/Seixo.app/Info.plist`
+directly with Python's `plistlib` (binary plist format — not
+human-readable as-is). Confirmed `ITSAppUsesNonExemptEncryption` is
+present and `True` in the real shipped binary, exactly as `app.json`
+declares. This rules out the hypothesis that EAS/Expo's config plugin
+pipeline was silently dropping or mismatching the value (a real, if
+different, issue reported in `expo/eas-cli` GitHub issues around
+`ios.config.usesNonExemptEncryption` not always being read — not what's
+happening here, since the raw `ios.infoPlist.ITSAppUsesNonExemptEncryption`
+path this project uses does reach the binary correctly).
+
+Given the binary is confirmed correct and App Store Connect's own
+self-service questionnaire doesn't appear to be persisting a matching
+record, escalated directly to Apple Developer Support via
+developer.apple.com/contact (App Setup → Encryption category) — **Case ID
+20000131555931**, filed 2026-08-08, currently awaiting Apple's reply. The
+BIS/NSA annual self-classification report (drafted but not yet sent —
+would need the app's mass-market ECCN 5D992, `MMKT` authorization type,
+and the account holder's personal contact details) is on hold pending
+Apple's diagnosis, since it's not yet confirmed that filing it would even
+resolve this specific rejection (Apple's own compliance record, not a
+missing government filing, looks like the more likely proximate cause).
+The ad-hoc `development` build profile (Tier 2 in root `README.md`)
+remains fully functional as a fallback for testing with a second device in
+the meantime, sidestepping App Store Connect entirely.
 
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
