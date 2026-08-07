@@ -467,8 +467,40 @@ that patches source text directly rather than relying on build-setting
 precedence that turned out to be unreliable. Exact target string verified
 against fmt 11.0.2's actual `include/fmt/base.h` source before writing the
 patch. Fails loudly (non-zero exit) if the target string isn't found,
-rather than silently shipping an unpatched build. **Not yet
-build-verified** — next EAS build will confirm.
+rather than silently shipping an unpatched build.
+
+**First version of this fix also didn't work** — two real bugs, both now
+fixed:
+
+1. `EACCES: permission denied` writing to `fmt/base.h` — CocoaPods installs
+   vendored pod sources read-only by default, and the script tried to
+   `fs.writeFileSync` without first making the file writable. Fixed with
+   `fs.chmodSync(path, 0o644)` before the write.
+2. After fixing (1), the archive step failed with the **exact same,
+   byte-for-byte identical** consteval errors, meaning the patch itself had
+   zero effect even though it ran successfully. Reading fmt 11.0.2's full
+   `FMT_USE_CONSTEVAL` preprocessor chain (not just the one line originally
+   patched) revealed why: it has *two* independent `#elif` branches that
+   each separately set `FMT_USE_CONSTEVAL` to 1 —
+   `#elif defined(__cpp_consteval)` (the one originally patched) and
+   `#elif FMT_GCC_VERSION >= 1002 || FMT_CLANG_VERSION >= 1101`. fmt's
+   `FMT_CLANG_VERSION` macro (`__clang_major__ * 100 + __clang_minor__`)
+   does *not* special-case Apple's clang the way the chain's own
+   `__apple_build_version__ < 14000029L` check (further up the same chain,
+   pre-existing in fmt, meant for *old* Apple clang) does — it treats Apple
+   clang's self-reported version numbers the same as upstream LLVM clang,
+   and Xcode 26's Apple clang reports high enough numbers to satisfy
+   `>= 1101` regardless. So excluding Apple's clang from only the first
+   branch left the second branch to independently reach the same
+   `FMT_USE_CONSTEVAL = 1` outcome. Fixed by excluding Apple's clang from
+   *both* branches. This is the kind of bug that a "the fix ran without
+   error" check alone would miss — only re-running the actual Xcode archive
+   step and comparing the error text surfaced that the patch had done
+   nothing.
+
+**Not yet build-verified** — next EAS build will confirm whether excluding
+both branches is sufficient, or whether some other path to
+`FMT_USE_CONSTEVAL = 1` remains.
 
 Remove this hook once the project upgrades past React Native 0.83.9 /
 Expo SDK 56, at which point `fmt` itself (bumped to 12.1.0) no longer
