@@ -498,13 +498,49 @@ fixed:
    step and comparing the error text surfaced that the patch had done
    nothing.
 
-**Not yet build-verified** — next EAS build will confirm whether excluding
-both branches is sufficient, or whether some other path to
-`FMT_USE_CONSTEVAL = 1` remains.
+**Confirmed fixed**: the next build compiled `fmt/format.cc` with zero
+consteval errors and archiving progressed well past it — all the way to
+actually compiling `SignalNativeExpo` itself (the module this whole
+multi-bug saga started over).
 
-Remove this hook once the project upgrades past React Native 0.83.9 /
-Expo SDK 56, at which point `fmt` itself (bumped to 12.1.0) no longer
-needs the workaround.
+Remove this part of the hook once the project upgrades past React Native
+0.83.9 / Expo SDK 56, at which point `fmt` itself (bumped to 12.1.0) no
+longer needs the workaround.
+
+### Follow-up 4: a second, unrelated Xcode 26 toolchain bug — expo-localization
+
+With the `fmt` bug closed, the same build failed at a new, unrelated point:
+`SwiftCompile` on `node_modules/expo-localization/ios/LocalizationModule.swift`,
+auto-detected as `switch must be exhaustive`. Same underlying cause as
+`fmt` (Xcode 26 shipping a stricter toolchain than this project's pinned
+dependencies were built against) but a completely different mechanism:
+Swift now requires an exhaustive `switch` over `Calendar.Identifier` (a
+non-frozen enum from Foundation that can gain new cases across OS/SDK
+versions), and `expo-localization`'s `~16.0.1` (this project's pinned
+version, matching Expo SDK 52) predates whichever `Calendar.Identifier`
+case the Xcode 26.1 / iOS 26 SDK combination added. Confirmed as a known,
+already-reported upstream issue affecting the exact same combination
+(expo ~52.0.47, Xcode 26.1): https://github.com/expo/expo/issues/40849 —
+not fixed in any SDK-52-compatible `expo-localization` release as of this
+writing.
+
+`app/scripts/eas-build-post-install.js` was refactored into a small
+`patchFile()` helper (idempotent, fails loudly if its target text isn't
+found — same philosophy as the `fmt` patch) and reused for this second,
+unrelated file: adds `@unknown default: return "gregory"` to the switch —
+Swift's purpose-built mechanism for exhaustively handling a non-frozen
+system enum without enumerating every case, falling back to Gregorian
+(ISO/BCP-47's calendar default) for any identifier newer than this file
+knew about. Unlike the `fmt` file (only present after `pod install`), this
+one lives under `node_modules/` and exists as soon as `npm install`
+finishes — it didn't strictly need to run this late in the pipeline, but
+there was no reason to split it into a different hook either.
+
+**Not yet build-verified** — next EAS build will confirm both patches
+together get all the way through the archive step.
+
+Remove once `expo-localization` ships a fix and this project upgrades to
+that version.
 
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
