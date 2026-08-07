@@ -43,30 +43,38 @@ function withFmtConstevalFix(config) {
         return config;
       }
 
-      const injected = `
-    # --- ${FMT_FIX_MARKER}: see app/plugins/withFmtConstevalFix.js ---
-    installer.pods_project.targets.each do |target|
-      if target.name == 'fmt'
-        target.build_configurations.each do |build_config|
-          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-        end
-      end
-    end
-    # --- end ${FMT_FIX_MARKER} ---
-`;
+      const injected =
+        `    # --- ${FMT_FIX_MARKER}: see app/plugins/withFmtConstevalFix.js ---\n` +
+        `    installer.pods_project.targets.each do |target|\n` +
+        `      if target.name == 'fmt'\n` +
+        `        target.build_configurations.each do |build_config|\n` +
+        `          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'\n` +
+        `        end\n` +
+        `      end\n` +
+        `    end\n` +
+        `    # --- end ${FMT_FIX_MARKER} ---\n`;
 
-      // Insert right before the `end` that closes the Podfile's
-      // `post_install do |installer| ... end` block, so this runs alongside
-      // (not instead of) React Native's own required `react_native_post_install`
-      // call already in that block -- a second, separate `post_install do`
-      // block would silently replace the first one instead of both running.
-      const postInstallRegex = /(post_install do \|installer\|[\s\S]*?)(\nend\b)/;
-      if (!postInstallRegex.test(contents)) {
+      // Insert immediately *after* the line that opens the Podfile's
+      // `post_install do |installer|` block, rather than trying to locate
+      // where the block *closes*. Locating the closing `end` via regex is
+      // unreliable -- the real block contains its own nested `do ... end`
+      // constructs (react_native_post_install's internals,
+      // target_installation_results iteration, etc.), and a naive
+      // non-greedy match stops at the first `end` it finds, which can be
+      // one of those nested ones. That's exactly what happened on the
+      // first attempt: the injected code landed *after* the block had
+      // already closed, so `installer` was out of scope ("undefined local
+      // variable or method `installer'"). Inserting right after the
+      // opening line has no such ambiguity: it's unconditionally inside
+      // the block, statement order doesn't matter here since this is
+      // independent of react_native_post_install's own work.
+      const postInstallOpenRegex = /(post_install do \|installer\|\r?\n)/;
+      if (!postInstallOpenRegex.test(contents)) {
         throw new Error(
           `${FMT_FIX_MARKER}: could not find a "post_install do |installer|" block in the generated Podfile to patch.`
         );
       }
-      contents = contents.replace(postInstallRegex, `$1\n${injected}$2`);
+      contents = contents.replace(postInstallOpenRegex, `$1${injected}`);
 
       fs.writeFileSync(podfilePath, contents);
       return config;

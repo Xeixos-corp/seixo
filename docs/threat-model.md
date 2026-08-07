@@ -432,11 +432,25 @@ project's threat model is exactly the kind of context where "just install
 a package for it" carries real cost. `ios/Podfile` is gitignored (generated
 fresh by `expo prebuild` on every build, per `app/.gitignore`'s `/ios`
 entry), so this has to be a config plugin, not a one-off manual edit.
-**Not yet build-verified** — this is a community-confirmed fix for the
-exact error text seen, applied via a plugin whose Podfile-block-insertion
-regex was tested against a representative sample post_install block, but
-not yet run through an actual EAS build. Remove this plugin once the
-project upgrades past React Native 0.83.9 / Expo SDK 56.
+
+**First attempt had a real bug**: the first version located the injection
+point by regex-matching the `end` that *closes* the `post_install do
+|installer|` block. `pod install` failed with `undefined local variable or
+method 'installer'` — the non-greedy regex matched the first `\nend`
+it found, which turned out to be a *nested* block's `end` (RN's own
+`post_install` body includes further `installer....each do |x| ... end`
+constructs), so the injected code landed just after the outer block had
+already closed, out of `installer`'s scope. Locating a Ruby block's closing
+`end` by regex isn't reliable in general — Ruby's grammar isn't regular,
+and nested `do...end` constructs make "the next `end`" ambiguous. Fixed by
+inserting immediately *after* the block's opening line instead
+(`post_install do |installer|\n`) — unconditionally inside the block no
+matter what follows, sidestepping the whole "find the matching close"
+problem. Verified against a sample Podfile shape with nested `each` blocks
+mimicking the real one that broke the first attempt.
+
+Remove this plugin once the project upgrades past React Native 0.83.9 /
+Expo SDK 56.
 
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
