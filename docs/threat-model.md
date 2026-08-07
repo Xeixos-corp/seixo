@@ -553,6 +553,41 @@ which source to check against.
 Remove once `expo-localization` ships a fix and this project upgrades to
 that version.
 
+### Resolved: first successful `production` iOS build (2026-08-07)
+
+`main @ 2f0295f` (this entry's own commit) produced the first fully
+successful `production`-profile iOS build: archive, sign, and export all
+completed in 7m38s. This closes out the entire chain of build-pipeline
+bugs documented across this section and its four follow-ups, discovered
+and fixed over one extended debugging session:
+
+1. Native module autolinking (missing `package.json`, wrong `"apple"` vs
+   `"ios"` platform key).
+2. EAS hook ordering (`eas-build-post-install` running after `pod install`
+   instead of before, for a hook whose output `pod install` depended on).
+3. `SignalNativeExpo.podspec` deployment target mismatch (16.4 vs the
+   project's actual 15.1 baseline) — CocoaPods silently drops a pod over
+   this rather than erroring.
+4. `fmt` 11.0.2 vs. Xcode 26's stricter C++20 `consteval` enforcement, in
+   two independent branches of `fmt`'s own feature-detection.
+5. `expo-localization` 16.0.1's non-exhaustive `Calendar.Identifier`
+   switch, also an Xcode 26 strictness change.
+
+Plus two build-infrastructure issues along the way: the EAS default build
+image predating Apple's Xcode-26 App Store submission requirement, and a
+missing distribution-certificate/provisioning-profile bootstrap that
+needed one interactive `eas build` run before dashboard-triggered
+(non-interactive) builds could work.
+
+**What's now proven**: the app archives and signs cleanly for App Store
+distribution. **What's still unverified**: that the resulting build
+actually installs and runs correctly on a real device (submission to
+TestFlight and an on-device install are the next steps — see root
+`README.md`), and that the Signal Protocol calls themselves
+(`initSignalDevice`, `establishSession`, `encrypt`/`decrypt`) work
+correctly through the now-confirmed-loading native module on iOS, as
+opposed to just Android (see `packages/signal-native/README.md`).
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is

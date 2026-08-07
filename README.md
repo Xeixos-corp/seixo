@@ -15,12 +15,15 @@ against and what it explicitly does not.
   confirmed this time, not just "build succeeded"; see the 2026-08-06
   correction in `packages/signal-native/README.md` about a real autolinking
   bug that made every earlier version of this claim a false positive). iOS:
-  three separate linking bugs were found and fixed via real device runs on
-  2026-08-06 (autolinking discovery, EAS hook ordering, podspec deployment
-  target) — see `docs/threat-model.md`'s "Native crypto module autolinking"
-  section and follow-ups. The "Install pods" log now confirms
-  `SignalNativeExpo` is included (89/89 pods); installing this build on the
-  real device to confirm the runtime error is gone is the next step.
+  the module loads correctly on a real device (three linking bugs found and
+  fixed: autolinking discovery, EAS hook ordering, podspec deployment
+  target), and as of 2026-08-07 the `production` build profile archives and
+  signs cleanly end to end (two more Xcode-26-toolchain bugs found and
+  fixed along the way: `fmt`'s `consteval` incompatibility,
+  `expo-localization`'s non-exhaustive switch) — see
+  `docs/threat-model.md`'s "Native crypto module autolinking" section and
+  its four follow-ups for the full story. TestFlight submission and an
+  on-device install of this exact build are the next step.
 - `packages/signal-native/` — the Rust crate itself, wrapping
   `signalapp/libsignal`'s `libsignal-protocol`. No custom cryptography here —
   everything security-relevant is delegated to that audited crate. Real
@@ -98,8 +101,32 @@ three separate linking bugs, all now fixed, verified, and documented in
 module now loads cleanly on a real device. Still open: exercising the
 actual Signal Protocol calls (register identity, establish a session,
 send/receive an encrypted message) through it on iOS, which hasn't been
-attempted yet;
-same as Tier 1's first run.
+attempted yet.
+
+### Tier 3 — App Store distribution build, needed for TestFlight
+
+1. From `app/`: `eas build --profile production --platform ios`. Unlike
+   Tier 2's `development` profile (a dev-client debug build, ad-hoc signed
+   for one specific registered device), this is a real release build,
+   signed for App Store distribution — the only kind TestFlight (even
+   internal testing) accepts.
+2. `eas submit --profile production --platform ios` uploads the resulting
+   build to App Store Connect.
+3. Can also be done entirely from the [expo.dev](https://expo.dev) website
+   without a local terminal, once the project's GitHub repo is connected
+   (Project settings → GitHub): the Builds page's "Build from GitHub"
+   button takes a branch, platform, and build profile, and can optionally
+   auto-submit on success.
+
+First attempted 2026-08-07 and succeeded (`main @ 2f0295f`, 7m38s) after
+finding and fixing two more real bugs specific to this profile/toolchain
+combination: EAS's default build image predating Apple's Xcode-26 App
+Store submission requirement (enforced since 2026-04-28), and two
+Xcode-26-toolchain incompatibilities in third-party dependencies (`fmt`'s
+C++20 `consteval` handling, `expo-localization`'s exhaustive-switch
+requirement) — all documented in `docs/threat-model.md`'s "Native crypto
+module autolinking" follow-ups. TestFlight submission and an on-device
+install of this exact build are the next step.
 
 ## Regenerating the Kotlin/Swift bindings after a Rust API change
 
