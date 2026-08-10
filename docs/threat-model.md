@@ -649,7 +649,12 @@ Given the binary is confirmed correct and App Store Connect's own
 self-service questionnaire doesn't appear to be persisting a matching
 record, escalated directly to Apple Developer Support via
 developer.apple.com/contact (App Setup → Encryption category) — **Case ID
-20000131555931**, filed 2026-08-08, currently awaiting Apple's reply. The
+20000131555931**, filed 2026-08-08. That category turned out to be the
+wrong one: Apple's reply said "This is an error that I cannot assist
+with" and redirected to **App Setup → Binary Delivery and Processing**
+instead. Re-filed there as a follow-up referencing the first case —
+**Case ID 20000133386355**, filed 2026-08-08, currently awaiting Apple's
+reply. The
 BIS/NSA annual self-classification report (drafted but not yet sent —
 would need the app's mass-market ECCN 5D992, `MMKT` authorization type,
 and the account holder's personal contact details) is on hold pending
