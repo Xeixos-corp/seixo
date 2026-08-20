@@ -653,8 +653,13 @@ developer.apple.com/contact (App Setup → Encryption category) — **Case ID
 wrong one: Apple's reply said "This is an error that I cannot assist
 with" and redirected to **App Setup → Binary Delivery and Processing**
 instead. Re-filed there as a follow-up referencing the first case —
-**Case ID 20000133386355**, filed 2026-08-08, currently awaiting Apple's
-reply. The
+**Case ID 20000133386355**, filed 2026-08-08. No reply arrived within a
+few days; replying directly to the (no-reply) notification email got no
+response either, so followed up properly through the case's own page
+(developer.apple.com/contact → "Get help with a recent issue" →
+"View my recent cases" → the case → Email), which keeps a follow-up tied
+to the existing case rather than opening a new one. Still awaiting a
+substantive reply. The
 BIS/NSA annual self-classification report (drafted but not yet sent —
 would need the app's mass-market ECCN 5D992, `MMKT` authorization type,
 and the account holder's personal contact details) is on hold pending
