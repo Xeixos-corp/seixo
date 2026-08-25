@@ -677,13 +677,24 @@ same version) on the theory that the *specific* version 1.0.0 record in
 App Store Connect might be the thing stuck in a bad state from the
 repeated submission attempts, and a fresh version might correctly pick up
 the (believed-to-be-already-saved) app-level Export Compliance
-Documentation. **Not yet build-verified.** If this doesn't work either,
-the next step up is a fresh Bundle ID (a genuinely new App Store Connect
-app record) — a more drastic, heavier fallback (needs a new provisioning
-profile, and would require reinstalling the existing ad-hoc build on any
-already-registered device under the new identifier), held in reserve
-rather than tried first, since it isn't confirmed to fix anything a
-version bump wouldn't already fix.
+Documentation.
+
+**This theory is now disproven.** The `1.0.1` build hit the exact same
+`ITMS-90592` rejection, byte-for-byte identical error text. This rules out
+"a specific version's record is stuck" as the cause — whatever's wrong is
+scoped to the whole app (App Apple ID 6799254811) or the developer
+account, not a single version.
+
+Given this, and given the project's EAS free-tier build quota is nearly
+exhausted (12/15 iOS builds used before this one — see the courtesy email
+from Expo), a fresh Bundle ID (a genuinely new App Store Connect app
+record) — which would cost another scarce build just to test the
+hypothesis — is being held back further still. Next, actually sending the
+BIS/NSA annual self-classification report (drafted earlier, held pending
+Apple's diagnosis, which never came) — zero build cost, and Apple's own
+self-service questionnaire repeatedly claiming "no document needed" may
+simply be wrong, or may be silently assuming a government filing already
+exists that this project doesn't actually have yet.
 
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
