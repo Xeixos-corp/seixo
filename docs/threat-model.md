@@ -670,6 +670,21 @@ The ad-hoc `development` build profile (Tier 2 in root `README.md`)
 remains fully functional as a fallback for testing with a second device in
 the meantime, sidestepping App Store Connect entirely.
 
+With Apple Developer Support still silent after several days, tried the
+lower-effort fallback next: bumped `app.json`'s `version` from `1.0.0` to
+`1.0.1` (a genuinely new version, not just a new build number under the
+same version) on the theory that the *specific* version 1.0.0 record in
+App Store Connect might be the thing stuck in a bad state from the
+repeated submission attempts, and a fresh version might correctly pick up
+the (believed-to-be-already-saved) app-level Export Compliance
+Documentation. **Not yet build-verified.** If this doesn't work either,
+the next step up is a fresh Bundle ID (a genuinely new App Store Connect
+app record) — a more drastic, heavier fallback (needs a new provisioning
+profile, and would require reinstalling the existing ad-hoc build on any
+already-registered device under the new identifier), held in reserve
+rather than tried first, since it isn't confirmed to fix anything a
+version bump wouldn't already fix.
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is
