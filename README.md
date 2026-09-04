@@ -105,6 +105,22 @@ attempted yet.
 
 ### Tier 3 — App Store distribution build, needed for TestFlight
 
+**Before the first `production` build**, set the app's two environment
+variables on EAS (they come from `app/.env` locally, which is gitignored, so
+a cloud build has no other way to get them):
+
+```
+eas env:set --scope project --name EXPO_PUBLIC_SUPABASE_URL --value <url>   --visibility plaintext --environment production --type string
+eas env:set --scope project --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <key>   --visibility plaintext --environment production --type string
+```
+
+`plaintext` is correct for both: the Supabase URL and its publishable
+(`sb_publishable_...`) key are embedded in any shipped client anyway, and
+RLS — not key secrecy — is what protects the data. Skipping this produces a
+build that crashes instantly on launch, because
+`app/src/transport/supabaseClient.ts` throws at import time when they're
+missing (found the hard way, 2026-09-04).
+
 1. From `app/`: `eas build --profile production --platform ios`. Unlike
    Tier 2's `development` profile (a dev-client debug build, ad-hoc signed
    for one specific registered device), this is a real release build,
