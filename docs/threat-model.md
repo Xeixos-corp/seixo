@@ -805,6 +805,79 @@ advisories are gone. The advisories that remain are by design (signed-in
 users *must* be able to call these; anonymous sign-in is the auth model;
 leaked-password protection is irrelevant to a passwordless app).
 
+### Startup crash and blank screen on the first real TestFlight builds (2026-09-04)
+
+Two unrelated defects, found in sequence once builds finally reached a
+device. Worth recording because the first was invisible from the code and
+the second was invisible from the crash report.
+
+**1. Uncaught NSException from an async void TurboModule (React Native bug).**
+Builds 1.0.1 (2) and (3) died ~260ms after launch, `EXC_CRASH (SIGABRT)`.
+The symbolicated report from App Store Connect named the line:
+
+    __cxa_rethrow / objc_exception_rethrow
+    ObjCTurboModule::performVoidMethodInvocation  (RCTTurboModule.mm:426)
+    _dispatch_call_block_and_release -> std::__terminate -> abort
+
+This is facebook/react-native#54859. A TurboModule method returning void
+runs its `@catch` on the module's dispatch queue when invoked
+asynchronously, so anything thrown escapes into libdispatch with no
+handler. React Native already fixed this for the *synchronous* entry point
+(`performMethodInvocation`, PR #50193 — `if (isSync) { throw ... } else {
+@throw exception; }`) and left the void variant rethrowing
+unconditionally. Debug builds are unaffected, which is why the
+`development` profile ran fine on the same iPhone 16 Pro / iOS 26.6.1
+(expo/expo#44680 reports the same signature on A18 Pro + iOS 26).
+
+The crash report cannot name the module that threw — the original throw
+site is gone by the time it is rethrown. Rather than guess, patched the
+React Native source itself via `app/scripts/eas-build-post-install.js`
+(patch 3): keep the throw on the sync path, log module + method name on
+the async path. That fixes the crash whatever the culprit is, *and* makes
+the culprit visible. One hypothesis was tested and disproven first
+(`expo-screen-capture`'s `preventScreenCaptureAsync`, the app's only
+unconditional async-void call at startup) — build (3) shipped that change
+alone and crashed identically, so it was reverted rather than leaving iOS
+without screen-recording protection for nothing.
+
+Verified the patch actually shipped by downloading the built `.ipa` and
+grepping the executable for the patch's own log string, rather than
+assuming the hook ran.
+
+**2. `EXPO_PUBLIC_*` never reached the bundle (this project's bug).**
+With the crash fixed, build (4) launched to a blank white screen. Cause:
+
+    const env = process.env as Record<string, string | undefined>;
+    const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL;
+
+Expo substitutes `EXPO_PUBLIC_*` at build time by *static* replacement of
+`process.env.NAME` member expressions. Assigning `process.env` to a local
+first defeats it, so both values were `undefined` in the production
+bundle, `supabaseClient.ts` threw during module import, React never
+mounted, and a release build shows nothing at all. It worked in the dev
+client because `process.env` is populated at runtime there — so the bug
+could only ever appear in a production build.
+
+Diagnosed by grepping `main.jsbundle` inside the shipped `.ipa`: the only
+occurrence of `EXPO_PUBLIC_SUPABASE_URL` was inside the error message.
+Fixed by reading them as bare member expressions.
+
+**A cast is not an acceptable way to silence the resulting type error.**
+Both forms were tested with a local `npx expo export --platform ios` and
+the output bundle grepped for the real URL:
+
+| Form | `tsc` | Inlined |
+| --- | --- | --- |
+| `const env = process.env; env.EXPO_PUBLIC_X` | passes | **no** |
+| `(process.env as Record<...>).EXPO_PUBLIC_X` | passes | **no** |
+| `process.env.EXPO_PUBLIC_X` | errors | **yes** |
+
+Babel's substitution runs before TypeScript's types are stripped, so any
+`TSAsExpression` wrapper stops it matching. The bare form plus a narrow
+`@ts-expect-error` is therefore the only combination that is both correct
+and typechecked. `npx expo export` + grep is the cheap way to verify this
+class of problem without spending an EAS build.
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is
