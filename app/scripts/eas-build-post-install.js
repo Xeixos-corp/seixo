@@ -10,17 +10,18 @@
 // patch, on a node_modules file, doesn't strictly need to run this late,
 // but there's no benefit to splitting it into a different hook either.)
 //
-// Both patches here exist for the same underlying reason: Xcode 26 ships a
-// meaningfully stricter Clang/Swift toolchain than this project's pinned
-// dependency versions (Expo SDK 52 / React Native 0.76.9) were built
+// All three patches here exist for the same underlying reason: iOS 26 and
+// its Xcode 26 toolchain are meaningfully stricter than this project's
+// pinned dependency versions (Expo SDK 52 / React Native 0.76.9) were built
 // against, and Apple now requires Xcode 26+ for any App Store submission
 // (enforced since 2026-04-28 -- see docs/threat-model.md's "App Store
 // submission needs a newer EAS build image" follow-up for the full story
-// of how this was discovered). A full SDK upgrade would fix both
-// properly, but wasn't a reasonable fix to make in the middle of
-// debugging a build pipeline -- these are narrow, well-scoped source
-// patches instead, each removable once the project upgrades past the
-// dependency version that needed it.
+// of how this was discovered). The first two are compile-time failures; the
+// third is a runtime crash that only appears in Release builds. A full SDK
+// upgrade would fix all of them properly, but wasn't a reasonable change to
+// make in the middle of debugging a build pipeline -- these are narrow,
+// well-scoped source patches instead, each removable once the project
+// upgrades past the dependency version that needed it.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -173,6 +174,86 @@ patchFile(
       target: '    case .iso8601:\n      return "iso8601"\n    }',
       replacement:
         '    case .iso8601:\n      return "iso8601"\n    @unknown default:\n      return "gregory"\n    }',
+    },
+  ]
+);
+
+// --- Patch 3: React Native's uncatchable rethrow from async void TurboModules ---
+//
+// The first TestFlight (Release) build crashed ~260ms after launch. The
+// symbolicated report from App Store Connect points straight at it:
+//
+//   __cxa_rethrow
+//   objc_exception_rethrow
+//   ObjCTurboModule::performVoidMethodInvocation(...)  (RCTTurboModule.mm:426)
+//   _dispatch_call_block_and_release
+//   ... -> std::__terminate -> abort
+//
+// This is facebook/react-native#54859. When a TurboModule method returning
+// void is invoked asynchronously, its @catch block runs on the module's
+// dispatch queue -- so anything thrown there escapes into libdispatch with
+// no handler, and the process aborts. React Native already fixed exactly
+// this for the *synchronous* entry point (performMethodInvocation, PR
+// #50193: `if (isSync) { throw ... } else { @throw exception; }`), but the
+// void variant was left rethrowing unconditionally.
+//
+// Debug builds are unaffected, which is why the `development` profile ran
+// fine on the same iPhone 16 Pro / iOS 26.6.1 that the store build died on
+// (see also expo/expo#44680, same signature on A18 Pro + iOS 26).
+//
+// The patch keeps the throw on the synchronous path (there a caller exists
+// that can convert it into a JS error) and, on the async path, logs the
+// module and method name instead of killing the app. Swallowing is the only
+// sane option there: the JS caller has long since returned, so there is
+// nobody left to hand the error to -- and a logged failure of one native
+// call beats terminating the process.
+//
+// Remove once the upstream fix lands in the React Native version this
+// project pins.
+patchFile(
+  'rn-async-void-turbomodule-rethrow',
+  path.join(
+    __dirname,
+    '..',
+    'node_modules',
+    'react-native',
+    'ReactCommon',
+    'react',
+    'nativemodule',
+    'core',
+    'platform',
+    'ios',
+    'ReactCommon',
+    'RCTTurboModule.mm'
+  ),
+  '[Seixo] async void TurboModule',
+  [
+    {
+      target: [
+        '    @try {',
+        '      [inv invokeWithTarget:strongModule];',
+        '    } @catch (NSException *exception) {',
+        '      throw convertNSExceptionToJSError(runtime, exception, std::string{moduleName}, methodNameStr);',
+        '    } @finally {',
+      ].join('\n'),
+      replacement: [
+        '    @try {',
+        '      [inv invokeWithTarget:strongModule];',
+        '    } @catch (NSException *exception) {',
+        '      // Patched by app/scripts/eas-build-post-install.js --',
+        '      // facebook/react-native#54859. Throwing here on the async path',
+        '      // escapes into libdispatch uncaught and aborts the process.',
+        '      if (shouldVoidMethodsExecuteSync_) {',
+        '        throw convertNSExceptionToJSError(runtime, exception, std::string{moduleName}, methodNameStr);',
+        '      }',
+        '      NSLog(',
+        '          @"[Seixo] async void TurboModule %s.%s threw %@: %@ (logged instead of aborting)",',
+        '          moduleName,',
+        '          methodNameStr.c_str(),',
+        '          exception.name,',
+        '          exception.reason);',
+        '    } @finally {',
+      ].join('\n'),
     },
   ]
 );
