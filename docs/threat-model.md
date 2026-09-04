@@ -771,6 +771,40 @@ hardening item is open: `create_direct_channel` and `is_channel_member` are
 including an explicit warning that the `false` value depends on the
 repository staying public.
 
+### Hardening: unauthenticated RPC access closed (2026-09-04)
+
+Publishing the repository made the Supabase project ref public, which puts
+all the weight on RLS. `get_advisors` flagged that both `SECURITY DEFINER`
+helpers were reachable by the `anon` role — i.e. by anyone holding the
+publishable key, with no account at all. Cause: PostgreSQL grants `EXECUTE`
+to `PUBLIC` by default on new functions; `0003`/`0004` added
+`grant execute ... to authenticated` but never revoked that default, and
+`0004` additionally granted `is_channel_member` to `anon` outright.
+
+Neither function could corrupt data from an unauthenticated call —
+`channel_members.member_id` is `NOT NULL`, so `create_direct_channel`'s
+insert fails and rolls back when `auth.uid()` is NULL. The real exposure was
+**metadata**, which is the thing this document commits to minimising:
+
+- `create_direct_channel` returns a distinguishable `peer identity not
+  found` versus a constraint violation, giving an anonymous caller who holds
+  a `user_id` a way to confirm that person is a Seixo user.
+- `is_channel_member` answers "is user X in channel Y?" directly, to anyone,
+  with no session — exactly the channel-membership metadata that is supposed
+  to be readable only by members.
+
+`supabase/migrations/0008_revoke_public_function_access.sql` revokes
+`EXECUTE` from `PUBLIC` and `anon` on both, keeping it for `authenticated`.
+Safe because `registerIdentity`'s `doRegister()` awaits
+`signInAnonymouslyIfNeeded()` before any query, so every real client is
+`authenticated`. Verified after applying: `pg_proc.proacl` now lists only
+`authenticated`/`postgres`/`service_role`; a role-switch test confirmed
+`authenticated` can still call `is_channel_member` while `anon` is rejected
+with `insufficient_privilege`; and both `anon_security_definer_function_executable`
+advisories are gone. The advisories that remain are by design (signed-in
+users *must* be able to call these; anonymous sign-in is the auth model;
+leaked-password protection is irrelevant to a passwordless app).
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is
