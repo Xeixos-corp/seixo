@@ -11,7 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.xeixos.seixo",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": true
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

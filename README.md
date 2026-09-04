@@ -151,3 +151,34 @@ cp ../swift-out/signal_native.swift ../swift-out/signal_nativeFFI.h \
 ```
 Then update `SignalNativeExpoModule.kt` / `SignalNativeExpoModule.swift` and
 `app/modules/signal-native-expo/src/*.ts` if the API surface changed.
+
+## Cryptography Notice
+
+This distribution includes cryptographic software. The country in which you
+currently reside may have restrictions on the import, possession, use, and/or
+re-export to another country, of encryption software. BEFORE using any
+encryption software, please check your country's laws, regulations and
+policies concerning the import, possession, or use, and re-export of
+encryption software, to see if this is permitted. See
+<https://www.wassenaar.org/> for more information.
+
+The cryptography in this project is not implemented here: it is
+[`signalapp/libsignal`](https://github.com/signalapp/libsignal)
+(`libsignal-protocol`), used as a dependency — see
+`packages/signal-native/`. That software is classified by the U.S.
+Department of Commerce, Bureau of Industry and Security (BIS) as Export
+Commodity Control Number (ECCN) 5D002.C.1.
+
+This project's own source code is publicly available at
+<https://github.com/Xeixos-corp/seixo>. The form and manner of this
+distribution is intended to make it eligible for export under the License
+Exception ENC Technology Software Unrestricted (TSU) exception (see the BIS
+Export Administration Regulations, Section 740.13), for both object code and
+source code — the same basis Signal itself relies on (see
+[Signal-iOS's own cryptography notice](https://github.com/signalapp/Signal-iOS#cryptography-notice)).
+
+**This exception is only valid while the source repository above is actually
+public.** If this project is ever made private again, that basis no longer
+applies, and `ITSAppUsesNonExemptEncryption` in `app/app.json` must be
+revisited before any further App Store submission. See
+`docs/threat-model.md` for the full history of how this was determined.

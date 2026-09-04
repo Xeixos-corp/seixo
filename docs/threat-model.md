@@ -696,6 +696,81 @@ self-service questionnaire repeatedly claiming "no document needed" may
 simply be wrong, or may be silently assuming a government filing already
 exists that this project doesn't actually have yet.
 
+### Resolved: ITMS-90592 root cause — and a correction (2026-09-04)
+
+After Apple Developer Support proved unable to help across two cases
+(20000131555931, 20000133386355 — the second answered only with a generic
+documentation link that pointed back to the process already followed), the
+answer came from **looking at what real E2EE apps actually ship**, rather
+than from parsing Apple's prose any further:
+
+| App | `ITSAppUsesNonExemptEncryption` | `ITSEncryptionExportComplianceCode` |
+| --- | --- | --- |
+| **Signal-iOS** (authors of `libsignal`) | `false` | absent |
+| **Element-iOS** (Matrix, E2EE) | `true` | `d1dd539c-d21c-43e2-92e2-212c5269565c` |
+| **Seixo, before this change** | `true` | **absent** |
+
+**No shipping app is in the state this project was in** (`true` with no
+code) — which is precisely the state `ITMS-90592` rejects. The `[]` in the
+error text is the *empty* `ITSEncryptionExportComplianceCode`, not a
+problem with `ITSAppUsesNonExemptEncryption`.
+
+**Correction to earlier entries in this section**: this document (and the
+assistant working on it) previously asserted that `true` was the only
+honest value and that `false` would be a material misrepresentation. That
+was wrong, and stated with more confidence than the evidence supported.
+Signal — same crypto library, serious legal counsel — ships `false`.
+
+The reason `false` is legitimate for Signal is *not* the algorithms; it is
+**the form and manner of distribution**. From Signal-iOS's own README: BIS
+classifies the software as ECCN 5D002.C.1, and "the form and manner of this
+distribution makes it eligible for export under the License Exception ENC
+Technology Software Unrestricted (TSU) exception (BIS EAR §740.13)". TSU
+turns on the source being *publicly available*. BIS is explicit that an
+item is **not** publicly available merely because it incorporates or calls
+publicly available open source — so a closed-source app linking `libsignal`
+does not inherit Signal's basis.
+
+**Decision (2026-09-04): make this repository public**, which does three
+things at once:
+
+1. Establishes the TSU basis, making `false` accurate rather than a
+   convenient lie — so `app/app.json` now sets
+   `ios.infoPlist.ITSAppUsesNonExemptEncryption` to `false`, and no
+   Apple-issued compliance code is needed.
+2. Resolves an **independent licensing problem found during the same
+   investigation**: `libsignal` is **AGPLv3**. Shipping a closed-source app
+   linked against it was very likely a license violation, unrelated to
+   export compliance. Signal can do it because they own the copyright; this
+   project cannot.
+3. Aligns with the norm for credible cryptography: closed-source crypto is
+   treated with suspicion, and publishing is what makes an external audit
+   (Milestone 5) meaningful in the first place.
+
+Secret scan before publishing (git history, all refs) found: no JWTs or
+Supabase anon keys, no `service_role` key, no private keys or certificates,
+no Apple credentials, no hardcoded passwords; the real `app/.env` is
+gitignored and was never committed. Only `.env.example` templates are
+tracked. The Supabase project ref (`zopexbtdbqboijysmpuy`) does appear in
+`supabase/README.md`, but it is not a credential — it is visible in the
+app's network traffic to anyone who installs it. It does mean **RLS is now
+the sole barrier**, which is the intended design but raises the stakes;
+`get_advisors` currently reports only WARN-level items, nearly all of them
+inherent to this app's deliberate use of anonymous sign-in. One genuine
+hardening item is open: `create_direct_channel` and `is_channel_member` are
+`SECURITY DEFINER` and executable by the `anon` (not-signed-in) role.
+
+**Two steps remain that only the account holder can perform**, and the
+`false` declaration is not yet valid until both are done:
+
+- Flip the GitHub repository to public.
+- Send the one-time TSU notification to BIS and NSA with the repository
+  URL (EAR §740.13(e)) — this is what activates the exception.
+
+`README.md` now carries a Cryptography Notice modelled on Signal's,
+including an explicit warning that the `false` value depends on the
+repository staying public.
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is
