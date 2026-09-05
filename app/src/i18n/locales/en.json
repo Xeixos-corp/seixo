@@ -33,7 +33,9 @@
     "deleteConversationTitle": "Delete this conversation?",
     "deleteConversationBody": "You leave the conversation and delete its history from this phone. The other person can no longer message you here. This is not the same as blocking — either of you can start a new conversation later.",
     "deleteConversationConfirm": "Delete",
-    "deleteConversationFailed": "Could not leave the conversation. Please try again."
+    "deleteConversationFailed": "Could not leave the conversation. Please try again.",
+    "myIdButton": "My ID",
+    "myIdClose": "Close"
   },
   "conversation": {
     "ttl": {

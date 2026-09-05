@@ -33,7 +33,9 @@
     "deleteConversationTitle": "¿Borrar esta conversación?",
     "deleteConversationBody": "Sales de la conversación y borras su historial de este teléfono. La otra persona ya no podrá escribirte aquí. No es lo mismo que bloquear: cualquiera de los dos puede iniciar una nueva conversación más adelante.",
     "deleteConversationConfirm": "Borrar",
-    "deleteConversationFailed": "No se pudo salir de la conversación. Inténtalo de nuevo."
+    "deleteConversationFailed": "No se pudo salir de la conversación. Inténtalo de nuevo.",
+    "myIdButton": "Mi ID",
+    "myIdClose": "Cerrar"
   },
   "conversation": {
     "ttl": {

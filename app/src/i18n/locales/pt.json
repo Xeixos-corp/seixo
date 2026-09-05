@@ -33,7 +33,9 @@
     "deleteConversationTitle": "Apagar esta conversa?",
     "deleteConversationBody": "Sais da conversa e apagas o histórico deste telemóvel. A outra pessoa deixa de te conseguir escrever aqui. Não é o mesmo que bloquear — podem voltar a iniciar conversa mais tarde.",
     "deleteConversationConfirm": "Apagar",
-    "deleteConversationFailed": "Não foi possível sair da conversa. Tenta novamente."
+    "deleteConversationFailed": "Não foi possível sair da conversa. Tenta novamente.",
+    "myIdButton": "O meu ID",
+    "myIdClose": "Fechar"
   },
   "conversation": {
     "ttl": {

@@ -65,6 +65,13 @@ export function ConversationListScreen({ navigation }: Props) {
   const setConversationNickname = useConversationsStore((state) => state.setConversationNickname);
   const [renaming, setRenaming] = useState<Conversation | null>(null);
   const [nicknameDraft, setNicknameDraft] = useState('');
+  // The id card used to appear only in this screen's empty state and in
+  // Settings, so the moment you had one conversation the only way to find
+  // your own id was to remember it was buried in Settings. It is the single
+  // thing another person needs in order to reach you, so it gets a
+  // permanent, obvious way in — placed next to the add-someone field, which
+  // is the part of the screen already about exchanging ids.
+  const [showMyId, setShowMyId] = useState(false);
 
   const removeConversation = useConversationsStore((state) => state.removeConversation);
   const clearChannel = useMessagesStore((state) => state.clearChannel);
@@ -177,6 +184,12 @@ export function ConversationListScreen({ navigation }: Props) {
           )}
         </Pressable>
       </View>
+      <Pressable onPress={() => setShowMyId(true)} hitSlop={8} style={styles.myIdButton}>
+        <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '600' }}>
+          {t('conversationList.myIdButton')}
+        </Text>
+      </Pressable>
+
       {errorMessage ? (
         <Text style={[styles.errorText, { color: colors.danger }]}>{errorMessage}</Text>
       ) : null}
@@ -212,6 +225,27 @@ export function ConversationListScreen({ navigation }: Props) {
           </View>
         }
       />
+      <Modal
+        visible={showMyId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMyId(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowMyId(false)}>
+          <Pressable
+            style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => {}}
+          >
+            <MyIdCard />
+            <Pressable onPress={() => setShowMyId(false)} hitSlop={8} style={styles.modalCloseRow}>
+              <Text style={{ color: colors.textSecondary, fontSize: 15 }}>
+                {t('conversationList.myIdClose')}
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <Modal
         visible={renaming !== null}
         transparent
@@ -261,6 +295,15 @@ const styles = StyleSheet.create({
   conversationId: {
     fontSize: 11,
     marginTop: 2,
+  },
+  myIdButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  modalCloseRow: {
+    alignItems: 'center',
+    paddingTop: 4,
   },
   modalBackdrop: {
     flex: 1,
