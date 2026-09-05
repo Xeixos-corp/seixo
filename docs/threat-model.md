@@ -10,7 +10,7 @@ underlying implementation (linked file) changes without this doc being updated.
 - **A passive network observer** (ISP, Wi-Fi operator, on-path attacker)
   should not learn message content. Note that such an observer *can* still
   see that this device talked to the backend, and when — see the Tor note
-  below; nothing in this app hides that today."
+  below; nothing in this app hides that today.
 - **The backend operator** (us, or Supabase Inc. if Cloud is used during dev)
   should never see plaintext message content or the raw sender-recipient
   mapping of an individual message (sealed sender, see `supabase/migrations/0001_init.sql`).
