@@ -21,6 +21,36 @@ export const LOCAL_KYBER_PREKEY_ID = 1;
 // packages/signal-native/rust/src/lib.rs::generate_extra_one_time_prekeys.
 export const EXTRA_ONE_TIME_PREKEY_IDS = Array.from({ length: 19 }, (_, i) => i + 2);
 
+/** How many unclaimed one-time prekeys this identity still has published. */
+export async function countMyOneTimePrekeys(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('one_time_prekeys')
+    .select('*', { count: 'exact', head: true })
+    .eq('owner_id', userId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/**
+ * Adds one-time prekeys without touching the ones already published.
+ * Distinct from publishPrekeyBundle, which deletes first: replenishment must
+ * never remove prekeys a peer may already have claimed the public half of.
+ */
+export async function insertOneTimePrekeys(
+  userId: string,
+  prekeys: OneTimePrekeyPublic[],
+): Promise<void> {
+  if (prekeys.length === 0) return;
+  const { error } = await supabase.from('one_time_prekeys').insert(
+    prekeys.map((prekey) => ({
+      owner_id: userId,
+      prekey_id: prekey.id,
+      public_key: prekey.publicKeyBase64,
+    })),
+  );
+  if (error) throw error;
+}
+
 export async function signInAnonymouslyIfNeeded(): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
   if (sessionData.session?.user) {

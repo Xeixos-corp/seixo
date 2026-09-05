@@ -77,6 +77,24 @@ function formatTimeLeft(expiresAt: string, now: number, t: TFunction): string {
   return t('conversation.expiresInDays', { count: Math.round(seconds / 86400) });
 }
 
+/**
+ * Clock time for today's messages, date + time for older ones. Uses the
+ * device locale rather than the app's chosen language: this is a timestamp,
+ * and people read those in the format their phone is set to.
+ */
+function formatSentAt(createdAt: string): string {
+  const sent = new Date(createdAt);
+  const sameDay = new Date().toDateString() === sent.toDateString();
+  return sameDay
+    ? sent.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    : sent.toLocaleString(undefined, {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+}
+
 export function ConversationScreen({ route, navigation }: Props) {
   const { channelId, peerUserId } = route.params;
   const { colors } = useAppTheme();
@@ -423,7 +441,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                   item.isMine === true && styles.messageExpiryMine,
                 ]}
               >
-                {formatTimeLeft(item.expiresAt, now, t)}
+                {formatSentAt(item.createdAt)} · {formatTimeLeft(item.expiresAt, now, t)}
               </Text>
             </Pressable>
           )}

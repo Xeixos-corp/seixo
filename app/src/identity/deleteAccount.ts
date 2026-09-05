@@ -3,6 +3,7 @@ import { supabase } from '../transport/supabaseClient';
 import { wipeLocalSignalStore } from '../crypto';
 import { clearMasterKeyBase64 } from '../crypto/masterKey';
 import { resetRegisteredIdentity } from './registerIdentity';
+import { clearPrekeyAllocation } from './prekeyState';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { useMessagesStore } from '../store/messagesStore';
@@ -33,6 +34,10 @@ export async function deleteAccountAndAllLocalData(): Promise<void> {
   wipeLocalSignalStore();
   await clearMasterKeyBase64();
   resetRegisteredIdentity();
+  // Without this, the next identity would inherit this one's prekey
+  // allocation record and skip publishing a bundle entirely -- leaving a
+  // brand new identity with no prekeys on the server, unreachable by anyone.
+  await clearPrekeyAllocation();
 
   useConversationsStore.setState({ conversations: [] });
   useBlockedPeersStore.setState({ blockedPeerIds: [] });
