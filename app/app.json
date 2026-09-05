@@ -34,11 +34,18 @@
       "expo-secure-store",
       "expo-asset",
       "expo-localization",
+      "expo-notifications",
       [
         "expo-camera",
         {
           "cameraPermission": "Seixo usa a câmara só para ler o código QR de outra pessoa e iniciar uma conversa cifrada com ela.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O Seixo usa o Face ID só para desbloquear a app neste dispositivo. Nada sai do telemóvel."
         }
       ]
     ],

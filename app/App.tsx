@@ -7,11 +7,15 @@ import { registerIdentity } from './src/identity/registerIdentity';
 import { useScreenshotProtection } from './src/hooks/useScreenshotProtection';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { useMessageSync } from './src/messaging/useMessageSync';
+import { AppLockGate } from './src/components/AppLockGate';
+import { usePushRegistration } from './src/notifications/usePushRegistration';
 
 export default function App() {
   useScreenshotProtection();
   // Receives messages for every conversation, not just the one on screen.
   useMessageSync();
+  // Registers this device for push and keeps its token on the server.
+  usePushRegistration();
 
   useEffect(() => {
     // Fire-and-forget: OnboardingScreen awaits the same memoized promise to
@@ -27,7 +31,13 @@ export default function App() {
     // still reported rather than showing a blank screen.
     <ErrorBoundary>
       <ThemeProvider>
-        <RootNavigator />
+        {/* Inside ThemeProvider (the lock screen needs colours) but outside
+            the navigator, so nothing behind the lock is ever mounted or
+            briefly visible. Message sync above stays running regardless --
+            messages should keep arriving while the app is locked. */}
+        <AppLockGate>
+          <RootNavigator />
+        </AppLockGate>
         <StatusBar style="auto" />
       </ThemeProvider>
     </ErrorBoundary>

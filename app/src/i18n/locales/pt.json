@@ -84,7 +84,11 @@
     "deleting": "A eliminar…",
     "deleteConfirmTitle": "Eliminar conta",
     "deleteConfirmMessage": "Isto apaga a tua identidade e todos os dados associados no servidor (chaves, prekeys, conversas iniciadas, bloqueios) e no dispositivo. Não é reversível.",
-    "deleteButtonConfirm": "Eliminar"
+    "deleteButtonConfirm": "Eliminar",
+    "securitySection": "Segurança",
+    "appLockLabel": "Pedir Face ID para abrir a app",
+    "appLockHint": "Quando está ligado, o Seixo pede o Face ID (ou o código do telemóvel) sempre que voltas à app. As mensagens continuam a chegar enquanto está bloqueado.",
+    "appLockUnavailable": "Este telemóvel não tem Face ID, Touch ID nem código definido, por isso não há nada que o Seixo possa verificar."
   },
   "screenshotWarning": {
     "title": "Captura de ecrã",
@@ -103,5 +107,17 @@
     "hint": "Aponta a câmara ao código QR da outra pessoa.",
     "permissionDenied": "É preciso acesso à câmara para ler códigos QR.",
     "requestPermission": "Permitir acesso à câmara"
+  },
+  "appLock": {
+    "prompt": "Desbloquear o Seixo",
+    "lockedTitle": "Seixo bloqueado",
+    "lockedBody": "Usa o Face ID ou o código do telemóvel para abrir as tuas conversas.",
+    "failedBody": "Não foi possível confirmar a tua identidade. Tenta outra vez.",
+    "unlockButton": "Desbloquear",
+    "unlocking": "A desbloquear…"
+  },
+  "notifications": {
+    "title": "Seixo",
+    "body": "Tens uma mensagem nova."
   }
 }

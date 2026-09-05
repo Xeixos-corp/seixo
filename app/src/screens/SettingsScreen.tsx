@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,8 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { SUPPORT_CONTACT_EMAIL, PRIVACY_POLICY_URL } from '../config/support';
 import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
 import { MyIdCard } from '../components/MyIdCard';
+import { useAppLockStore } from '../store/appLockStore';
+import { isAppLockAvailable } from '../security/appLock';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -16,6 +18,21 @@ export function SettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const appLockEnabled = useAppLockStore((state) => state.enabled);
+  const setAppLockEnabled = useAppLockStore((state) => state.setEnabled);
+  // null while the check is in flight -- the toggle stays disabled until we
+  // know, rather than letting the user turn on a lock the device can't honour.
+  const [lockAvailable, setLockAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    isAppLockAvailable().then((available) => {
+      if (!cancelled) setLockAvailable(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -45,6 +62,25 @@ export function SettingsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.section}>
         <MyIdCard />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+          {t('settings.securitySection')}
+        </Text>
+        <View style={styles.settingRow}>
+          <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+            {t('settings.appLockLabel')}
+          </Text>
+          <Switch
+            value={appLockEnabled}
+            onValueChange={setAppLockEnabled}
+            disabled={lockAvailable !== true}
+          />
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          {lockAvailable === false ? t('settings.appLockUnavailable') : t('settings.appLockHint')}
+        </Text>
       </View>
 
       <View style={styles.section}>
@@ -99,6 +135,21 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
     gap: 8,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  settingLabel: {
+    fontSize: 15,
+    flexShrink: 1,
+  },
+  settingHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 6,
   },
   sectionTitle: {
     fontSize: 14,

@@ -970,3 +970,67 @@ before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is
 listed as Milestone 5 in the project plan and is non-negotiable for a "real
 product" launch (as opposed to a personal prototype).
+
+### App lock, and push notifications without a sender column (2026-09-05)
+
+Two features that both touch this document's claims directly, so both are
+recorded here rather than only in commit messages.
+
+**App lock (Face ID / device passcode).** Message history is now stored on
+disk (see the note in `app/src/store/messagesStore.ts` about why that was
+worth doing). "A compromised endpoint device, unlocked" remains explicitly
+out of scope above and still is — this does not change that. What it covers
+is the much more ordinary case that was silently lumped in with it: an
+already-unlocked phone picked up by someone else. `AppLockGate` sits inside
+the theme provider but outside the navigator, so nothing behind the lock is
+ever mounted, and re-locks on `AppState` `background` (not `inactive`, which
+iOS also reports for the Face ID sheet itself and for notification-shade
+pulls).
+
+One deliberate weakening: if no credential is enrolled any more — the user
+turned the lock on and later removed their passcode — `unlock()` returns
+`unavailable` and the app opens. Refusing would be a permanent, unrecoverable
+lockout: history lives only on this device (decryption consumes the ratchet
+key, so the server's copies can never be read again) and there is no account
+password to fall back on. A lock that can brick the app is worse than one
+that yields when the OS has nothing left to check. Enabling the lock is
+blocked in the first place unless hardware *and* an enrolled credential both
+exist.
+
+**Push notifications, and why they add no server-visible metadata.** The
+obvious implementation — "notify everyone in the channel except the sender" —
+needs to know who the sender is, which `messages` deliberately does not
+record (sealed sender, `supabase/migrations/0001_init.sql`). Adding a
+`sender_id` column, or having the client tell the server who it is, would
+have quietly undone that.
+
+It isn't necessary. `auth.uid()` is available *inside the insert
+transaction*: the server already had to know who was inserting in order to
+authorise it against RLS. That knowledge is simply never persisted. An
+`AFTER INSERT` trigger reads it, excludes that member, and stores nothing
+(`supabase/migrations/0010_push_notifications.sql`). No new column, no new
+row, no new fact retained.
+
+What the server does now hold that it did not before: one Expo push token per
+user, plus the literal notification strings to display. The strings are sent
+by the recipient's own device rather than composed server-side, specifically
+so the server does not end up holding "this user reads Portuguese" for every
+user — it stays a relay that never composes and never has to know what any of
+it means. The notification is contentless by construction ("You have a new
+message"): the server only ever holds ciphertext, so it could not include the
+message even if it wanted to, and keeping the text off a lock screen matters
+independently.
+
+The push token itself is a real addition to what a subpoena of the backend
+would produce — it is a stable per-device identifier that Apple can link to a
+device, and it is now correlated with a `user_id`. That is the price of
+notifications working at all, and it is stated here rather than glossed over.
+It is readable only by its owner (RLS, self-access only) and by the
+`SECURITY DEFINER` trigger; the trigger has `EXECUTE` revoked from `public`,
+`anon` and `authenticated`, following the lesson in "Hardening:
+unauthenticated RPC access closed" above.
+
+A gap found while writing this: `push_tokens` was created without a foreign
+key, so it was the only table that would have *survived* an account deletion
+— everything else cascades from `identities`. Fixed in
+`supabase/migrations/0011_push_tokens_cascade.sql`.

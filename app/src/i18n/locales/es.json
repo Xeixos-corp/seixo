@@ -84,7 +84,11 @@
     "deleting": "Eliminando…",
     "deleteConfirmTitle": "Eliminar cuenta",
     "deleteConfirmMessage": "Esto elimina tu identidad y todos los datos asociados en el servidor (claves, prekeys, conversaciones iniciadas, bloqueos) y en el dispositivo. No se puede deshacer.",
-    "deleteButtonConfirm": "Eliminar"
+    "deleteButtonConfirm": "Eliminar",
+    "securitySection": "Seguridad",
+    "appLockLabel": "Pedir Face ID para abrir la app",
+    "appLockHint": "Cuando está activado, Seixo pide Face ID (o el código del dispositivo) cada vez que vuelves a la app. Los mensajes siguen llegando mientras está bloqueada.",
+    "appLockUnavailable": "Este dispositivo no tiene Face ID, Touch ID ni código configurado, así que no hay nada que Seixo pueda comprobar."
   },
   "screenshotWarning": {
     "title": "Captura de pantalla",
@@ -103,5 +107,17 @@
     "hint": "Apunta la cámara al código QR de la otra persona.",
     "permissionDenied": "Se necesita acceso a la cámara para leer códigos QR.",
     "requestPermission": "Permitir acceso a la cámara"
+  },
+  "appLock": {
+    "prompt": "Desbloquear Seixo",
+    "lockedTitle": "Seixo está bloqueado",
+    "lockedBody": "Usa Face ID o el código del dispositivo para abrir tus conversaciones.",
+    "failedBody": "No se pudo confirmar tu identidad. Inténtalo de nuevo.",
+    "unlockButton": "Desbloquear",
+    "unlocking": "Desbloqueando…"
+  },
+  "notifications": {
+    "title": "Seixo",
+    "body": "Tienes un mensaje nuevo."
   }
 }
