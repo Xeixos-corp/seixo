@@ -166,6 +166,23 @@ export function ConversationScreen({ route, navigation }: Props) {
     };
   }, [channelId]);
 
+  // Messages restored from disk (messagesStore is persisted) never went
+  // through decryptAndStore/handleSend on this launch, so nothing scheduled
+  // their expiry. Without this, reopening the app would leave a message with
+  // a 30-second timer sitting on screen indefinitely — the disappearing
+  // timer would silently only work within a single session.
+  //
+  // Safe to run on every messages change: scheduleExpiry is keyed by id and
+  // guarded here against double-scheduling, and it removes anything already
+  // past its expiry immediately.
+  useEffect(() => {
+    messages.forEach((message) => {
+      if (!expiryTimers.current.has(message.id)) {
+        scheduleExpiry(message.id, message.expiresAt);
+      }
+    });
+  }, [messages, scheduleExpiry]);
+
   const decryptAndStore = useCallback(
     (fetched: FetchedMessage) => {
       // Defense in depth: normally unreachable, since blocking navigates

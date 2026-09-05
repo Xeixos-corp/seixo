@@ -118,12 +118,25 @@ What this does **not** cover:
   now given the expected scale of manual, user_id-based conversation
   starts; would need real replenishment logic before this app has enough
   users for it to matter.
-- **Decrypted plaintext is still never persisted** — `app/src/store/messagesStore.ts`
-  stays in-memory-only by design (a message can only be decrypted once; the
-  local plaintext is a cache of that one-time result, not something safe to
-  redo from ciphertext later). The conversation list itself
-  (`app/src/store/conversationsStore.ts`) is persisted, since it doesn't
-  depend on ratchet state.
+- **Decrypted plaintext IS now persisted locally** (changed 2026-09-05;
+  `app/src/store/messagesStore.ts`). It previously was not, which sounded
+  stronger than it was: because decrypting consumes a Double Ratchet message
+  key, the in-memory copy was the only one that would ever exist, so closing
+  the app destroyed every conversation permanently. That is not a messenger,
+  and an app nobody can use protects nobody.
+
+  What this costs, stated plainly: message text now sits on disk in the app
+  container. On iOS that is encrypted at rest by the OS and tied to the
+  device passcode; this app adds no second layer of its own. The
+  "compromised endpoint device, unlocked" case was already out of scope
+  above, and an app lock (biometrics with device-passcode fallback) covers
+  the everyday "someone picks up my unlocked phone" case.
+
+  Expired messages are dropped during hydration rather than restored, and
+  restored messages get their disappearing timers rescheduled on mount —
+  without both, restarting the app would quietly undo disappearing messages.
+  The conversation list (`app/src/store/conversationsStore.ts`) was already
+  persisted, since it never depended on ratchet state.
 - **The local store file itself isn't further hardened** against a
   jailbroken/rooted device with the app unlocked — this falls under "a
   compromised endpoint device" above, which no messaging app defends against.
