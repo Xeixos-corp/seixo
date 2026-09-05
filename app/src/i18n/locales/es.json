@@ -53,7 +53,11 @@
     "expiresInSeconds": "desaparece en {{count}} s",
     "expiresInMinutes": "desaparece en {{count}} min",
     "expiresInHours": "desaparece en {{count}} h",
-    "expiresInDays": "desaparece en {{count}} d"
+    "expiresInDays": "desaparece en {{count}} d",
+    "deleteTitle": "¿Borrar mensaje?",
+    "deleteMessageBody": "El mensaje se borra del servidor y de este teléfono. Si la otra persona tiene la app abierta, también desaparece del suyo, pero si está sin conexión su copia puede permanecer. Nada impide una captura de pantalla.",
+    "deleteConfirm": "Borrar ahora",
+    "deleteFailed": "No se pudo borrar el mensaje del servidor. Se eliminó de este teléfono."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

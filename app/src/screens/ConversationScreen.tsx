@@ -23,7 +23,13 @@ import {
   DEFAULT_TTL_SECONDS,
 } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
-import { fetchMessages, sendMessage, subscribeToChannelMessages, type FetchedMessage } from '../transport/messages';
+import {
+  fetchMessages,
+  sendMessage,
+  deleteMessage,
+  subscribeToChannelMessages,
+  type FetchedMessage,
+} from '../transport/messages';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
 import { encryptMessage, decryptMessage, isUntrustedIdentityError } from '../crypto';
@@ -209,6 +215,51 @@ export function ConversationScreen({ route, navigation }: Props) {
     });
   }, [messages, scheduleExpiry]);
 
+  // Drop a message locally and cancel its pending expiry timer. Used both
+  // when this user deletes one and when the peer's deletion arrives over
+  // realtime -- without clearing the timer, it would fire later against an
+  // id that no longer exists.
+  const dropMessage = useCallback(
+    (messageId: string) => {
+      const timer = expiryTimers.current.get(messageId);
+      if (timer) {
+        clearTimeout(timer);
+        expiryTimers.current.delete(messageId);
+      }
+      removeMessage(channelId, messageId);
+    },
+    [channelId, removeMessage],
+  );
+
+  const handleDeleteMessage = useCallback(
+    (messageId: string) => {
+      Alert.alert(
+        t('conversation.deleteTitle'),
+        t('conversation.deleteMessageBody'),
+        [
+          { text: t('conversation.cancel'), style: 'cancel' },
+          {
+            text: t('conversation.deleteConfirm'),
+            style: 'destructive',
+            onPress: async () => {
+              // Drop it locally first: the server delete is what the peer
+              // reacts to, but this user asked for it gone and shouldn't
+              // watch it linger while the round trip happens.
+              dropMessage(messageId);
+              try {
+                await deleteMessage(messageId);
+              } catch (error) {
+                console.error('[ConversationScreen] failed to delete message', messageId, error);
+                setLoadError(t('conversation.deleteFailed'));
+              }
+            },
+          },
+        ],
+      );
+    },
+    [dropMessage, t],
+  );
+
   const decryptAndStore = useCallback(
     (fetched: FetchedMessage) => {
       // Defense in depth: normally unreachable, since blocking navigates
@@ -266,12 +317,12 @@ export function ConversationScreen({ route, navigation }: Props) {
         }
       });
 
-    const unsubscribe = subscribeToChannelMessages(channelId, decryptAndStore);
+    const unsubscribe = subscribeToChannelMessages(channelId, decryptAndStore, dropMessage);
     return () => {
       cancelled = true;
       unsubscribe();
     };
-  }, [channelId, decryptAndStore]);
+  }, [channelId, decryptAndStore, dropMessage]);
 
   const handleSend = async () => {
     const text = inputText.trim();
@@ -342,12 +393,16 @@ export function ConversationScreen({ route, navigation }: Props) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
           renderItem={({ item }) => (
-            <View style={[styles.messageBubble, { backgroundColor: colors.surfaceAlt }]}>
+            <Pressable
+              onLongPress={() => handleDeleteMessage(item.id)}
+              delayLongPress={350}
+              style={[styles.messageBubble, { backgroundColor: colors.surfaceAlt }]}
+            >
               <Text style={{ color: colors.textPrimary }}>{item.plaintext}</Text>
               <Text style={[styles.messageExpiry, { color: colors.textSecondary }]}>
                 {formatTimeLeft(item.expiresAt, now, t)}
               </Text>
-            </View>
+            </Pressable>
           )}
           ListEmptyComponent={
             <View style={styles.messages}>

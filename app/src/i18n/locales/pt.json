@@ -53,7 +53,11 @@
     "expiresInSeconds": "desaparece em {{count}} s",
     "expiresInMinutes": "desaparece em {{count}} min",
     "expiresInHours": "desaparece em {{count}} h",
-    "expiresInDays": "desaparece em {{count}} d"
+    "expiresInDays": "desaparece em {{count}} d",
+    "deleteTitle": "Apagar mensagem?",
+    "deleteMessageBody": "A mensagem é apagada do servidor e deste telemóvel. Se a outra pessoa tiver a app aberta, também desaparece do telemóvel dela — mas se estiver offline, pode ficar lá. E nada impede uma captura de ecrã.",
+    "deleteConfirm": "Apagar agora",
+    "deleteFailed": "Não foi possível apagar a mensagem do servidor. Foi removida deste telemóvel."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

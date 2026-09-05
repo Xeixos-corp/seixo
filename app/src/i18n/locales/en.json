@@ -53,7 +53,11 @@
     "expiresInSeconds": "disappears in {{count}}s",
     "expiresInMinutes": "disappears in {{count}} min",
     "expiresInHours": "disappears in {{count}}h",
-    "expiresInDays": "disappears in {{count}}d"
+    "expiresInDays": "disappears in {{count}}d",
+    "deleteTitle": "Delete message?",
+    "deleteMessageBody": "The message is deleted from the server and from this phone. If the other person has the app open it disappears from theirs too — but if they are offline, their copy may remain. Nothing prevents a screenshot.",
+    "deleteConfirm": "Delete now",
+    "deleteFailed": "Could not delete the message from the server. It was removed from this phone."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

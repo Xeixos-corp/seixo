@@ -901,6 +901,37 @@ Babel's substitution runs before TypeScript's types are stripped, so any
 and typechecked. `npx expo export` + grep is the cheap way to verify this
 class of problem without spending an EAS build.
 
+### Manual message deletion is best-effort against the peer (2026-09-05)
+
+Long-pressing a message deletes it ahead of its TTL, using the RLS policy
+that has existed since `0001_init.sql` ("messages are deletable by channel
+members (manual delete / burn)") but was never wired to any UI.
+
+What it actually guarantees, since this is easy to overstate:
+
+- **Reliable**: the server's copy is gone, and so is this device's.
+- **Best-effort**: the peer drops their copy only if their client is
+  subscribed when the delete lands. Their local history is now persisted
+  (see above), so a peer who was offline at that moment keeps it — nothing
+  re-checks the server for deletions after the fact.
+- **Not covered at all**: a screenshot, or another phone photographing the
+  screen. The same limit the screenshot warning already acknowledges.
+
+The confirmation dialog states all three rather than implying deletion is
+absolute, and the action is labelled "Delete now" rather than "Delete for
+everyone" for the same reason.
+
+`supabase/migrations/0009_messages_replica_identity_full.sql` was needed to
+make the peer half work: Postgres puts only the primary key in the WAL by
+default, so a DELETE event arrives with no `channel_id` — the client's
+filter has nothing to match and Realtime cannot evaluate the RLS policy to
+decide who may receive it. `REPLICA IDENTITY FULL` puts the whole old row
+there instead. That widens what flows through replication to include the
+ciphertext, but only to subscribers who pass the existing policy — members
+of that channel, who already hold that exact ciphertext — so it exposes
+nothing to anyone who did not already have it. It does make the WAL
+heavier, which matters if message volume ever grows.
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is

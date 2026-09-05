@@ -1,0 +1,20 @@
+-- Needed for the "delete now" feature (ConversationScreen): the peer's app
+-- has to learn that a message was deleted so it can drop its own local copy,
+-- which now survives restarts (app/src/store/messagesStore.ts is persisted).
+--
+-- Postgres only puts the primary key of the old row into the WAL by default,
+-- so a DELETE event arrives without `channel_id`. That breaks both halves of
+-- how this app subscribes: the `channel_id=eq.<id>` filter has nothing to
+-- match on, and Realtime cannot evaluate the RLS policy (which is written in
+-- terms of channel membership) to decide who may receive it. REPLICA
+-- IDENTITY FULL puts the whole old row in the WAL, which is what makes both
+-- work.
+--
+-- Privacy note, since this widens what goes through replication: the old row
+-- includes the ciphertext. That is only ever delivered to subscribers who
+-- pass the existing RLS policy -- i.e. members of that channel, who already
+-- hold that exact ciphertext -- and the operator already stores it at rest.
+-- So this exposes nothing to anyone who did not already have it. It does
+-- make the WAL heavier, which is a cost worth knowing about if message
+-- volume ever grows.
+alter table public.messages replica identity full;

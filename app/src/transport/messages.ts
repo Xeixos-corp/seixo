@@ -64,10 +64,37 @@ export async function fetchMessages(channelId: string): Promise<FetchedMessage[]
   }));
 }
 
-/** Notifies on new messages inserted into a channel. Returns an unsubscribe function. */
+/**
+ * Removes a message from the server outright, ahead of its TTL — the "I sent
+ * that by mistake" case. Allowed by the RLS policy any channel member gets
+ * ("messages are deletable by channel members (manual delete / burn)",
+ * supabase/migrations/0001_init.sql), which was written for exactly this.
+ *
+ * This reliably removes the server's copy. Whether it also disappears from
+ * the peer's phone is best-effort: they only drop their local copy if their
+ * client is subscribed when the delete lands (see subscribeToChannelMessages
+ * below). If they were offline at that moment, their copy survives — and no
+ * deletion of any kind can undo a screenshot. The UI must not promise more
+ * than that.
+ */
+export async function deleteMessage(messageId: string): Promise<void> {
+  const { error } = await supabase.from('messages').delete().eq('id', messageId);
+  if (error) throw error;
+}
+
+/**
+ * Notifies on messages inserted into, or deleted from, a channel. Returns an
+ * unsubscribe function.
+ *
+ * The delete half depends on `messages` having REPLICA IDENTITY FULL
+ * (supabase/migrations/0009_...): without it Postgres only puts the primary
+ * key in the WAL, so the channel_id filter below has nothing to match and
+ * Realtime cannot evaluate the RLS policy to decide who may receive it.
+ */
 export function subscribeToChannelMessages(
   channelId: string,
   onInsert: (message: FetchedMessage) => void,
+  onDelete?: (messageId: string) => void,
 ): () => void {
   const realtimeChannel: RealtimeChannel = supabase
     .channel(`messages-channel-${channelId}`)
@@ -92,6 +119,19 @@ export function subscribeToChannelMessages(
           expiresAt: row.expires_at,
           envelope: decodeEnvelope(row.ciphertext),
         });
+      },
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'messages',
+        filter: `channel_id=eq.${channelId}`,
+      },
+      (payload) => {
+        const row = payload.old as { id?: string };
+        if (row?.id) onDelete?.(row.id);
       },
     )
     .subscribe();
