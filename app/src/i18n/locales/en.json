@@ -21,7 +21,12 @@
     "selfConversationError": "You can't start a conversation with yourself.",
     "untrustedIdentityError": "{{peerId}}'s security key changed since last time (they probably reinstalled the app). Confirm the other person's identity before trying again.",
     "blockedChannelError": "This conversation can't be started — one of you has blocked the other.",
-    "emptyState": "No conversations yet. Enter someone's user_id above to start — messages here are end-to-end encrypted."
+    "emptyState": "No conversations yet. Enter someone's user_id above to start — messages here are end-to-end encrypted.",
+    "renameTitle": "Contact name",
+    "renameHint": "Only you see this name — it stays on this phone and is never sent to the server.",
+    "renamePlaceholder": "e.g. Ana",
+    "renameCancel": "Cancel",
+    "renameSave": "Save"
   },
   "conversation": {
     "ttl": {

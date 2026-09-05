@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -12,7 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
-import { useConversationsStore } from '../store/conversationsStore';
+import {
+  useConversationsStore,
+  conversationDisplayName,
+  type Conversation,
+} from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { startConversationWithPeer, SelfConversationError } from '../identity/startConversation';
 import { isBlockedChannelError } from '../transport/blocking';
@@ -50,6 +55,24 @@ export function ConversationListScreen({ navigation }: Props) {
   const [peerUserId, setPeerUserId] = useState('');
   const [starting, setStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Rename flow. Long-pressing a row opens this; the label is stored locally
+  // only (see conversationsStore) and never leaves the device.
+  const setConversationNickname = useConversationsStore((state) => state.setConversationNickname);
+  const [renaming, setRenaming] = useState<Conversation | null>(null);
+  const [nicknameDraft, setNicknameDraft] = useState('');
+
+  const openRename = (conversation: Conversation) => {
+    setRenaming(conversation);
+    setNicknameDraft(conversation.nickname ?? '');
+  };
+
+  const confirmRename = () => {
+    if (renaming) {
+      setConversationNickname(renaming.channelId, nicknameDraft);
+    }
+    setRenaming(null);
+  };
 
   const handleStartConversation = async () => {
     const trimmedPeerId = peerUserId.trim();
@@ -118,10 +141,17 @@ export function ConversationListScreen({ navigation }: Props) {
           <Pressable
             style={[styles.conversationRow, { borderColor: colors.border }]}
             onPress={() => navigation.navigate('Conversation', item)}
+            onLongPress={() => openRename(item)}
+            delayLongPress={350}
           >
-            <Text style={{ color: colors.textPrimary }} numberOfLines={1}>
-              {item.peerUserId}
+            <Text style={[styles.conversationName, { color: colors.textPrimary }]} numberOfLines={1}>
+              {conversationDisplayName(item)}
             </Text>
+            {item.nickname ? (
+              <Text style={[styles.conversationId, { color: colors.textSecondary }]} numberOfLines={1}>
+                {item.peerUserId}
+              </Text>
+            ) : null}
           </Pressable>
         )}
         ListEmptyComponent={
@@ -135,11 +165,82 @@ export function ConversationListScreen({ navigation }: Props) {
           </View>
         }
       />
+      <Modal
+        visible={renaming !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRenaming(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+              {t('conversationList.renameTitle')}
+            </Text>
+            <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
+              {t('conversationList.renameHint')}
+            </Text>
+            <TextInput
+              style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
+              placeholder={t('conversationList.renamePlaceholder')}
+              placeholderTextColor={colors.textSecondary}
+              value={nicknameDraft}
+              onChangeText={setNicknameDraft}
+              autoFocus
+              maxLength={40}
+            />
+            <View style={styles.modalButtons}>
+              <Pressable onPress={() => setRenaming(null)} hitSlop={8}>
+                <Text style={{ color: colors.textSecondary, fontSize: 15 }}>
+                  {t('conversationList.renameCancel')}
+                </Text>
+              </Pressable>
+              <Pressable onPress={confirmRename} hitSlop={8}>
+                <Text style={{ color: colors.accent, fontSize: 15, fontWeight: '600' }}>
+                  {t('conversationList.renameSave')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  conversationName: {
+    fontSize: 16,
+  },
+  conversationId: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 20,
+    gap: 12,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  modalHint: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 20,
+    marginTop: 4,
+  },
   container: {
     flex: 1,
     paddingHorizontal: 20,

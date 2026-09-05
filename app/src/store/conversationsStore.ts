@@ -13,13 +13,32 @@ export type Conversation = {
   peerUserId: string;
   /** Disappearing-message timer applied to messages sent in this conversation. */
   ttlSeconds: number;
+  /**
+   * Local-only label for this peer, chosen by this user. Never sent anywhere:
+   * the server only ever knows the opaque user_id, and naming a contact is
+   * not something it should learn. Undefined until the user sets one.
+   */
+  nickname?: string;
 };
+
+/**
+ * What to show for a conversation in the UI. Falls back to a shortened
+ * user_id, because the full one is a 36-character UUID that tells a human
+ * nothing -- the list used to render it raw, which made two contacts
+ * genuinely hard to tell apart.
+ */
+export function conversationDisplayName(conversation: Conversation): string {
+  const nickname = conversation.nickname?.trim();
+  if (nickname) return nickname;
+  return `${conversation.peerUserId.slice(0, 8)}…`;
+}
 
 type ConversationsState = {
   conversations: Conversation[];
   addConversation: (conversation: Conversation) => void;
   hasConversation: (channelId: string) => boolean;
   setConversationTtl: (channelId: string, ttlSeconds: number) => void;
+  setConversationNickname: (channelId: string, nickname: string) => void;
   removeConversation: (channelId: string) => void;
 };
 
@@ -43,6 +62,16 @@ export const useConversationsStore = create<ConversationsState>()(
         set((state) => ({
           conversations: state.conversations.map((c) =>
             c.channelId === channelId ? { ...c, ttlSeconds } : c,
+          ),
+        }));
+      },
+      // Local-only rename. Trimming to empty clears it, so the display falls
+      // back to the shortened user_id rather than showing a blank row.
+      setConversationNickname: (channelId, nickname) => {
+        const trimmed = nickname.trim();
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.channelId === channelId ? { ...c, nickname: trimmed || undefined } : c,
           ),
         }));
       },

@@ -16,7 +16,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useMessagesStore, type DecryptedMessage } from '../store/messagesStore';
-import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
+import {
+  useConversationsStore,
+  conversationDisplayName,
+  DEFAULT_TTL_SECONDS,
+} from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { fetchMessages, sendMessage, subscribeToChannelMessages, type FetchedMessage } from '../transport/messages';
 import { blockPeer } from '../transport/blocking';
@@ -61,6 +65,11 @@ export function ConversationScreen({ route, navigation }: Props) {
     (state) => state.conversations.find((c) => c.channelId === channelId)?.ttlSeconds ?? DEFAULT_TTL_SECONDS,
   );
   const setConversationTtl = useConversationsStore((state) => state.setConversationTtl);
+  // Returns a string, so this selector compares by value and stays stable.
+  const conversationName = useConversationsStore((state) => {
+    const conversation = state.conversations.find((c) => c.channelId === channelId);
+    return conversation ? conversationDisplayName(conversation) : `${peerUserId.slice(0, 8)}…`;
+  });
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
   const addBlockedPeer = useBlockedPeersStore((state) => state.addBlockedPeer);
   const removeConversation = useConversationsStore((state) => state.removeConversation);
@@ -99,6 +108,7 @@ export function ConversationScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     navigation.setOptions({
+      title: conversationName,
       headerRight: () => (
         <View style={styles.headerButtons}>
           {SUPPORT_CONTACT_EMAIL ? (
@@ -112,7 +122,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         </View>
       ),
     });
-  }, [navigation, colors.accent, colors.danger, handleBlock, handleReport, t]);
+  }, [navigation, colors.accent, colors.danger, handleBlock, handleReport, t, conversationName]);
 
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);

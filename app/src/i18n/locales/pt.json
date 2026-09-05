@@ -21,7 +21,12 @@
     "selfConversationError": "Não podes iniciar uma conversa contigo próprio.",
     "untrustedIdentityError": "A chave de segurança de {{peerId}} mudou desde a última vez (provavelmente reinstalou a app). Confirma a identidade da outra pessoa antes de voltar a tentar.",
     "blockedChannelError": "Não é possível iniciar esta conversa — um de vocês bloqueou o outro.",
-    "emptyState": "Ainda sem conversas. Introduz o user_id de outra pessoa acima para começar — as mensagens trocadas aqui serão cifradas ponta-a-ponta."
+    "emptyState": "Ainda sem conversas. Introduz o user_id de outra pessoa acima para começar — as mensagens trocadas aqui serão cifradas ponta-a-ponta.",
+    "renameTitle": "Nome do contacto",
+    "renameHint": "Só tu vês este nome — fica guardado neste telemóvel e nunca é enviado para o servidor.",
+    "renamePlaceholder": "Ex: Ana",
+    "renameCancel": "Cancelar",
+    "renameSave": "Guardar"
   },
   "conversation": {
     "ttl": {
