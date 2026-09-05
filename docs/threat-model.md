@@ -8,8 +8,9 @@ underlying implementation (linked file) changes without this doc being updated.
 ## What we're protecting against
 
 - **A passive network observer** (ISP, Wi-Fi operator, on-path attacker)
-  should not learn message content, and — when Tor is enabled — should have a
-  much harder time correlating "device X talked to server Y at time Z."
+  should not learn message content. Note that such an observer *can* still
+  see that this device talked to the backend, and when — see the Tor note
+  below; nothing in this app hides that today."
 - **The backend operator** (us, or Supabase Inc. if Cloud is used during dev)
   should never see plaintext message content or the raw sender-recipient
   mapping of an individual message (sealed sender, see `supabase/migrations/0001_init.sql`).
@@ -24,9 +25,9 @@ underlying implementation (linked file) changes without this doc being updated.
   unlocked, coerced unlock). No messaging app can defend against this; screen
   lock + OS-level encryption is the user's responsibility.
 - **Global passive adversaries correlating traffic timing across the entire
-  network** (traffic analysis at nation-state scale). Tor raises the cost of
-  this; it does not make it impossible, especially for the party running both
-  ends of a conversation over long periods.
+  network** (traffic analysis at nation-state scale). Tor *would* raise the
+  cost of this without making it impossible — but Tor is not implemented (see
+  below), so at present nothing here raises that cost at all.
 - **Zero server-visible metadata.** This is not achievable with any
   centralized backend, self-hosted or not. What we commit to is *minimizing
   and time-limiting* what the server holds, not eliminating it. Concretely,
@@ -34,19 +35,28 @@ underlying implementation (linked file) changes without this doc being updated.
   - Which opaque `channel_id`s exist and which `user_id`s belong to them
     (`channel_members` table) — this is unavoidable; the server has to know
     who is authorized to read a channel to enforce RLS and route delivery.
-  - Connection IP and request timing, unless the client is using the Tor
-    toggle for that session.
+  - **Connection IP and request timing, always.** There is no Tor toggle and
+    no other IP-hiding path in the app today (see below), so the backend —
+    and Supabase Inc. while Cloud is in use — sees the real client IP of
+    every request.
   - Approximate message size and frequency (ciphertext length, insert rate),
     even though content and sender-within-a-message are hidden.
 
 ## Known platform-specific gaps
 
-- **Tor on iOS is best-effort, not guaranteed.** Apple's review process and
-  background-execution restrictions make an always-on embedded Tor daemon
-  much less reliable on iOS than on Android. If App Store review rejects or
-  restricts this, the iOS build ships without the Tor toggle rather than
-  blocking the whole app — this must be decided explicitly, not discovered at
-  submission time.
+- **Tor is NOT implemented. There is no Tor toggle, on any platform.**
+  Earlier drafts of this document described one as though it existed
+  ("when Tor is enabled", "unless the client is using the Tor toggle") —
+  that was aspirational text from the original project plan, where Tor is
+  Milestone 4, and it was never built. Verified 2026-09-05: no Tor code, no
+  dependency, no `src/tor` directory. Corrected here rather than left to
+  mislead, especially now the repository is public.
+
+  When it is built, the known constraints still apply: Apple's review
+  process and background-execution restrictions make an always-on embedded
+  Tor daemon much less reliable on iOS than on Android, so the iOS build may
+  end up shipping without it. That is a decision to make explicitly, not to
+  discover at submission time.
 - **Push notifications leak "a message arrived" to Apple/Google by
   necessity.** We send content-free wake pings and treat Supabase Realtime as
   the actual delivery channel (see Milestone 3), but the existence and rough
