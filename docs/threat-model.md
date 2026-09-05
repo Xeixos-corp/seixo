@@ -932,6 +932,39 @@ of that channel, who already hold that exact ciphertext — so it exposes
 nothing to anyone who did not already have it. It does make the WAL
 heavier, which matters if message volume ever grows.
 
+### A transient failure could brick registration permanently (2026-09-05)
+
+Worth recording because the failure mode was self-perpetuating and the
+symptom pointed away from the cause.
+
+`subscribeToMyNewMemberships` opened a Realtime channel named
+`channel-members-self-<userId>` — stable per user, so it collides with
+itself. supabase-js returns the existing instance for a topic it already
+knows, and calling `.on()` on one that has already been subscribed throws
+`cannot add postgres_changes callbacks … after subscribe()`.
+
+`registerIdentity` memoizes its promise and clears the memo when
+`doRegister` fails, so the next call retries. But the retry re-ran this
+subscription, hit the already-subscribed channel, and failed for a
+*different* reason than the original — which cleared the memo again. Every
+attempt after the first failure failed this way, so a momentary network
+problem left the app unable to register until it was restarted.
+
+Found because Settings showed "could not load your ID" and retrying never
+helped. Two earlier decisions are what made it findable at all: MyIdCard
+used to `return null` on failure (so the whole card silently wasn't there),
+and its `catch` was empty. Rendering the failure, then rendering the error
+text itself, turned "the QR code isn't in Settings" into an exact message.
+
+Fixed by giving each subscription its own topic and tearing down the
+previous one, so a repeat call cannot collide with itself. The original
+trigger — whatever failed first — is still unknown and may well have been
+a network blip; what mattered was that one blip became permanent.
+
+**Lesson**: retry paths need to be idempotent, or the retry becomes the
+bug. And empty catch blocks do not make failures go away, they make them
+unattributable.
+
 This product must not be exposed to real users carrying real conversations
 before an external security audit of at least: the `signal-native` crypto
 integration, the Supabase RLS policies, and the TTL purge logic. This is

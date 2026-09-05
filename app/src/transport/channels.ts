@@ -58,12 +58,39 @@ export async function getOtherMember(channelId: string, selfUserId: string): Pro
  * the receiving side of createDirectChannel). Returns an unsubscribe
  * function.
  */
+// The channel opened by the most recent call, so a later call can tear it
+// down. See the comment in subscribeToMyNewMemberships for why this matters.
+let currentMembershipChannel: RealtimeChannel | null = null;
+
 export function subscribeToMyNewMemberships(
   selfUserId: string,
   onNewChannel: (channelId: string) => void,
 ): () => void {
+  // This used to open a channel named `channel-members-self-<userId>`, which
+  // is stable per user and therefore collides with itself. supabase-js hands
+  // back the existing instance for a topic it already knows, and calling
+  // .on() on one that has already been subscribed throws:
+  //
+  //   cannot add postgres_changes callbacks for realtime:channel-members-self-…
+  //   after subscribe()
+  //
+  // That turned any transient failure into a permanent one. registerIdentity
+  // clears its memo when doRegister fails so the next call can retry — but
+  // the retry re-ran this function, hit the already-subscribed channel, and
+  // failed for a *different* reason than the original. Every subsequent
+  // attempt then failed the same way, so a one-second network blip left the
+  // app unable to register until it was restarted. That is how it was found:
+  // Settings showed "could not load your ID" and retrying never helped.
+  //
+  // Fixed by giving each subscription its own topic and tearing down the
+  // previous one, so a repeat call can never collide with itself.
+  if (currentMembershipChannel) {
+    void supabase.removeChannel(currentMembershipChannel);
+    currentMembershipChannel = null;
+  }
+
   const realtimeChannel: RealtimeChannel = supabase
-    .channel(`channel-members-self-${selfUserId}`)
+    .channel(`channel-members-self-${selfUserId}-${Date.now()}`)
     .on(
       'postgres_changes',
       {
@@ -79,7 +106,12 @@ export function subscribeToMyNewMemberships(
     )
     .subscribe();
 
+  currentMembershipChannel = realtimeChannel;
+
   return () => {
+    if (currentMembershipChannel === realtimeChannel) {
+      currentMembershipChannel = null;
+    }
     supabase.removeChannel(realtimeChannel);
   };
 }
