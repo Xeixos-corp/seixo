@@ -26,7 +26,14 @@
     "renameHint": "Solo tú ves este nombre: se guarda en este teléfono y nunca se envía al servidor.",
     "renamePlaceholder": "Ej: Ana",
     "renameCancel": "Cancelar",
-    "renameSave": "Guardar"
+    "renameSave": "Guardar",
+    "rowActionsTitle": "Conversación",
+    "rowActionsRename": "Cambiar nombre",
+    "rowActionsDelete": "Borrar conversación",
+    "deleteConversationTitle": "¿Borrar esta conversación?",
+    "deleteConversationBody": "Sales de la conversación y borras su historial de este teléfono. La otra persona ya no podrá escribirte aquí. No es lo mismo que bloquear: cualquiera de los dos puede iniciar una nueva conversación más adelante.",
+    "deleteConversationConfirm": "Borrar",
+    "deleteConversationFailed": "No se pudo salir de la conversación. Inténtalo de nuevo."
   },
   "conversation": {
     "ttl": {
@@ -57,7 +64,8 @@
     "deleteTitle": "¿Borrar mensaje?",
     "deleteMessageBody": "El mensaje se borra del servidor y de este teléfono. Si la otra persona tiene la app abierta, también desaparece del suyo, pero si está sin conexión su copia puede permanecer. Nada impide una captura de pantalla.",
     "deleteConfirm": "Borrar ahora",
-    "deleteFailed": "No se pudo borrar el mensaje del servidor. Se eliminó de este teléfono."
+    "deleteFailed": "No se pudo borrar el mensaje del servidor. Se eliminó de este teléfono.",
+    "sendFailed": "No se pudo enviar. Comprueba la conexión e inténtalo de nuevo: tu texto sigue aquí."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -82,7 +90,9 @@
   "myId": {
     "label": "Mi ID",
     "copy": "Copiar",
-    "copied": "¡Copiado!"
+    "copied": "¡Copiado!",
+    "share": "Compartir mi ID",
+    "shareMessage": "Mi ID de Seixo: {{id}}"
   },
   "scanQr": {
     "hint": "Apunta la cámara al código QR de la otra persona.",

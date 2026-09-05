@@ -7,12 +7,26 @@ export type DecryptedMessage = {
   createdAt: string;
   expiresAt: string;
   plaintext: string;
+  /**
+   * Whether this device sent it. Set at the point we know for certain —
+   * true in handleSend, false in decryptAndStore — rather than derived
+   * later, because nothing in the ciphertext or the row identifies a
+   * sender: `messages` has no sender_id column by design (sealed sender,
+   * supabase/migrations/0001_init.sql).
+   *
+   * Optional because messages persisted before this field existed have no
+   * value for it. Those render in the old neutral style rather than being
+   * guessed at and attributed to the wrong person.
+   */
+  isMine?: boolean;
 };
 
 type MessagesState = {
   messagesByChannel: Record<string, DecryptedMessage[]>;
   addMessage: (channelId: string, message: DecryptedMessage) => void;
   removeMessage: (channelId: string, id: string) => void;
+  /** Drops every message for a channel — used when leaving a conversation. */
+  clearChannel: (channelId: string) => void;
 };
 
 // Persisted, as of 2026-09-05. This used to be in-memory only, which meant
@@ -54,6 +68,13 @@ export const useMessagesStore = create<MessagesState>()(
             [channelId]: [...existing, message],
           },
         }));
+      },
+      clearChannel: (channelId) => {
+        set((state) => {
+          const next = { ...state.messagesByChannel };
+          delete next[channelId];
+          return { messagesByChannel: next };
+        });
       },
       // Local-side disappearing-message removal (ConversationScreen schedules
       // this for each message's expiresAt) — separate from, and in addition to,

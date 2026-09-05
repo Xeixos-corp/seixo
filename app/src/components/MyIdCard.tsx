@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +43,19 @@ export function MyIdCard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Copying only helps if the other person is already somewhere you can
+  // paste into. The system share sheet reaches WhatsApp, Messages, email and
+  // everything else in one step, which is how this id will realistically be
+  // handed over when the two people aren't in the same room to scan the QR.
+  const handleShare = async () => {
+    if (!userId) return;
+    try {
+      await Share.share({ message: t('myId.shareMessage', { id: userId }) });
+    } catch (error) {
+      console.error('[MyIdCard] share failed', error);
+    }
+  };
+
   if (!userId) return null;
 
   return (
@@ -57,6 +70,11 @@ export function MyIdCard() {
         </Text>
         <Text style={{ color: colors.accent, fontSize: 13, fontWeight: '600' }}>
           {copied ? t('myId.copied') : t('myId.copy')}
+        </Text>
+      </Pressable>
+      <Pressable onPress={handleShare} hitSlop={8}>
+        <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '600' }}>
+          {t('myId.share')}
         </Text>
       </Pressable>
     </View>

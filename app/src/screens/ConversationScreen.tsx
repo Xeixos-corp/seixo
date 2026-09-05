@@ -158,6 +158,11 @@ export function ConversationScreen({ route, navigation }: Props) {
 
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
+  // Sending used to fail silently: the catch below only wrote to the
+  // console, so pressing send with no connection did visibly nothing at
+  // all. "I don't know whether that sent" is about the worst state a
+  // messenger can leave someone in.
+  const [sendError, setSendError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   // Set when establishSession/encrypt/decrypt fails because the peer's
   // identity key changed since the last session (see
@@ -291,6 +296,7 @@ export function ConversationScreen({ route, navigation }: Props) {
           createdAt: fetched.createdAt,
           expiresAt: fetched.expiresAt,
           plaintext,
+          isMine: false,
         });
         scheduleExpiry(fetched.id, fetched.expiresAt);
       } catch (error) {
@@ -329,16 +335,20 @@ export function ConversationScreen({ route, navigation }: Props) {
     if (!text || sending) return;
 
     setSending(true);
+    setSendError(null);
     try {
       const envelope = encryptMessage(peerUserId, REMOTE_DEVICE_ID, text);
       const { id, createdAt, expiresAt } = await sendMessage(channelId, envelope, ttlSeconds);
-      addMessage(channelId, { id, createdAt, expiresAt, plaintext: text });
+      addMessage(channelId, { id, createdAt, expiresAt, plaintext: text, isMine: true });
       scheduleExpiry(id, expiresAt);
       setInputText('');
     } catch (error) {
       if (isUntrustedIdentityError(error)) {
         setSecurityWarning(t('conversation.securityWarningSend', { peerId: peerUserId }));
+      } else {
+        setSendError(t('conversation.sendFailed'));
       }
+      // The text deliberately stays in the input so it isn't lost.
       console.error('[ConversationScreen] failed to send message', error);
     } finally {
       setSending(false);
@@ -396,10 +406,23 @@ export function ConversationScreen({ route, navigation }: Props) {
             <Pressable
               onLongPress={() => handleDeleteMessage(item.id)}
               delayLongPress={350}
-              style={[styles.messageBubble, { backgroundColor: colors.surfaceAlt }]}
+              style={[
+                styles.messageBubble,
+                item.isMine === true
+                  ? [styles.messageBubbleMine, { backgroundColor: colors.accent }]
+                  : { backgroundColor: colors.surfaceAlt },
+              ]}
             >
-              <Text style={{ color: colors.textPrimary }}>{item.plaintext}</Text>
-              <Text style={[styles.messageExpiry, { color: colors.textSecondary }]}>
+              <Text style={{ color: item.isMine === true ? colors.onAccent : colors.textPrimary }}>
+                {item.plaintext}
+              </Text>
+              <Text
+                style={[
+                  styles.messageExpiry,
+                  { color: item.isMine === true ? colors.onAccent : colors.textSecondary },
+                  item.isMine === true && styles.messageExpiryMine,
+                ]}
+              >
                 {formatTimeLeft(item.expiresAt, now, t)}
               </Text>
             </Pressable>
@@ -412,6 +435,10 @@ export function ConversationScreen({ route, navigation }: Props) {
             </View>
           }
         />
+
+        {sendError ? (
+          <Text style={[styles.sendErrorText, { color: colors.danger }]}>{sendError}</Text>
+        ) : null}
 
         <View style={[styles.inputBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
@@ -515,6 +542,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignSelf: 'flex-start',
     maxWidth: '80%',
+  },
+  // Own messages sit on the right in the accent colour, the convention every
+  // messenger uses. Before this, every bubble was identical and left-aligned,
+  // so a real back-and-forth was unreadable -- you could not tell who said
+  // what.
+  messageBubbleMine: {
+    alignSelf: 'flex-end',
+  },
+  messageExpiryMine: {
+    opacity: 0.8,
+    textAlign: 'right',
+  },
+  sendErrorText: {
+    fontSize: 13,
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
   inputBar: {
     flexDirection: 'row',

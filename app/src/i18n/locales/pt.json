@@ -26,7 +26,14 @@
     "renameHint": "Só tu vês este nome — fica guardado neste telemóvel e nunca é enviado para o servidor.",
     "renamePlaceholder": "Ex: Ana",
     "renameCancel": "Cancelar",
-    "renameSave": "Guardar"
+    "renameSave": "Guardar",
+    "rowActionsTitle": "Conversa",
+    "rowActionsRename": "Mudar nome",
+    "rowActionsDelete": "Apagar conversa",
+    "deleteConversationTitle": "Apagar esta conversa?",
+    "deleteConversationBody": "Sais da conversa e apagas o histórico deste telemóvel. A outra pessoa deixa de te conseguir escrever aqui. Não é o mesmo que bloquear — podem voltar a iniciar conversa mais tarde.",
+    "deleteConversationConfirm": "Apagar",
+    "deleteConversationFailed": "Não foi possível sair da conversa. Tenta novamente."
   },
   "conversation": {
     "ttl": {
@@ -57,7 +64,8 @@
     "deleteTitle": "Apagar mensagem?",
     "deleteMessageBody": "A mensagem é apagada do servidor e deste telemóvel. Se a outra pessoa tiver a app aberta, também desaparece do telemóvel dela — mas se estiver offline, pode ficar lá. E nada impede uma captura de ecrã.",
     "deleteConfirm": "Apagar agora",
-    "deleteFailed": "Não foi possível apagar a mensagem do servidor. Foi removida deste telemóvel."
+    "deleteFailed": "Não foi possível apagar a mensagem do servidor. Foi removida deste telemóvel.",
+    "sendFailed": "Não foi possível enviar. Verifica a ligação e tenta outra vez — o texto ficou guardado."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -82,7 +90,9 @@
   "myId": {
     "label": "O meu ID",
     "copy": "Copiar",
-    "copied": "Copiado!"
+    "copied": "Copiado!",
+    "share": "Partilhar o meu ID",
+    "shareMessage": "O meu ID da Seixo: {{id}}"
   },
   "scanQr": {
     "hint": "Aponta a câmara ao código QR da outra pessoa.",

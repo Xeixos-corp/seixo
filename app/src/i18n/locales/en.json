@@ -26,7 +26,14 @@
     "renameHint": "Only you see this name — it stays on this phone and is never sent to the server.",
     "renamePlaceholder": "e.g. Ana",
     "renameCancel": "Cancel",
-    "renameSave": "Save"
+    "renameSave": "Save",
+    "rowActionsTitle": "Conversation",
+    "rowActionsRename": "Rename",
+    "rowActionsDelete": "Delete conversation",
+    "deleteConversationTitle": "Delete this conversation?",
+    "deleteConversationBody": "You leave the conversation and delete its history from this phone. The other person can no longer message you here. This is not the same as blocking — either of you can start a new conversation later.",
+    "deleteConversationConfirm": "Delete",
+    "deleteConversationFailed": "Could not leave the conversation. Please try again."
   },
   "conversation": {
     "ttl": {
@@ -57,7 +64,8 @@
     "deleteTitle": "Delete message?",
     "deleteMessageBody": "The message is deleted from the server and from this phone. If the other person has the app open it disappears from theirs too — but if they are offline, their copy may remain. Nothing prevents a screenshot.",
     "deleteConfirm": "Delete now",
-    "deleteFailed": "Could not delete the message from the server. It was removed from this phone."
+    "deleteFailed": "Could not delete the message from the server. It was removed from this phone.",
+    "sendFailed": "Could not send. Check your connection and try again — your text is still here."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
@@ -82,7 +90,9 @@
   "myId": {
     "label": "My ID",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "share": "Share my ID",
+    "shareMessage": "My Seixo ID: {{id}}"
   },
   "scanQr": {
     "hint": "Point the camera at the other person's QR code.",

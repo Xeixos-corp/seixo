@@ -17,6 +17,27 @@ export async function createDirectChannel(peerUserId: string): Promise<string> {
   return data as string;
 }
 
+/**
+ * Leaves a conversation by deleting only this user's own membership row,
+ * which is exactly what the RLS policy allows ("channel membership is
+ * self-deletable (leave conversation)", supabase/migrations/0001_init.sql).
+ *
+ * Done server-side rather than just hiding the conversation locally, because
+ * hiding it would be worse than useless: nothing re-adds a hidden
+ * conversation when a new message arrives, so the peer would keep writing
+ * into a channel this user silently never sees again. Leaving is at least
+ * honest about what happened -- their messages can no longer reach this
+ * user, and either side can start a fresh conversation later.
+ */
+export async function leaveChannel(channelId: string, selfUserId: string): Promise<void> {
+  const { error } = await supabase
+    .from('channel_members')
+    .delete()
+    .eq('channel_id', channelId)
+    .eq('member_id', selfUserId);
+  if (error) throw error;
+}
+
 /** Who else is in a channel besides the caller — used when notified of a new membership. */
 export async function getOtherMember(channelId: string, selfUserId: string): Promise<string> {
   const { data, error } = await supabase

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -20,6 +21,9 @@ import {
 } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { startConversationWithPeer, SelfConversationError } from '../identity/startConversation';
+import { leaveChannel } from '../transport/channels';
+import { registerIdentity } from '../identity/registerIdentity';
+import { useMessagesStore } from '../store/messagesStore';
 import { isBlockedChannelError } from '../transport/blocking';
 import { isUntrustedIdentityError } from '../crypto';
 import { MyIdCard } from '../components/MyIdCard';
@@ -62,9 +66,52 @@ export function ConversationListScreen({ navigation }: Props) {
   const [renaming, setRenaming] = useState<Conversation | null>(null);
   const [nicknameDraft, setNicknameDraft] = useState('');
 
+  const removeConversation = useConversationsStore((state) => state.removeConversation);
+  const clearChannel = useMessagesStore((state) => state.clearChannel);
+
   const openRename = (conversation: Conversation) => {
     setRenaming(conversation);
     setNicknameDraft(conversation.nickname ?? '');
+  };
+
+  const confirmDelete = (conversation: Conversation) => {
+    Alert.alert(
+      t('conversationList.deleteConversationTitle'),
+      t('conversationList.deleteConversationBody'),
+      [
+        { text: t('conversationList.renameCancel'), style: 'cancel' },
+        {
+          text: t('conversationList.deleteConversationConfirm'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { userId } = await registerIdentity();
+              await leaveChannel(conversation.channelId, userId);
+              removeConversation(conversation.channelId);
+              clearChannel(conversation.channelId);
+            } catch (error) {
+              console.error('[ConversationListScreen] failed to leave channel', error);
+              setErrorMessage(t('conversationList.deleteConversationFailed'));
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Long-press opens the choice rather than jumping straight to rename:
+  // deleting needed somewhere to live, and a hidden second gesture would be
+  // undiscoverable.
+  const openRowActions = (conversation: Conversation) => {
+    Alert.alert(t('conversationList.rowActionsTitle'), conversationDisplayName(conversation), [
+      { text: t('conversationList.rowActionsRename'), onPress: () => openRename(conversation) },
+      {
+        text: t('conversationList.rowActionsDelete'),
+        style: 'destructive',
+        onPress: () => confirmDelete(conversation),
+      },
+      { text: t('conversationList.renameCancel'), style: 'cancel' },
+    ]);
   };
 
   const confirmRename = () => {
@@ -141,7 +188,7 @@ export function ConversationListScreen({ navigation }: Props) {
           <Pressable
             style={[styles.conversationRow, { borderColor: colors.border }]}
             onPress={() => navigation.navigate('Conversation', item)}
-            onLongPress={() => openRename(item)}
+            onLongPress={() => openRowActions(item)}
             delayLongPress={350}
           >
             <Text style={[styles.conversationName, { color: colors.textPrimary }]} numberOfLines={1}>
