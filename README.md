@@ -22,8 +22,11 @@ against and what it explicitly does not.
   fixed along the way: `fmt`'s `consteval` incompatibility,
   `expo-localization`'s non-exhaustive switch) — see
   `docs/threat-model.md`'s "Native crypto module autolinking" section and
-  its four follow-ups for the full story. TestFlight submission and an
-  on-device install of this exact build are the next step.
+  its four follow-ups for the full story. Shipped to TestFlight and
+  installed on a real device on 2026-09-04; the real Signal Protocol
+  calls (register identity, establish a session, send and receive an
+  encrypted message) have since been exercised on iOS between two
+  devices.
 - `packages/signal-native/` — the Rust crate itself, wrapping
   `signalapp/libsignal`'s `libsignal-protocol`. No custom cryptography here —
   everything security-relevant is delegated to that audited crate. Real
@@ -94,14 +97,14 @@ same `expo-module.config.json`/hook/podspec, but it's untested.
    on your iPhone via TestFlight-style internal distribution.
 
 Tier 2 has been run multiple times against a real Apple Developer account
-and a real iPhone (2026-08-06). The first real install surfaced `Cannot
-find native module 'SignalNativeExpo'` at runtime, which turned out to be
-three separate linking bugs, all now fixed, verified, and documented in
+and a real iPhone (2026-08-06, and again 2026-09-05 for notifications).
+The first real install surfaced `Cannot find native module
+'SignalNativeExpo'` at runtime, which turned out to be three separate
+linking bugs, all now fixed, verified, and documented in
 `docs/threat-model.md`'s "Native crypto module autolinking" section — the
-module now loads cleanly on a real device. Still open: exercising the
-actual Signal Protocol calls (register identity, establish a session,
-send/receive an encrypted message) through it on iOS, which hasn't been
-attempted yet.
+module now loads cleanly on a real device, and the actual Signal Protocol
+calls (register identity, establish a session, send and receive an
+encrypted message) have since been exercised through it on iOS.
 
 ### Tier 3 — App Store distribution build, needed for TestFlight
 
@@ -141,8 +144,17 @@ Store submission requirement (enforced since 2026-04-28), and two
 Xcode-26-toolchain incompatibilities in third-party dependencies (`fmt`'s
 C++20 `consteval` handling, `expo-localization`'s exhaustive-switch
 requirement) — all documented in `docs/threat-model.md`'s "Native crypto
-module autolinking" follow-ups. TestFlight submission and an on-device
-install of this exact build are the next step.
+module autolinking" follow-ups.
+
+Note for any build after notifications were added (2026-09-05): the first
+`production` or `development` build that includes `expo-notifications`
+must be run **interactively**. The app now needs the `aps-environment`
+entitlement, and an existing provisioning profile predating that does not
+carry the Push Notifications capability — a `--non-interactive` build
+cannot change anything on the Apple Developer account, so it fails at the
+Xcode step with "doesn't support the Push Notifications capability".
+Running without that flag lets EAS regenerate the profile and create the
+APNs key. Found the hard way, one wasted build.
 
 ## Regenerating the Kotlin/Swift bindings after a Rust API change
 
