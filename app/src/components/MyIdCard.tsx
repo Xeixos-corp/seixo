@@ -26,18 +26,26 @@ export function MyIdCard() {
   // (QR, id, share) silently wasn't there, with nothing on screen to say
   // why. Both states are now visible, and the error is logged.
   const [failed, setFailed] = useState(false);
+  // Kept and shown on screen, not just logged: without a Mac there is no
+  // practical way to read device console output from this dev setup, so the
+  // screen is the only place the message can actually be read.
+  const [failureDetail, setFailureDetail] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setFailed(false);
+    setFailureDetail(null);
     registerIdentity()
       .then(({ userId: id }) => {
         if (!cancelled) setUserId(id);
       })
       .catch((error) => {
         console.error('[MyIdCard] could not load identity', error);
-        if (!cancelled) setFailed(true);
+        if (!cancelled) {
+          setFailed(true);
+          setFailureDetail(error instanceof Error ? `${error.name}: ${error.message}` : String(error));
+        }
       });
     return () => {
       cancelled = true;
@@ -68,6 +76,11 @@ export function MyIdCard() {
     return (
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.label, { color: colors.danger }]}>{t('myId.loadFailed')}</Text>
+        {failureDetail ? (
+          <Text style={[styles.failureDetail, { color: colors.textSecondary }]} selectable>
+            {failureDetail}
+          </Text>
+        ) : null}
         <Pressable onPress={() => setAttempt((n) => n + 1)} hitSlop={8}>
           <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '600' }}>
             {t('myId.retry')}
@@ -109,6 +122,10 @@ export function MyIdCard() {
 }
 
 const styles = StyleSheet.create({
+  failureDetail: {
+    fontSize: 11,
+    textAlign: 'center',
+  },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
