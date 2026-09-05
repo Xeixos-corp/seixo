@@ -180,7 +180,7 @@ export function ConversationListScreen({ navigation }: Props) {
               {t('conversationList.renameHint')}
             </Text>
             <TextInput
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
+              style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border }]}
               placeholder={t('conversationList.renamePlaceholder')}
               placeholderTextColor={colors.textSecondary}
               value={nicknameDraft}
@@ -234,6 +234,19 @@ const styles = StyleSheet.create({
   modalHint: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  // Same look as `input`, minus its `flex: 1`. That property means "fill the
+  // remaining width" in the horizontal new-conversation row it was written
+  // for, but "fill the remaining height" here in a vertical card that sizes
+  // to its content -- which collapsed this field to zero height. It still
+  // took keystrokes, so text went in and saving worked; you just could not
+  // see what you were typing.
+  modalInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
   },
   modalButtons: {
     flexDirection: 'row',
