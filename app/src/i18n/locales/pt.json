@@ -48,7 +48,12 @@
     "securityWarningDecrypt": "A chave de segurança de {{peerId}} mudou desde a última conversa. Esta mensagem não foi decifrada — confirma com a outra pessoa antes de continuar.",
     "securityWarningSend": "A chave de segurança de {{peerId}} mudou desde a última conversa. A mensagem não foi enviada — confirma com a outra pessoa antes de continuar.",
     "reportEmailSubject": "Denúncia de utilizador",
-    "reportEmailBody": "Quero denunciar o utilizador com user_id: {{peerId}}\n\nDescreve aqui o que aconteceu (podes colar o texto da mensagem em causa):\n\n"
+    "reportEmailBody": "Quero denunciar o utilizador com user_id: {{peerId}}\n\nDescreve aqui o que aconteceu (podes colar o texto da mensagem em causa):\n\n",
+    "ttlLabel": "As mensagens que enviares desaparecem após:",
+    "expiresInSeconds": "desaparece em {{count}} s",
+    "expiresInMinutes": "desaparece em {{count}} min",
+    "expiresInHours": "desaparece em {{count}} h",
+    "expiresInDays": "desaparece em {{count}} d"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

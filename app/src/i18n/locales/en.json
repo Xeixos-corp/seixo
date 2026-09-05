@@ -48,7 +48,12 @@
     "securityWarningDecrypt": "{{peerId}}'s security key changed since your last conversation. This message wasn't decrypted — confirm with the other person before continuing.",
     "securityWarningSend": "{{peerId}}'s security key changed since your last conversation. The message wasn't sent — confirm with the other person before continuing.",
     "reportEmailSubject": "User report",
-    "reportEmailBody": "I want to report the user with user_id: {{peerId}}\n\nDescribe what happened here (you can paste the message text in question):\n\n"
+    "reportEmailBody": "I want to report the user with user_id: {{peerId}}\n\nDescribe what happened here (you can paste the message text in question):\n\n",
+    "ttlLabel": "Messages you send disappear after:",
+    "expiresInSeconds": "disappears in {{count}}s",
+    "expiresInMinutes": "disappears in {{count}} min",
+    "expiresInHours": "disappears in {{count}}h",
+    "expiresInDays": "disappears in {{count}}d"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

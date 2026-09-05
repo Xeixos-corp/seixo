@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useMessagesStore, type DecryptedMessage } from '../store/messagesStore';
 import {
@@ -53,6 +54,22 @@ const TTL_OPTIONS: Array<{ key: string; seconds: number }> = [
   { key: '1day', seconds: 24 * 60 * 60 },
   { key: '1week', seconds: 7 * 24 * 60 * 60 },
 ];
+
+/**
+ * How long until this message disappears, in coarse units. Deliberately
+ * approximate: the countdown is reassurance that the timer is real, not a
+ * precision instrument — the actual removal is driven by scheduleExpiry and
+ * the server-side purge, not by this label.
+ */
+function formatTimeLeft(expiresAt: string, now: number, t: TFunction): string {
+  const msLeft = new Date(expiresAt).getTime() - now;
+  const seconds = Math.max(0, Math.round(msLeft / 1000));
+
+  if (seconds < 60) return t('conversation.expiresInSeconds', { count: seconds });
+  if (seconds < 60 * 60) return t('conversation.expiresInMinutes', { count: Math.round(seconds / 60) });
+  if (seconds < 24 * 60 * 60) return t('conversation.expiresInHours', { count: Math.round(seconds / 3600) });
+  return t('conversation.expiresInDays', { count: Math.round(seconds / 86400) });
+}
 
 export function ConversationScreen({ route, navigation }: Props) {
   const { channelId, peerUserId } = route.params;
@@ -123,6 +140,15 @@ export function ConversationScreen({ route, navigation }: Props) {
       ),
     });
   }, [navigation, colors.accent, colors.danger, handleBlock, handleReport, t, conversationName]);
+
+  // Drives the per-message countdown labels. Coarse on purpose (10s): the
+  // label only needs to be roughly right, and the actual disappearance is
+  // handled by scheduleExpiry, not by this.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 10_000);
+    return () => clearInterval(tick);
+  }, []);
 
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -284,6 +310,10 @@ export function ConversationScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
+        <Text style={[styles.ttlLabel, { color: colors.textSecondary }]}>
+          {t('conversation.ttlLabel')}
+        </Text>
+
         <View style={styles.ttlRow}>
           {TTL_OPTIONS.map((option) => {
             const selected = option.seconds === ttlSeconds;
@@ -314,6 +344,9 @@ export function ConversationScreen({ route, navigation }: Props) {
           renderItem={({ item }) => (
             <View style={[styles.messageBubble, { backgroundColor: colors.surfaceAlt }]}>
               <Text style={{ color: colors.textPrimary }}>{item.plaintext}</Text>
+              <Text style={[styles.messageExpiry, { color: colors.textSecondary }]}>
+                {formatTimeLeft(item.expiresAt, now, t)}
+              </Text>
             </View>
           )}
           ListEmptyComponent={
@@ -364,12 +397,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  ttlLabel: {
+    fontSize: 12,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  messageExpiry: {
+    fontSize: 10,
+    marginTop: 4,
+  },
   ttlRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 6,
   },
   ttlChip: {
     borderWidth: StyleSheet.hairlineWidth,
