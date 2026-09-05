@@ -5,6 +5,7 @@ import { clearMasterKeyBase64 } from '../crypto/masterKey';
 import { resetRegisteredIdentity } from './registerIdentity';
 import { clearPrekeyAllocation } from './prekeyState';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
+import { clearFailedMessageCache } from '../messaging/ingest';
 import { resetPushRegistration } from '../notifications/usePushRegistration';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
@@ -45,6 +46,7 @@ export async function deleteAccountAndAllLocalData(): Promise<void> {
   useBlockedPeersStore.setState({ blockedPeerIds: [] });
   useMessagesStore.setState({ messagesByChannel: {} });
   useSecurityWarningsStore.setState({ untrustedByChannel: {} });
+  clearFailedMessageCache();
   // The server-side row is already gone (push_tokens cascades from
   // identities, see supabase/migrations/0011_push_tokens_cascade.sql); this
   // just makes sure the next identity on this device registers a fresh token

@@ -1,3 +1,4 @@
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import type * as LocalAuthenticationTypes from 'expo-local-authentication';
 
 /**
@@ -6,22 +7,37 @@ import type * as LocalAuthenticationTypes from 'expo-local-authentication';
  * Every call goes through `loadModule()` rather than a top-level import.
  * expo-local-authentication is a *native* module, so any build made before it
  * was added -- including the development build currently on the test device --
- * has no native side for it. A static import there can throw while the JS
- * bundle is still being evaluated, which takes the whole app down instead of
- * just this feature. Failing soft means an older build simply behaves as if
- * the lock were unavailable.
+ * has no native side for it. A static import there is evaluated while the JS
+ * bundle is still loading, which takes the whole app down instead of just
+ * this feature.
+ *
+ * The gate is `requireOptionalNativeModule`, not a try/catch around the
+ * import. A try/catch looked like it worked and did not: in a development
+ * bundle, Metro's `guardedLoadModule` reports a module that throws during
+ * initialisation straight to LogBox and returns `undefined` instead of
+ * rethrowing. So the catch never ran (no warning was ever logged), `cached`
+ * was assigned `undefined` -- the very value used to mean "not tried yet" --
+ * and every call retried and produced another red box. Asking whether the
+ * native module exists *before* importing the JS wrapper avoids the throw
+ * entirely, in both development and release builds.
  */
 let cached: typeof LocalAuthenticationTypes | null | undefined;
 
 function loadModule(): typeof LocalAuthenticationTypes | null {
   if (cached !== undefined) return cached;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    cached = require('expo-local-authentication') as typeof LocalAuthenticationTypes;
-  } catch (error) {
-    console.warn('[appLock] expo-local-authentication unavailable in this build', error);
+
+  if (!requireOptionalNativeModule('ExpoLocalAuthentication')) {
+    console.log('[appLock] no native ExpoLocalAuthentication in this build; lock unavailable');
     cached = null;
+    return cached;
   }
+
+  // Belt and braces: never let `undefined` back into `cached`, or the
+  // memoisation silently turns into "retry on every call" again.
+  const loaded = require('expo-local-authentication') as
+    | typeof LocalAuthenticationTypes
+    | undefined;
+  cached = loaded ?? null;
   return cached;
 }
 

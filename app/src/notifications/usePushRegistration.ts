@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useTranslation } from 'react-i18next';
 import { registerIdentity } from '../identity/registerIdentity';
 import { upsertPushToken } from './pushTokens';
@@ -9,11 +10,15 @@ import { upsertPushToken } from './pushTokens';
  * Registers this device for push notifications and keeps its token on the
  * server.
  *
- * Loaded lazily, for the same reason as security/appLock.ts:
- * expo-notifications is a native module, so a build made before it was added
- * has no native side for it. Failing soft here means an older development
- * build keeps working with no notifications, instead of crashing at bundle
- * evaluation.
+ * Gated behind `requireOptionalNativeModule`, for the same reason as
+ * security/appLock.ts -- and the same trap: a try/catch around the import
+ * does not work in a development bundle, because Metro reports the failure to
+ * LogBox and returns `undefined` rather than rethrowing. See the comment
+ * there for the full explanation.
+ *
+ * 'ExpoPushTokenManager' is the specific native module this hook cannot work
+ * without: it is what issues the token, and it was the one named in the error
+ * on a build that predates expo-notifications.
  */
 type NotificationsModule = typeof import('expo-notifications');
 
@@ -21,13 +26,15 @@ let cached: NotificationsModule | null | undefined;
 
 function loadModule(): NotificationsModule | null {
   if (cached !== undefined) return cached;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    cached = require('expo-notifications') as NotificationsModule;
-  } catch (error) {
-    console.warn('[push] expo-notifications unavailable in this build', error);
+
+  if (!requireOptionalNativeModule('ExpoPushTokenManager')) {
+    console.log('[push] no native ExpoPushTokenManager in this build; notifications unavailable');
     cached = null;
+    return cached;
   }
+
+  const loaded = require('expo-notifications') as NotificationsModule | undefined;
+  cached = loaded ?? null;
   return cached;
 }
 
