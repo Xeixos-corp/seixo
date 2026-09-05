@@ -97,7 +97,15 @@ export function subscribeToChannelMessages(
   onDelete?: (messageId: string) => void,
 ): () => void {
   const realtimeChannel: RealtimeChannel = supabase
-    .channel(`messages-channel-${channelId}`)
+    // Unique per subscription, not just per channel. `supabase.channel(topic)`
+    // hands back the *existing* channel object for a topic already in use, and
+    // calling .on() on one that has already subscribed throws
+    // "cannot add postgres_changes callbacks ... after subscribe()". Since
+    // removeChannel() below is asynchronous, a resubscribe (useMessageSync
+    // rebuilds them whenever a conversation is added or removed) can easily
+    // land while the old channel is still registered -- which is exactly how
+    // this failed for channel-members-self.
+    .channel(`messages-channel-${channelId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
     .on(
       'postgres_changes',
       {

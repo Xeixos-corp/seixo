@@ -6,9 +6,12 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { registerIdentity } from './src/identity/registerIdentity';
 import { useScreenshotProtection } from './src/hooks/useScreenshotProtection';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { useMessageSync } from './src/messaging/useMessageSync';
 
 export default function App() {
   useScreenshotProtection();
+  // Receives messages for every conversation, not just the one on screen.
+  useMessageSync();
 
   useEffect(() => {
     // Fire-and-forget: OnboardingScreen awaits the same memoized promise to

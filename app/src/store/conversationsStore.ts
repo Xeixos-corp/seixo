@@ -19,7 +19,33 @@ export type Conversation = {
    * not something it should learn. Undefined until the user sets one.
    */
   nickname?: string;
+  /**
+   * When this user last had the conversation open, as an ISO timestamp.
+   * Anything received after it counts as unread. Kept per-conversation and
+   * purely local -- "have I read this" is exactly the kind of thing the
+   * server has no business knowing, and there are no read receipts.
+   *
+   * Undefined for conversations that predate this field, and for ones never
+   * opened; both are treated as "everything received so far is unread".
+   */
+  lastReadAt?: string;
 };
+
+/**
+ * How many messages arrived from the peer since the user last opened this
+ * conversation. Only counts messages this device did not send -- your own
+ * message landing in the list should not make it look unread.
+ */
+export function unreadCount(
+  conversation: Conversation,
+  messages: { createdAt: string; isMine?: boolean }[] | undefined,
+): number {
+  if (!messages?.length) return 0;
+  const since = conversation.lastReadAt ? new Date(conversation.lastReadAt).getTime() : 0;
+  return messages.filter(
+    (message) => message.isMine !== true && new Date(message.createdAt).getTime() > since,
+  ).length;
+}
 
 /**
  * What to show for a conversation in the UI. Falls back to a shortened
@@ -39,6 +65,7 @@ type ConversationsState = {
   hasConversation: (channelId: string) => boolean;
   setConversationTtl: (channelId: string, ttlSeconds: number) => void;
   setConversationNickname: (channelId: string, nickname: string) => void;
+  markConversationRead: (channelId: string) => void;
   removeConversation: (channelId: string) => void;
 };
 
@@ -72,6 +99,17 @@ export const useConversationsStore = create<ConversationsState>()(
         set((state) => ({
           conversations: state.conversations.map((c) =>
             c.channelId === channelId ? { ...c, nickname: trimmed || undefined } : c,
+          ),
+        }));
+      },
+      // Called when the conversation is opened, and again as messages arrive
+      // while it is open (ConversationScreen) -- so a conversation the user is
+      // actually looking at never accumulates an unread badge.
+      markConversationRead: (channelId) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.channelId === channelId ? { ...c, lastReadAt: now } : c,
           ),
         }));
       },

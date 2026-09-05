@@ -17,6 +17,7 @@ import { useAppTheme } from '../theme/ThemeProvider';
 import {
   useConversationsStore,
   conversationDisplayName,
+  unreadCount,
   type Conversation,
 } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
@@ -75,6 +76,12 @@ export function ConversationListScreen({ navigation }: Props) {
 
   const removeConversation = useConversationsStore((state) => state.removeConversation);
   const clearChannel = useMessagesStore((state) => state.clearChannel);
+  // The whole map, not a per-channel slice: this component renders every
+  // conversation, and selecting the object itself keeps the reference stable
+  // between renders (a selector building a new object per call makes zustand
+  // v5's useSyncExternalStore re-render forever -- learned the hard way in
+  // ConversationScreen).
+  const messagesByChannel = useMessagesStore((state) => state.messagesByChannel);
 
   const openRename = (conversation: Conversation) => {
     setRenaming(conversation);
@@ -197,23 +204,45 @@ export function ConversationListScreen({ navigation }: Props) {
       <FlatList
         data={visibleConversations}
         keyExtractor={(item) => item.channelId}
-        renderItem={({ item }) => (
-          <Pressable
-            style={[styles.conversationRow, { borderColor: colors.border }]}
-            onPress={() => navigation.navigate('Conversation', item)}
-            onLongPress={() => openRowActions(item)}
-            delayLongPress={350}
-          >
-            <Text style={[styles.conversationName, { color: colors.textPrimary }]} numberOfLines={1}>
-              {conversationDisplayName(item)}
-            </Text>
-            {item.nickname ? (
-              <Text style={[styles.conversationId, { color: colors.textSecondary }]} numberOfLines={1}>
-                {item.peerUserId}
-              </Text>
-            ) : null}
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const unread = unreadCount(item, messagesByChannel[item.channelId]);
+          return (
+            <Pressable
+              style={[styles.conversationRow, { borderColor: colors.border }]}
+              onPress={() => navigation.navigate('Conversation', item)}
+              onLongPress={() => openRowActions(item)}
+              delayLongPress={350}
+            >
+              <View style={styles.conversationRowTop}>
+                <Text
+                  style={[
+                    styles.conversationName,
+                    { color: colors.textPrimary },
+                    unread > 0 ? styles.conversationNameUnread : null,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {conversationDisplayName(item)}
+                </Text>
+                {unread > 0 ? (
+                  <View
+                    style={[styles.unreadBadge, { backgroundColor: colors.accent }]}
+                    accessibilityLabel={t('conversationList.unreadBadgeLabel', { count: unread })}
+                  >
+                    <Text style={[styles.unreadBadgeText, { color: colors.onAccent }]}>
+                      {unread > 99 ? '99+' : unread}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              {item.nickname ? (
+                <Text style={[styles.conversationId, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {item.peerUserId}
+                </Text>
+              ) : null}
+            </Pressable>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
@@ -291,6 +320,7 @@ export function ConversationListScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   conversationName: {
     fontSize: 16,
+    flexShrink: 1,
   },
   conversationId: {
     fontSize: 11,
@@ -393,6 +423,26 @@ const styles = StyleSheet.create({
   conversationRow: {
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  conversationRowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  conversationNameUnread: {
+    fontWeight: '700',
+  },
+  unreadBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   empty: {
     marginTop: 48,

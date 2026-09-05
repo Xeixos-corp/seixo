@@ -35,7 +35,8 @@
     "deleteConversationConfirm": "Apagar",
     "deleteConversationFailed": "Não foi possível sair da conversa. Tenta novamente.",
     "myIdButton": "O meu ID",
-    "myIdClose": "Fechar"
+    "myIdClose": "Fechar",
+    "unreadBadgeLabel": "{{count}} mensagens por ler"
   },
   "conversation": {
     "ttl": {

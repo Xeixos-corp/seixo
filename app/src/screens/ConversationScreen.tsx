@@ -23,16 +23,12 @@ import {
   DEFAULT_TTL_SECONDS,
 } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
-import {
-  fetchMessages,
-  sendMessage,
-  deleteMessage,
-  subscribeToChannelMessages,
-  type FetchedMessage,
-} from '../transport/messages';
+import { fetchMessages, sendMessage, deleteMessage } from '../transport/messages';
+import { ingestFetchedMessage } from '../messaging/ingest';
+import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
-import { encryptMessage, decryptMessage, isUntrustedIdentityError } from '../crypto';
+import { encryptMessage, isUntrustedIdentityError } from '../crypto';
 import { SUPPORT_CONTACT_EMAIL } from '../config/support';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -114,6 +110,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
   const addBlockedPeer = useBlockedPeersStore((state) => state.addBlockedPeer);
   const removeConversation = useConversationsStore((state) => state.removeConversation);
+  const markConversationRead = useConversationsStore((state) => state.markConversationRead);
 
   const handleBlock = useCallback(() => {
     Alert.alert(
@@ -188,7 +185,15 @@ export function ConversationScreen({ route, navigation }: Props) {
   // "safety number changed" warning. Distinct from loadError/console.error
   // below: without this, a changed identity used to fail completely
   // silently (no UI signal at all that something needs attention).
-  const [securityWarning, setSecurityWarning] = useState<string | null>(null);
+  // Recorded by messaging/ingest.ts, which decrypts wherever the user happens
+  // to be -- so the screen can no longer be the thing that notices.
+  const untrusted = useSecurityWarningsStore(
+    (state) => state.untrustedByChannel[channelId] === true,
+  );
+  const [sendSecurityWarning, setSendSecurityWarning] = useState<string | null>(null);
+  const securityWarning = untrusted
+    ? t('conversation.securityWarningDecrypt', { peerId: peerUserId })
+    : sendSecurityWarning;
 
   // Local-side disappearing-message timers, keyed by message id, so we can
   // cancel them on unmount instead of leaking setTimeouts. This runs
@@ -283,57 +288,24 @@ export function ConversationScreen({ route, navigation }: Props) {
     [dropMessage, t],
   );
 
-  const decryptAndStore = useCallback(
-    (fetched: FetchedMessage) => {
-      // Defense in depth: normally unreachable, since blocking navigates
-      // away from this screen immediately (see handleBlock above), but a
-      // realtime event could theoretically arrive in the gap before that
-      // navigation completes.
-      if (isBlocked(peerUserId)) return;
+  // Everything visible here is read by definition. Re-running as `messages`
+  // changes covers the message that arrives while the user is looking at the
+  // conversation, which must not leave an unread badge behind.
+  useEffect(() => {
+    markConversationRead(channelId);
+  }, [channelId, messages, markConversationRead]);
 
-      // Own just-sent messages are recorded locally at send time (we already
-      // have the plaintext — see handleSend). Decrypting them again here
-      // would desync the ratchet: a party can never decrypt its own sent
-      // ciphertext, sending and receiving use separate chain keys. Skipping
-      // anything already known also protects against fetchMessages() and a
-      // realtime INSERT both delivering the same row.
-      const alreadyKnown = useMessagesStore
-        .getState()
-        .messagesByChannel[channelId]?.some((m) => m.id === fetched.id);
-      if (alreadyKnown) return;
-
-      // Already expired (e.g. fetched in the window before pg_cron's next
-      // purge pass) — not worth spending the one-time Double Ratchet
-      // message key to decrypt something we're about to discard anyway.
-      if (new Date(fetched.expiresAt).getTime() <= Date.now()) return;
-
-      try {
-        const plaintext = decryptMessage(peerUserId, REMOTE_DEVICE_ID, fetched.envelope);
-        addMessage(channelId, {
-          id: fetched.id,
-          createdAt: fetched.createdAt,
-          expiresAt: fetched.expiresAt,
-          plaintext,
-          isMine: false,
-        });
-        scheduleExpiry(fetched.id, fetched.expiresAt);
-      } catch (error) {
-        if (isUntrustedIdentityError(error)) {
-          setSecurityWarning(t('conversation.securityWarningDecrypt', { peerId: peerUserId }));
-        }
-        console.error('[ConversationScreen] failed to decrypt message', fetched.id, error);
-      }
-    },
-    [channelId, peerUserId, addMessage, scheduleExpiry, isBlocked, t],
-  );
-
+  // A safety-net fetch, not the main delivery path: useMessageSync (App.tsx)
+  // already subscribes to every conversation and ingests as messages arrive.
+  // This only covers the case where that subscription dropped without the app
+  // restarting, so opening a conversation still catches up.
   useEffect(() => {
     let cancelled = false;
 
     fetchMessages(channelId)
       .then((fetched) => {
         if (cancelled) return;
-        fetched.forEach(decryptAndStore);
+        fetched.forEach((message) => ingestFetchedMessage(channelId, peerUserId, message));
       })
       .catch((error) => {
         if (!cancelled) {
@@ -341,12 +313,10 @@ export function ConversationScreen({ route, navigation }: Props) {
         }
       });
 
-    const unsubscribe = subscribeToChannelMessages(channelId, decryptAndStore, dropMessage);
     return () => {
       cancelled = true;
-      unsubscribe();
     };
-  }, [channelId, decryptAndStore, dropMessage]);
+  }, [channelId, peerUserId]);
 
   const handleSend = async () => {
     const text = inputText.trim();
@@ -362,7 +332,7 @@ export function ConversationScreen({ route, navigation }: Props) {
       setInputText('');
     } catch (error) {
       if (isUntrustedIdentityError(error)) {
-        setSecurityWarning(t('conversation.securityWarningSend', { peerId: peerUserId }));
+        setSendSecurityWarning(t('conversation.securityWarningSend', { peerId: peerUserId }));
       } else {
         setSendError(t('conversation.sendFailed'));
       }
