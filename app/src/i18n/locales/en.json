@@ -92,7 +92,9 @@
     "copy": "Copy",
     "copied": "Copied!",
     "share": "Share my ID",
-    "shareMessage": "My Seixo ID: {{id}}"
+    "shareMessage": "My Seixo ID: {{id}}",
+    "loadFailed": "Could not load your ID.",
+    "retry": "Try again"
   },
   "scanQr": {
     "hint": "Point the camera at the other person's QR code.",

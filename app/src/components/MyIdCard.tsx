@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { useTranslation } from 'react-i18next';
@@ -20,21 +20,29 @@ export function MyIdCard() {
   const { t } = useTranslation();
   const [userId, setUserId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // This card used to render null whenever userId wasn't set -- which covers
+  // both "still loading" and "registration failed", with the failure
+  // swallowed by an empty catch. In Settings that meant the whole card
+  // (QR, id, share) silently wasn't there, with nothing on screen to say
+  // why. Both states are now visible, and the error is logged.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setFailed(false);
     registerIdentity()
       .then(({ userId: id }) => {
         if (!cancelled) setUserId(id);
       })
-      .catch(() => {
-        // Registration failure is already surfaced elsewhere (Onboarding);
-        // this card just stays empty rather than duplicating that error UI.
+      .catch((error) => {
+        console.error('[MyIdCard] could not load identity', error);
+        if (!cancelled) setFailed(true);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   const handleCopy = async () => {
     if (!userId) return;
@@ -56,7 +64,26 @@ export function MyIdCard() {
     }
   };
 
-  if (!userId) return null;
+  if (failed) {
+    return (
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.label, { color: colors.danger }]}>{t('myId.loadFailed')}</Text>
+        <Pressable onPress={() => setAttempt((n) => n + 1)} hitSlop={8}>
+          <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '600' }}>
+            {t('myId.retry')}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
