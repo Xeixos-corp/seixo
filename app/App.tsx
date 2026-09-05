@@ -5,6 +5,7 @@ import { ThemeProvider } from './src/theme/ThemeProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { registerIdentity } from './src/identity/registerIdentity';
 import { useScreenshotProtection } from './src/hooks/useScreenshotProtection';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 export default function App() {
   useScreenshotProtection();
@@ -19,9 +20,13 @@ export default function App() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <RootNavigator />
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    // Outside ThemeProvider on purpose, so a failure in the theme itself is
+    // still reported rather than showing a blank screen.
+    <ErrorBoundary>
+      <ThemeProvider>
+        <RootNavigator />
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

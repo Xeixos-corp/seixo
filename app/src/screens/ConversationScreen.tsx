@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
-import { useMessagesStore } from '../store/messagesStore';
+import { useMessagesStore, type DecryptedMessage } from '../store/messagesStore';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { fetchMessages, sendMessage, subscribeToChannelMessages, type FetchedMessage } from '../transport/messages';
@@ -29,6 +29,19 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
 
 const REMOTE_DEVICE_ID = 1; // single device per identity for now
 
+// Stable reference for "this channel has no messages yet". Returning a fresh
+// `[]` from the selector below instead would hand React a different snapshot
+// on every render: useSyncExternalStore (which zustand v5 is built on)
+// treats that as the store having changed, re-renders, gets another new
+// array, and throws "The result of getSnapshot should be cached to avoid an
+// infinite loop". That error escapes to the root and unmounts the entire
+// app -- a completely white screen, no header, no error text.
+//
+// It only bites on channels with no decrypted messages, i.e. exactly when
+// opening a conversation you just started, which is why it survived until
+// someone actually tried to chat.
+const NO_MESSAGES: DecryptedMessage[] = [];
+
 const TTL_OPTIONS: Array<{ key: string; seconds: number }> = [
   { key: '30s', seconds: 30 },
   { key: '5min', seconds: 5 * 60 },
@@ -41,7 +54,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const { channelId, peerUserId } = route.params;
   const { colors } = useAppTheme();
   const { t } = useTranslation();
-  const messages = useMessagesStore((state) => state.messagesByChannel[channelId] ?? []);
+  const messages = useMessagesStore((state) => state.messagesByChannel[channelId] ?? NO_MESSAGES);
   const addMessage = useMessagesStore((state) => state.addMessage);
   const removeMessage = useMessagesStore((state) => state.removeMessage);
   const ttlSeconds = useConversationsStore(
