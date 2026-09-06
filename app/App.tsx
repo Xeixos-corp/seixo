@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import './src/i18n';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -8,7 +9,19 @@ import { useScreenshotProtection } from './src/hooks/useScreenshotProtection';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { useMessageSync } from './src/messaging/useMessageSync';
 import { AppLockGate } from './src/components/AppLockGate';
+import { SplashOverlay } from './src/components/SplashOverlay';
 import { usePushRegistration } from './src/notifications/usePushRegistration';
+
+// Called before the component tree exists, which is the point: the native
+// splash must be told to stay up before React has a chance to render a blank
+// frame behind it. A rejection here is not worth handling -- the only
+// consequence is the splash hiding on its own schedule.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// How long the launch screen stays up at minimum. Long enough to read the
+// name, short enough not to feel like a delay -- and the app is usually ready
+// well before it elapses, so this is what decides the duration in practice.
+const MINIMUM_SPLASH_MS = 1100;
 
 export default function App() {
   useScreenshotProtection();
@@ -16,6 +29,17 @@ export default function App() {
   useMessageSync();
   // Registers this device for push and keeps its token on the server.
   usePushRegistration();
+
+  const [splashVisible, setSplashVisible] = useState(true);
+
+  useEffect(() => {
+    // Hand over from the native splash to SplashOverlay immediately. They are
+    // drawn to look identical, so nothing changes on screen except that the
+    // app's name can now appear under the icon.
+    void SplashScreen.hideAsync().catch(() => {});
+    const timer = setTimeout(() => setSplashVisible(false), MINIMUM_SPLASH_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Fire-and-forget: OnboardingScreen awaits the same memoized promise to
@@ -39,6 +63,9 @@ export default function App() {
           <RootNavigator />
         </AppLockGate>
         <StatusBar style="auto" />
+        {/* Last child, so it covers everything -- including the lock screen,
+            which should not flash into view during launch. */}
+        <SplashOverlay visible={splashVisible} />
       </ThemeProvider>
     </ErrorBoundary>
   );
