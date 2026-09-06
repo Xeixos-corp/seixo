@@ -5,6 +5,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useTranslation } from 'react-i18next';
 import { registerIdentity } from '../identity/registerIdentity';
 import { upsertPushToken } from './pushTokens';
+import { requestOpenNewestUnread } from './notificationRouting';
 
 /**
  * Registers this device for push notifications and keeps its token on the
@@ -52,6 +53,7 @@ export function usePushRegistration(): void {
 
   useEffect(() => {
     let cancelled = false;
+    let responseSubscription: { remove: () => void } | undefined;
 
     async function register() {
       const Notifications = loadModule();
@@ -67,6 +69,17 @@ export function usePushRegistration(): void {
           shouldSetBadge: false,
         }),
       });
+
+      // Two separate paths, both needed: the listener covers a tap while the
+      // app is running or backgrounded, and getLastNotificationResponseAsync
+      // covers a tap that launched the app from cold, where no listener could
+      // possibly have been registered in time.
+      responseSubscription = Notifications.addNotificationResponseReceivedListener(() => {
+        requestOpenNewestUnread();
+      });
+
+      const launchedBy = await Notifications.getLastNotificationResponseAsync();
+      if (launchedBy) requestOpenNewestUnread();
 
       const existing = await Notifications.getPermissionsAsync();
       let status = existing.status;
@@ -115,6 +128,7 @@ export function usePushRegistration(): void {
 
     return () => {
       cancelled = true;
+      responseSubscription?.remove();
     };
     // Platform is constant; listed to make the iOS-only assumption explicit
     // if this ever grows an Android branch.

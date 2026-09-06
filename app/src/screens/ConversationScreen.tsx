@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useMessagesStore, type DecryptedMessage } from '../store/messagesStore';
 import {
@@ -94,8 +95,23 @@ function formatSentAt(createdAt: string): string {
 export function ConversationScreen({ route, navigation }: Props) {
   const { channelId, peerUserId } = route.params;
   const { colors } = useAppTheme();
+  const headerHeight = useHeaderHeight();
   const { t } = useTranslation();
   const messages = useMessagesStore((state) => state.messagesByChannel[channelId] ?? NO_MESSAGES);
+
+  // Newest first, because the list below is `inverted`.
+  //
+  // Sorting is not cosmetic: messages are stored in the order they were
+  // ingested, which is not the order they were sent. A realtime insert can
+  // land while a catch-up fetch is still resolving, so without this an older
+  // message can appear after a newer one.
+  const orderedMessages = useMemo(
+    () =>
+      [...messages].sort(
+        (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+      ),
+    [messages],
+  );
   const addMessage = useMessagesStore((state) => state.addMessage);
   const removeMessage = useMessagesStore((state) => state.removeMessage);
   const ttlSeconds = useConversationsStore(
@@ -347,6 +363,12 @@ export function ConversationScreen({ route, navigation }: Props) {
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      // Without this the input bar sits under the keyboard by roughly the
+      // height of the navigation header: 'padding' measures the keyboard
+      // against the window, but this view starts below the header, so that
+      // much of the padding is spent on space the keyboard was never
+      // covering. The header height is exactly the discrepancy.
+      keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {loadError ? (
@@ -386,8 +408,14 @@ export function ConversationScreen({ route, navigation }: Props) {
           })}
         </View>
 
+        {/* Inverted, which is how chat lists solve "always show the newest".
+            The list is rendered bottom-up, so it opens at the most recent
+            message and stays pinned there as messages arrive -- with no
+            scrollToEnd() calls, and, importantly, without yanking the view
+            away from someone who has scrolled up to read older messages. */}
         <FlatList
-          data={messages}
+          data={orderedMessages}
+          inverted={orderedMessages.length > 0}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
           renderItem={({ item }) => (
@@ -415,14 +443,18 @@ export function ConversationScreen({ route, navigation }: Props) {
               </Text>
             </Pressable>
           )}
-          ListEmptyComponent={
-            <View style={styles.messages}>
-              <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
-                {t('conversation.emptyState')}
-              </Text>
-            </View>
-          }
         />
+
+        {/* Outside the list rather than as ListEmptyComponent: an inverted
+            FlatList flips its children, so the placeholder rendered inside it
+            would appear upside down. */}
+        {orderedMessages.length === 0 ? (
+          <View style={styles.messages}>
+            <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
+              {t('conversation.emptyState')}
+            </Text>
+          </View>
+        ) : null}
 
         {sendError ? (
           <Text style={[styles.sendErrorText, { color: colors.danger }]}>{sendError}</Text>

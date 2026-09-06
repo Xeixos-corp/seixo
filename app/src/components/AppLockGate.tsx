@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useAppLockStore } from '../store/appLockStore';
 import { unlock } from '../security/appLock';
+import { tryOpenPendingConversation } from '../notifications/notificationRouting';
 
 /**
  * Hides the app behind Face ID (or the device passcode) until the user proves
@@ -38,6 +39,9 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     // security/appLock.ts for why refusing would be a permanent lockout.
     setFailed(false);
     setUnlocked(true);
+    // Tapping a notification on a locked app lands here: nothing behind the
+    // lock is mounted, so the navigation could not happen until now.
+    tryOpenPendingConversation();
   }, [setUnlocked, t]);
 
   // Re-lock when the app actually leaves the screen. Only 'background'

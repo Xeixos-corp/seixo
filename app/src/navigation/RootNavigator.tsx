@@ -3,6 +3,8 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
+import { navigationRef } from './navigationRef';
+import { tryOpenPendingConversation } from '../notifications/notificationRouting';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { ConversationListScreen } from '../screens/ConversationListScreen';
 import { ConversationScreen } from '../screens/ConversationScreen';
@@ -38,7 +40,13 @@ export function RootNavigator() {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navigationTheme}
+      // A notification tapped while the app was closed is handled before any
+      // of this exists, so the request waits here for somewhere to go.
+      onReady={tryOpenPendingConversation}
+    >
       <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: colors.surface },
