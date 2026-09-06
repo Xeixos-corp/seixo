@@ -412,10 +412,24 @@ export function ConversationScreen({ route, navigation }: Props) {
             The list is rendered bottom-up, so it opens at the most recent
             message and stays pinned there as messages arrive -- with no
             scrollToEnd() calls, and, importantly, without yanking the view
-            away from someone who has scrolled up to read older messages. */}
+            away from someone who has scrolled up to read older messages.
+
+            The empty state is a sibling branch rather than
+            ListEmptyComponent for two reasons: an inverted list flips its
+            children, so a placeholder inside it renders upside down; and
+            rendering exactly one of the two means the list can safely take
+            `flex: 1` without competing with the placeholder for height. */}
+        {orderedMessages.length === 0 ? (
+          <View style={styles.messages}>
+            <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
+              {t('conversation.emptyState')}
+            </Text>
+          </View>
+        ) : (
         <FlatList
           data={orderedMessages}
-          inverted={orderedMessages.length > 0}
+          inverted
+          style={styles.flex}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
           renderItem={({ item }) => (
@@ -444,17 +458,7 @@ export function ConversationScreen({ route, navigation }: Props) {
             </Pressable>
           )}
         />
-
-        {/* Outside the list rather than as ListEmptyComponent: an inverted
-            FlatList flips its children, so the placeholder rendered inside it
-            would appear upside down. */}
-        {orderedMessages.length === 0 ? (
-          <View style={styles.messages}>
-            <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
-              {t('conversation.emptyState')}
-            </Text>
-          </View>
-        ) : null}
+        )}
 
         {sendError ? (
           <Text style={[styles.sendErrorText, { color: colors.danger }]}>{sendError}</Text>
