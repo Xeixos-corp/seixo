@@ -68,7 +68,11 @@
     "deleteMessageBody": "El mensaje se borra del servidor y de este teléfono. Si la otra persona tiene la app abierta, también desaparece del suyo, pero si está sin conexión su copia puede permanecer. Nada impide una captura de pantalla.",
     "deleteConfirm": "Borrar ahora",
     "deleteFailed": "No se pudo borrar el mensaje del servidor. Se eliminó de este teléfono.",
-    "sendFailed": "No se pudo enviar. Comprueba la conexión e inténtalo de nuevo: tu texto sigue aquí."
+    "sendFailed": "No se pudo enviar. Comprueba la conexión e inténtalo de nuevo: tu texto sigue aquí.",
+    "messageActionsTitle": "Mensaje",
+    "reply": "Responder",
+    "replyingTo": "Respondiendo a",
+    "quoteUnavailable": "Mensaje no disponible"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

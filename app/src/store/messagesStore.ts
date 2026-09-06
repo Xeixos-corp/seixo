@@ -19,6 +19,14 @@ export type DecryptedMessage = {
    * guessed at and attributed to the wrong person.
    */
   isMine?: boolean;
+  /**
+   * Id of the message this one replies to, when it is a reply.
+   *
+   * Only the id: the quoted text is looked up locally at render time rather
+   * than copied in here, so a quote can never outlive the message it quotes.
+   * See messaging/payload.ts.
+   */
+  replyToId?: string;
 };
 
 type MessagesState = {

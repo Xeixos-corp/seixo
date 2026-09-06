@@ -1034,3 +1034,38 @@ A gap found while writing this: `push_tokens` was created without a foreign
 key, so it was the only table that would have *survived* an account deletion
 — everything else cascades from `identities`. Fixed in
 `supabase/migrations/0011_push_tokens_cascade.sql`.
+
+### Replying to a message, and the quote that isn't there (2026-09-06)
+
+Replies needed a way to say *which* message is being answered. Two decisions
+were made deliberately, and both cost something.
+
+**The reference travels inside the encryption, not in a column.** A
+`reply_to` column on `messages` would have been trivial, and would have handed
+the server the reply graph of every conversation -- which messages answer
+which, and therefore the shape and rhythm of a conversation it currently
+cannot see. The reference goes in the encrypted payload instead
+(`app/src/messaging/payload.ts`), so the server keeps seeing opaque
+ciphertext.
+
+**A reply carries the quoted message's id, and not its text.** Every other
+messenger copies the quoted text into the reply, which is why a WhatsApp quote
+always renders. It also means a fragment of a message that has since expired
+lives on inside a newer one, under a different timer -- a silent exception to
+the promise this app makes about disappearing messages, invisible to the
+person who sent the quoted message. So the quote is resolved locally at render
+time, and shows "message unavailable" when the original is genuinely gone
+(expired, manually deleted, or never received on this device).
+
+The cost is real and worth stating: quoting is less reliable than users will
+expect from other apps. The window is usually small -- it is the gap between
+when the original expires and when the reply does, which equals the delay
+between the two messages -- but a manual "delete now" on the original, or a
+reinstall, empties every quote of it.
+
+**Wire-format compatibility.** A message with no reply is still sent as bare
+text, unchanged, so older builds read it exactly as before; anything that is
+not marked JSON decodes as plain text, so newer builds read older messages.
+The one gap: an older build receiving a *reply* renders the raw JSON, because
+it predates the format. Unavoidable without having shipped the decoder first,
+and it resolves once both devices update.

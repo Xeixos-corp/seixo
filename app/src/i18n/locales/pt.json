@@ -68,7 +68,11 @@
     "deleteMessageBody": "A mensagem é apagada do servidor e deste telemóvel. Se a outra pessoa tiver a app aberta, também desaparece do telemóvel dela — mas se estiver offline, pode ficar lá. E nada impede uma captura de ecrã.",
     "deleteConfirm": "Apagar agora",
     "deleteFailed": "Não foi possível apagar a mensagem do servidor. Foi removida deste telemóvel.",
-    "sendFailed": "Não foi possível enviar. Verifica a ligação e tenta outra vez — o texto ficou guardado."
+    "sendFailed": "Não foi possível enviar. Verifica a ligação e tenta outra vez — o texto ficou guardado.",
+    "messageActionsTitle": "Mensagem",
+    "reply": "Responder",
+    "replyingTo": "A responder a",
+    "quoteUnavailable": "Mensagem indisponível"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

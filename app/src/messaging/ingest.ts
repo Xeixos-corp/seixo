@@ -2,6 +2,7 @@ import { decryptMessage, isUntrustedIdentityError } from '../crypto';
 import { useMessagesStore } from '../store/messagesStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
+import { decodePayload } from './payload';
 import type { FetchedMessage } from '../transport/messages';
 
 const REMOTE_DEVICE_ID = 1; // single device per identity for now
@@ -70,13 +71,15 @@ export function ingestFetchedMessage(
   if (new Date(fetched.expiresAt).getTime() <= Date.now()) return;
 
   try {
-    const plaintext = decryptMessage(peerUserId, REMOTE_DEVICE_ID, fetched.envelope);
+    const raw = decryptMessage(peerUserId, REMOTE_DEVICE_ID, fetched.envelope);
+    const { text, replyToId } = decodePayload(raw);
     useMessagesStore.getState().addMessage(channelId, {
       id: fetched.id,
       createdAt: fetched.createdAt,
       expiresAt: fetched.expiresAt,
-      plaintext,
+      plaintext: text,
       isMine: false,
+      replyToId,
     });
   } catch (error) {
     failedThisSession.add(fetched.id);

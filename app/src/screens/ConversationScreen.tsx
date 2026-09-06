@@ -26,6 +26,7 @@ import {
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { fetchMessages, sendMessage, deleteMessage } from '../transport/messages';
 import { ingestFetchedMessage } from '../messaging/ingest';
+import { encodePayload } from '../messaging/payload';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
@@ -194,6 +195,8 @@ export function ConversationScreen({ route, navigation }: Props) {
   // all. "I don't know whether that sent" is about the worst state a
   // messenger can leave someone in.
   const [sendError, setSendError] = useState<string | null>(null);
+  const [replyToId, setReplyToId] = useState<string | null>(null);
+  const listRef = useRef<FlatList<DecryptedMessage>>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   // Set when establishSession/encrypt/decrypt fails because the peer's
   // identity key changed since the last session (see
@@ -304,6 +307,24 @@ export function ConversationScreen({ route, navigation }: Props) {
     [dropMessage, t],
   );
 
+  // Long-press used to delete outright. Now that there are two things you can
+  // do to a message it opens a menu instead -- deleting is destructive and
+  // should not sit one tap away from replying.
+  const handleMessageActions = useCallback(
+    (messageId: string) => {
+      Alert.alert(t('conversation.messageActionsTitle'), undefined, [
+        { text: t('conversation.reply'), onPress: () => setReplyToId(messageId) },
+        {
+          text: t('conversation.deleteConfirm'),
+          style: 'destructive',
+          onPress: () => handleDeleteMessage(messageId),
+        },
+        { text: t('conversation.cancel'), style: 'cancel' },
+      ]);
+    },
+    [handleDeleteMessage, t],
+  );
+
   // Everything visible here is read by definition. Re-running as `messages`
   // changes covers the message that arrives while the user is looking at the
   // conversation, which must not leave an unread badge behind.
@@ -334,6 +355,25 @@ export function ConversationScreen({ route, navigation }: Props) {
     };
   }, [channelId, peerUserId]);
 
+  // The quoted message is resolved here, not carried inside the reply, so a
+  // quote can never show text that has already expired. Returning undefined
+  // is a real outcome, not an error: the original may have expired, been
+  // deleted, or never have reached this device.
+  const findQuoted = useCallback(
+    (id: string | null | undefined) =>
+      id ? orderedMessages.find((message) => message.id === id) : undefined,
+    [orderedMessages],
+  );
+
+  const scrollToMessage = useCallback(
+    (id: string) => {
+      const index = orderedMessages.findIndex((message) => message.id === id);
+      if (index < 0) return;
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    },
+    [orderedMessages],
+  );
+
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || sending) return;
@@ -341,11 +381,23 @@ export function ConversationScreen({ route, navigation }: Props) {
     setSending(true);
     setSendError(null);
     try {
-      const envelope = encryptMessage(peerUserId, REMOTE_DEVICE_ID, text);
+      const envelope = encryptMessage(
+        peerUserId,
+        REMOTE_DEVICE_ID,
+        encodePayload({ text, replyToId: replyToId ?? undefined }),
+      );
       const { id, createdAt, expiresAt } = await sendMessage(channelId, envelope, ttlSeconds);
-      addMessage(channelId, { id, createdAt, expiresAt, plaintext: text, isMine: true });
+      addMessage(channelId, {
+        id,
+        createdAt,
+        expiresAt,
+        plaintext: text,
+        isMine: true,
+        replyToId: replyToId ?? undefined,
+      });
       scheduleExpiry(id, expiresAt);
       setInputText('');
+      setReplyToId(null);
     } catch (error) {
       if (isUntrustedIdentityError(error)) {
         setSendSecurityWarning(t('conversation.securityWarningSend', { peerId: peerUserId }));
@@ -427,14 +479,20 @@ export function ConversationScreen({ route, navigation }: Props) {
           </View>
         ) : (
         <FlatList
+          ref={listRef}
           data={orderedMessages}
           inverted
           style={styles.flex}
+          // Jumping to a quoted message can target one that has not been
+          // rendered yet, which throws unless handled. Silently ignoring is
+          // right here: failing to scroll is a much smaller problem than
+          // crashing, and the message is still reachable by hand.
+          onScrollToIndexFailed={() => {}}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
           renderItem={({ item }) => (
             <Pressable
-              onLongPress={() => handleDeleteMessage(item.id)}
+              onLongPress={() => handleMessageActions(item.id)}
               delayLongPress={350}
               style={[
                 styles.messageBubble,
@@ -443,6 +501,32 @@ export function ConversationScreen({ route, navigation }: Props) {
                   : { backgroundColor: colors.surfaceAlt },
               ]}
             >
+              {item.replyToId ? (
+                <Pressable
+                  onPress={() => scrollToMessage(item.replyToId as string)}
+                  style={[
+                    styles.quoteBlock,
+                    {
+                      borderLeftColor: item.isMine === true ? colors.onAccent : colors.accent,
+                      backgroundColor: item.isMine === true ? colors.accentPressed : colors.surface,
+                    },
+                  ]}
+                >
+                  <Text
+                    numberOfLines={2}
+                    style={[
+                      styles.quoteText,
+                      {
+                        color: item.isMine === true ? colors.onAccent : colors.textSecondary,
+                      },
+                      !findQuoted(item.replyToId) && styles.quoteMissing,
+                    ]}
+                  >
+                    {findQuoted(item.replyToId)?.plaintext ?? t('conversation.quoteUnavailable')}
+                  </Text>
+                </Pressable>
+              ) : null}
+
               <Text style={{ color: item.isMine === true ? colors.onAccent : colors.textPrimary }}>
                 {item.plaintext}
               </Text>
@@ -462,6 +546,23 @@ export function ConversationScreen({ route, navigation }: Props) {
 
         {sendError ? (
           <Text style={[styles.sendErrorText, { color: colors.danger }]}>{sendError}</Text>
+        ) : null}
+
+        {replyToId ? (
+          <View style={[styles.replyBar, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+            <View style={[styles.replyBarAccent, { backgroundColor: colors.accent }]} />
+            <View style={styles.replyBarTextWrapper}>
+              <Text style={[styles.replyBarLabel, { color: colors.accent }]}>
+                {t('conversation.replyingTo')}
+              </Text>
+              <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 13 }}>
+                {findQuoted(replyToId)?.plaintext ?? t('conversation.quoteUnavailable')}
+              </Text>
+            </View>
+            <Pressable onPress={() => setReplyToId(null)} hitSlop={12}>
+              <Text style={{ color: colors.textSecondary, fontSize: 18 }}>×</Text>
+            </Pressable>
+          </View>
         ) : null}
 
         <View style={[styles.inputBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -559,6 +660,41 @@ const styles = StyleSheet.create({
   securityWarningText: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  quoteBlock: {
+    borderLeftWidth: 3,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginBottom: 6,
+  },
+  quoteText: {
+    fontSize: 13,
+  },
+  quoteMissing: {
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
+  replyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  replyBarAccent: {
+    width: 3,
+    alignSelf: 'stretch',
+    borderRadius: 2,
+  },
+  replyBarTextWrapper: {
+    flex: 1,
+  },
+  replyBarLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   messageBubble: {
     borderRadius: 12,
