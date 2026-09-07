@@ -84,7 +84,12 @@
     "retrySend": "Try sending again",
     "openLinkTitle": "Open this link?",
     "openLinkConfirm": "Open",
-    "openLinkFailed": "Couldn't open the link."
+    "openLinkFailed": "Couldn't open the link.",
+    "edit": "Edit",
+    "edited": "edited",
+    "editingMessage": "Editing message",
+    "editingHint": "The other person will see it was edited.",
+    "editFailed": "The edit didn't reach the other person. Try again."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

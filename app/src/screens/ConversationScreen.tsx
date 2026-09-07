@@ -117,6 +117,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const addMessage = useMessagesStore((state) => state.addMessage);
   const replaceMessage = useMessagesStore((state) => state.replaceMessage);
   const setMessageStatus = useMessagesStore((state) => state.setMessageStatus);
+  const applyEdit = useMessagesStore((state) => state.applyEdit);
   const removeMessage = useMessagesStore((state) => state.removeMessage);
   const ttlSeconds = useConversationsStore(
     (state) => state.conversations.find((c) => c.channelId === channelId)?.ttlSeconds ?? DEFAULT_TTL_SECONDS,
@@ -210,6 +211,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   // messenger can leave someone in.
   const [sendError, setSendError] = useState<string | null>(null);
   const [replyToId, setReplyToId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const listRef = useRef<FlatList<DecryptedMessage>>(null);
   const inputRef = useRef<TextInput>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -334,8 +336,27 @@ export function ConversationScreen({ route, navigation }: Props) {
       // A message that never reached the server has no row to delete, and
       // nothing to reply to yet -- dropping it locally is the only sensible
       // action, and deleteMessage() below already tolerates that.
+      const message = messages.find((m) => m.id === messageId);
+      // Editing is offered only for your own messages that actually reached
+      // the server. Editing one that never arrived is just typing it again,
+      // and there is nothing on the other side to correct.
+      const canEdit = message?.isMine === true && !messageId.startsWith('local-');
+
       Alert.alert(t('conversation.messageActionsTitle'), undefined, [
         { text: t('conversation.reply'), onPress: () => setReplyToId(messageId) },
+        ...(canEdit
+          ? [
+              {
+                text: t('conversation.edit'),
+                onPress: () => {
+                  setEditingId(messageId);
+                  setReplyToId(null);
+                  setInputText(message?.plaintext ?? '');
+                  inputRef.current?.focus();
+                },
+              },
+            ]
+          : []),
         {
           text: t('conversation.deleteConfirm'),
           style: 'destructive',
@@ -344,7 +365,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         { text: t('conversation.cancel'), style: 'cancel' },
       ]);
     },
-    [handleDeleteMessage, t],
+    [handleDeleteMessage, messages, t],
   );
 
   // Everything visible here is read by definition. Re-running as `messages`
@@ -442,6 +463,30 @@ export function ConversationScreen({ route, navigation }: Props) {
 
     setSending(true);
     setSendError(null);
+
+    if (editingId) {
+      const editedAt = new Date().toISOString();
+      // Applied locally first: the sender should see their correction
+      // immediately, exactly like a normal send.
+      applyEdit(channelId, editingId, text, editedAt);
+      setInputText('');
+      setEditingId(null);
+      setSending(false);
+      inputRef.current?.focus();
+
+      try {
+        const envelope = encryptMessage(
+          peerUserId,
+          REMOTE_DEVICE_ID,
+          encodePayload({ text, editsMessageId: editingId }),
+        );
+        await sendMessage(channelId, envelope, ttlSeconds);
+      } catch (error) {
+        console.error('[ConversationScreen] failed to send edit', error);
+        setSendError(t('conversation.editFailed'));
+      }
+      return;
+    }
 
     // Local only, and never sent anywhere: the server assigns the real id.
     // Prefixed so it can never be mistaken for one.
@@ -643,6 +688,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                 ]}
               >
                 {formatSentAt(item.createdAt)} · {formatTimeLeft(item.expiresAt, now, t)}
+                {item.editedAt ? ` · ${t('conversation.edited')}` : ''}
                 {item.status ? ` · ${t(`conversation.status.${item.status}`)}` : ''}
               </Text>
 
@@ -660,6 +706,29 @@ export function ConversationScreen({ route, navigation }: Props) {
 
         {sendError ? (
           <Text style={[styles.sendErrorText, { color: colors.danger }]}>{sendError}</Text>
+        ) : null}
+
+        {editingId ? (
+          <View style={[styles.replyBar, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+            <View style={[styles.replyBarAccent, { backgroundColor: colors.accent }]} />
+            <View style={styles.replyBarTextWrapper}>
+              <Text style={[styles.replyBarLabel, { color: colors.accent }]}>
+                {t('conversation.editingMessage')}
+              </Text>
+              <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 13 }}>
+                {t('conversation.editingHint')}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                setEditingId(null);
+                setInputText('');
+              }}
+              hitSlop={12}
+            >
+              <Text style={{ color: colors.textSecondary, fontSize: 18 }}>×</Text>
+            </Pressable>
+          </View>
         ) : null}
 
         {replyToId ? (

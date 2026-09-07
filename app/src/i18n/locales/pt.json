@@ -84,7 +84,12 @@
     "retrySend": "Tentar enviar outra vez",
     "openLinkTitle": "Abrir esta ligação?",
     "openLinkConfirm": "Abrir",
-    "openLinkFailed": "Não foi possível abrir a ligação."
+    "openLinkFailed": "Não foi possível abrir a ligação.",
+    "edit": "Editar",
+    "edited": "editada",
+    "editingMessage": "A editar mensagem",
+    "editingHint": "A outra pessoa vê que foi editada.",
+    "editFailed": "A edição não chegou à outra pessoa. Tenta outra vez."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

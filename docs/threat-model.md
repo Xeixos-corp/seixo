@@ -1069,3 +1069,36 @@ not marked JSON decodes as plain text, so newer builds read older messages.
 The one gap: an older build receiving a *reply* renders the raw JSON, because
 it predates the format. Unavoidable without having shipped the decoder first,
 and it resolves once both devices update.
+
+### Editing a sent message (2026-09-07)
+
+An edit cannot rewrite the ciphertext already on the server, and the reason is
+worth recording because it is not obvious. Every message is encrypted with a
+Double Ratchet key used once and destroyed. If the stored ciphertext were
+replaced, the recipient has either already spent that key reading the original
+-- and could never read the replacement -- or has not read it yet, and would
+find a message encrypted with a key that no longer matches anything. Editing
+in place is impossible, not merely awkward. So an edit travels as an ordinary
+new message carrying the id of the one it replaces
+(`app/src/messaging/payload.ts`).
+
+Three consequences, all deliberate:
+
+**Edits are marked.** A message whose text can change silently is one nobody
+can rely on having read: the other person could rewrite what they said, and
+the reader would have no way to tell. The "edited" marker is what makes
+editing safe to offer at all, and it is not optional.
+
+**The timer does not restart.** The edit keeps the original message's
+`expires_at`. Otherwise editing would be a way to keep a message alive
+indefinitely, one edit at a time, quietly defeating disappearing messages.
+
+**The original ciphertext stays on the server until it expires.** Deleting it
+would be tidier, but the delete propagates to the recipient as a realtime
+DELETE event and would remove the message that the edit had just corrected.
+Leaving it costs one encrypted row the server cannot read, which the existing
+TTL purge removes on schedule.
+
+What editing does not do, and must not be presented as doing: unsend. If the
+other person has already read the message, they have read it. The edit
+corrects the record, not their memory.

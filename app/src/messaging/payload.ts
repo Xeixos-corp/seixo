@@ -31,26 +31,41 @@
 
 const MARKER = 'seixo.msg.v1';
 
-type EncodedReply = {
+type Encoded = {
   /** Marker, so a plain text message that happens to be valid JSON is not misread. */
   k: typeof MARKER;
   /** The message text. */
   t: string;
   /** Id of the message being replied to. */
-  r: string;
+  r?: string;
+  /**
+   * Id of a message this one replaces.
+   *
+   * An edit has to travel as a new message. The ciphertext already on the
+   * server cannot simply be rewritten: each message is encrypted with a key
+   * used once and then destroyed, so the recipient either already spent that
+   * key reading the original -- and could never read a replacement -- or has
+   * not read it yet and would find a message encrypted with a key that no
+   * longer fits anything. The Double Ratchet makes editing in place
+   * impossible, not merely awkward.
+   */
+  e?: string;
 };
 
 export type MessagePayload = {
   text: string;
   replyToId?: string;
+  editsMessageId?: string;
 };
 
 export function encodePayload(payload: MessagePayload): string {
-  if (!payload.replyToId) {
+  if (!payload.replyToId && !payload.editsMessageId) {
     // Unchanged wire format for the overwhelmingly common case.
     return payload.text;
   }
-  const encoded: EncodedReply = { k: MARKER, t: payload.text, r: payload.replyToId };
+  const encoded: Encoded = { k: MARKER, t: payload.text };
+  if (payload.replyToId) encoded.r = payload.replyToId;
+  if (payload.editsMessageId) encoded.e = payload.editsMessageId;
   return JSON.stringify(encoded);
 }
 
@@ -60,11 +75,15 @@ export function decodePayload(raw: string): MessagePayload {
   if (!raw.startsWith('{')) return { text: raw };
 
   try {
-    const parsed = JSON.parse(raw) as Partial<EncodedReply>;
-    if (parsed?.k !== MARKER || typeof parsed.t !== 'string' || typeof parsed.r !== 'string') {
+    const parsed = JSON.parse(raw) as Partial<Encoded>;
+    if (parsed?.k !== MARKER || typeof parsed.t !== 'string') {
       return { text: raw };
     }
-    return { text: parsed.t, replyToId: parsed.r };
+    return {
+      text: parsed.t,
+      replyToId: typeof parsed.r === 'string' ? parsed.r : undefined,
+      editsMessageId: typeof parsed.e === 'string' ? parsed.e : undefined,
+    };
   } catch {
     // Genuinely just a message that starts with a brace.
     return { text: raw };

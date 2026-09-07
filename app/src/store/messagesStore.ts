@@ -38,6 +38,22 @@ export type DecryptedMessage = {
    * cost (see docs/threat-model.md).
    */
   status?: 'sending' | 'sent' | 'failed';
+  /**
+   * When the text was last changed, if it ever was. Shown next to the time.
+   *
+   * Marking edits is not decoration. A message whose text can change silently
+   * is a message nobody can rely on having read -- the person you are talking
+   * to could rewrite what they said and you would have no way to tell. Every
+   * messenger that allows editing shows this, and it is the thing that makes
+   * editing safe to offer at all.
+   */
+  editedAt?: string;
+  /**
+   * Set on an edit that arrived before the message it replaces, and so had to
+   * stand in for it. Keeps the original from being added again underneath when
+   * it finally turns up.
+   */
+  supersedesId?: string;
 };
 
 type MessagesState = {
@@ -51,6 +67,12 @@ type MessagesState = {
    */
   replaceMessage: (channelId: string, localId: string, message: DecryptedMessage) => void;
   setMessageStatus: (channelId: string, id: string, status: DecryptedMessage['status']) => void;
+  /**
+   * Rewrites a message's text in place, keeping its id, position and -- most
+   * importantly -- its original expiry. Editing must not restart the
+   * disappearing timer, or it would be a way to keep a message alive forever.
+   */
+  applyEdit: (channelId: string, targetId: string, text: string, editedAt: string) => boolean;
   /** Drops every message for a channel — used when leaving a conversation. */
   clearChannel: (channelId: string) => void;
 };
@@ -114,6 +136,19 @@ export const useMessagesStore = create<MessagesState>()(
             ),
           },
         }));
+      },
+      applyEdit: (channelId, targetId, text, editedAt) => {
+        const existing = get().messagesByChannel[channelId] ?? [];
+        if (!existing.some((m) => m.id === targetId)) return false;
+        set((state) => ({
+          messagesByChannel: {
+            ...state.messagesByChannel,
+            [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) =>
+              m.id === targetId ? { ...m, plaintext: text, editedAt } : m,
+            ),
+          },
+        }));
+        return true;
       },
       clearChannel: (channelId) => {
         set((state) => {

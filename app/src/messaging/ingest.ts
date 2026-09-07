@@ -72,8 +72,39 @@ export function ingestFetchedMessage(
 
   try {
     const raw = decryptMessage(peerUserId, REMOTE_DEVICE_ID, fetched.envelope);
-    const { text, replyToId } = decodePayload(raw);
-    useMessagesStore.getState().addMessage(channelId, {
+    const { text, replyToId, editsMessageId } = decodePayload(raw);
+    const store = useMessagesStore.getState();
+
+    if (editsMessageId) {
+      // Normal case: rewrite the message this replaces, in place, keeping its
+      // original position and expiry.
+      if (store.applyEdit(channelId, editsMessageId, text, fetched.createdAt)) return;
+
+      // The edit arrived before the message it edits -- possible when a
+      // catch-up fetch and a realtime insert interleave. Standing in for the
+      // missing original is better than dropping the text on the floor;
+      // supersedesId stops the original being added underneath when it lands.
+      store.addMessage(channelId, {
+        id: fetched.id,
+        createdAt: fetched.createdAt,
+        expiresAt: fetched.expiresAt,
+        plaintext: text,
+        isMine: false,
+        replyToId,
+        editedAt: fetched.createdAt,
+        supersedesId: editsMessageId,
+      });
+      return;
+    }
+
+    // A message that some already-received edit replaced. Adding it now would
+    // show the superseded text below the corrected one.
+    const alreadySuperseded = (store.messagesByChannel[channelId] ?? []).some(
+      (message) => message.supersedesId === fetched.id,
+    );
+    if (alreadySuperseded) return;
+
+    store.addMessage(channelId, {
       id: fetched.id,
       createdAt: fetched.createdAt,
       expiresAt: fetched.expiresAt,
