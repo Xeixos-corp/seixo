@@ -19,6 +19,20 @@ export async function startConversationWithPeer(peerUserId: string): Promise<Con
     throw new SelfConversationError();
   }
 
+  // Already talking to this person: hand back the existing conversation and
+  // touch nothing else.
+  //
+  // Repeating the sequence below is not merely untidy. claimPeerPrekeyBundle
+  // consumes one of the peer's one-time prekeys -- a finite pool -- and
+  // establishSession replaces the Double Ratchet state for that peer, which
+  // can leave messages already in flight undecryptable. A duplicate
+  // conversation in the list was the visible symptom; those were the real
+  // cost.
+  const existing = useConversationsStore
+    .getState()
+    .conversations.find((conversation) => conversation.peerUserId === peerUserId);
+  if (existing) return existing;
+
   const channelId = await createDirectChannel(peerUserId);
   const bundle = await claimPeerPrekeyBundle(peerUserId);
   establishSession(peerUserId, bundle.deviceId, bundle);

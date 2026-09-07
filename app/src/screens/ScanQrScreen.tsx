@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
@@ -21,15 +21,23 @@ export function ScanQrScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
+  // A ref, not state. expo-camera fires this callback many times a second
+  // while a code is in frame, and setScanned(true) does not take effect until
+  // the next render -- so every call in the same tick still saw `scanned` as
+  // false and went through. That is how one scan became a dozen
+  // conversations. A ref changes synchronously, so the second call in the
+  // same tick already sees it.
+  const scannedRef = useRef(false);
   const [scanned, setScanned] = useState(false);
   const [starting, setStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleBarcodeScanned = async ({ data }: BarcodeScanningResult) => {
-    if (scanned || starting) return;
+    if (scannedRef.current || starting) return;
     const peerUserId = data.trim();
     if (!UUID_PATTERN.test(peerUserId)) return;
 
+    scannedRef.current = true;
     setScanned(true);
     setStarting(true);
     setErrorMessage(null);
@@ -47,6 +55,7 @@ export function ScanQrScreen({ navigation }: Props) {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
       setStarting(false);
+      scannedRef.current = false;
       setScanned(false);
     }
   };
