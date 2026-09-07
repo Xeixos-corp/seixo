@@ -27,6 +27,7 @@ import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { fetchMessages, sendMessage, deleteMessage } from '../transport/messages';
 import { ingestFetchedMessage } from '../messaging/ingest';
 import { encodePayload } from '../messaging/payload';
+import { splitLinks } from '../messaging/links';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
@@ -464,6 +465,29 @@ export function ConversationScreen({ route, navigation }: Props) {
     await deliver(localId, text, replyTo);
   };
 
+  // Always confirms, and always shows the full address. A link in a message
+  // came from someone else, and the text of a link never has to match where it
+  // goes -- seeing the real destination before leaving the app is the only
+  // defence the reader has. Opening it hands the site this device's IP, which
+  // is a choice worth making deliberately rather than by a stray tap.
+  const handleOpenLink = useCallback(
+    (url: string) => {
+      Alert.alert(t('conversation.openLinkTitle'), url, [
+        { text: t('conversation.cancel'), style: 'cancel' },
+        {
+          text: t('conversation.openLinkConfirm'),
+          onPress: () => {
+            Linking.openURL(url).catch((error) => {
+              console.error('[ConversationScreen] failed to open link', error);
+              setSendError(t('conversation.openLinkFailed'));
+            });
+          },
+        },
+      ]);
+    },
+    [t],
+  );
+
   const handleRetry = useCallback(
     (message: DecryptedMessage) => {
       setMessageStatus(channelId, message.id, 'sending');
@@ -589,7 +613,19 @@ export function ConversationScreen({ route, navigation }: Props) {
               ) : null}
 
               <Text style={{ color: item.isMine === true ? colors.onAccent : colors.textPrimary }}>
-                {item.plaintext}
+                {splitLinks(item.plaintext).map((segment, index) =>
+                  segment.url ? (
+                    <Text
+                      key={index}
+                      style={styles.link}
+                      onPress={() => handleOpenLink(segment.url as string)}
+                    >
+                      {segment.text}
+                    </Text>
+                  ) : (
+                    segment.text
+                  ),
+                )}
               </Text>
               <Text
                 style={[
@@ -730,6 +766,10 @@ const styles = StyleSheet.create({
   securityWarningText: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  link: {
+    textDecorationLine: 'underline',
+    fontWeight: '600',
   },
   retryText: {
     fontSize: 12,

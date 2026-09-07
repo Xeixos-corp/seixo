@@ -81,7 +81,10 @@
       "sent": "enviada",
       "failed": "não enviada"
     },
-    "retrySend": "Tentar enviar outra vez"
+    "retrySend": "Tentar enviar outra vez",
+    "openLinkTitle": "Abrir esta ligação?",
+    "openLinkConfirm": "Abrir",
+    "openLinkFailed": "Não foi possível abrir a ligação."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
