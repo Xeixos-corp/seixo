@@ -18,9 +18,16 @@ export async function fetchBlockedPeerIds(userId: string): Promise<string[]> {
 }
 
 export async function blockPeer(userId: string, peerUserId: string): Promise<void> {
+  // upsert, not insert: (owner_id, blocked_user_id) is the primary key, so
+  // blocking someone already blocked used to fail on a duplicate key. That
+  // sounds like it could never happen -- you cannot block from a conversation
+  // you can no longer see -- but it does: if the local list and the server
+  // ever disagree (a failed block that was retried, a reinstall restoring an
+  // older cache), the retry is the thing that breaks. Blocking twice should
+  // simply mean blocked.
   const { error } = await supabase
     .from('blocked_peers')
-    .insert({ owner_id: userId, blocked_user_id: peerUserId });
+    .upsert({ owner_id: userId, blocked_user_id: peerUserId }, { onConflict: 'owner_id,blocked_user_id' });
   if (error) throw error;
 }
 

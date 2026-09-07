@@ -146,7 +146,13 @@ export function ConversationScreen({ route, navigation }: Props) {
               removeConversation(channelId);
               navigation.navigate('ConversationList');
             } catch (error) {
+              // Loudly. This used to only reach the console, so a block that
+              // never reached the server looked exactly like one that worked:
+              // the conversation stayed put and nothing said why. Being told
+              // you blocked someone when you did not is the worst possible
+              // outcome for this particular button.
               console.error('[ConversationScreen] failed to block peer', error);
+              setSendError(t('conversation.blockFailed'));
             }
           },
         },

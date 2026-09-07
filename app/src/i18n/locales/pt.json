@@ -72,7 +72,8 @@
     "messageActionsTitle": "Mensagem",
     "reply": "Responder",
     "replyingTo": "A responder a",
-    "quoteUnavailable": "Mensagem indisponível"
+    "quoteUnavailable": "Mensagem indisponível",
+    "blockFailed": "Não foi possível bloquear. Verifica a ligação e tenta outra vez."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

@@ -72,7 +72,8 @@
     "messageActionsTitle": "Message",
     "reply": "Reply",
     "replyingTo": "Replying to",
-    "quoteUnavailable": "Message unavailable"
+    "quoteUnavailable": "Message unavailable",
+    "blockFailed": "Couldn't block. Check your connection and try again."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
