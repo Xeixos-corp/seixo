@@ -211,6 +211,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const [sendError, setSendError] = useState<string | null>(null);
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const listRef = useRef<FlatList<DecryptedMessage>>(null);
+  const inputRef = useRef<TextInput>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   // Set when establishSession/encrypt/decrypt fails because the peer's
   // identity key changed since the last session (see
@@ -461,6 +462,9 @@ export function ConversationScreen({ route, navigation }: Props) {
     setInputText('');
     setReplyToId(null);
     setSending(false);
+    // Belt and braces alongside keeping the field editable: whatever else
+    // steals the focus, the keyboard should be where the user left it.
+    inputRef.current?.focus();
 
     await deliver(localId, text, replyTo);
   };
@@ -573,6 +577,10 @@ export function ConversationScreen({ route, navigation }: Props) {
           // right here: failing to scroll is a much smaller problem than
           // crashing, and the message is still reachable by hand.
           onScrollToIndexFailed={() => {}}
+          // Without this, the first tap anywhere in the list is swallowed to
+          // dismiss the keyboard -- so long-pressing a message to reply while
+          // typing would need two attempts.
+          keyboardShouldPersistTaps="handled"
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
           renderItem={({ item }) => (
@@ -673,13 +681,22 @@ export function ConversationScreen({ route, navigation }: Props) {
 
         <View style={[styles.inputBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
+            ref={inputRef}
             style={[styles.input, { color: colors.textPrimary }]}
             placeholder={t('conversation.inputPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             value={inputText}
             onChangeText={setInputText}
-            editable={!sending}
+            // Deliberately always editable. It used to be disabled while a
+            // message was in flight, and iOS takes the focus away from a field
+            // that stops being editable -- taking the keyboard down with it,
+            // and not bringing either back afterwards. That made sending
+            // several messages in a row mean reopening the keyboard every
+            // time. There is nothing to protect against now anyway: the
+            // message is added to the conversation immediately, so typing the
+            // next one while the last is still sending is perfectly fine.
             multiline
+            blurOnSubmit={false}
           />
           <Pressable
             disabled={sending || !inputText.trim()}
