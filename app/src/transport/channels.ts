@@ -115,3 +115,45 @@ export function subscribeToMyNewMemberships(
     supabase.removeChannel(realtimeChannel);
   };
 }
+
+/**
+ * Every channel this user is a member of, with the other member of each.
+ *
+ * The app otherwise learns about channels only from *new* membership events
+ * (subscribeToMyNewMemberships below), which means a conversation that goes
+ * missing locally can never come back: the membership row on the server is
+ * already there, so no event will ever fire for it again. That happened for
+ * real -- blocking someone used to delete the conversation locally, and
+ * unblocking had nothing to restore.
+ *
+ * Called once per launch as a reconciliation pass. It cannot resurrect a
+ * conversation the user deleted on purpose: "delete conversation" removes the
+ * membership row itself (leaveChannel above), so the server genuinely no
+ * longer lists it.
+ */
+export async function fetchMyChannels(
+  selfUserId: string,
+): Promise<{ channelId: string; peerUserId: string }[]> {
+  const { data: mine, error: mineError } = await supabase
+    .from('channel_members')
+    .select('channel_id')
+    .eq('member_id', selfUserId);
+  if (mineError) throw new Error(mineError.message);
+
+  const channelIds = (mine ?? []).map((row) => row.channel_id as string);
+  if (channelIds.length === 0) return [];
+
+  const { data: peers, error: peersError } = await supabase
+    .from('channel_members')
+    .select('channel_id, member_id')
+    .in('channel_id', channelIds)
+    .neq('member_id', selfUserId);
+  if (peersError) throw new Error(peersError.message);
+
+  // A channel whose other member has left (or deleted their account) has no
+  // peer row, and is skipped rather than shown as a conversation with nobody.
+  return (peers ?? []).map((row) => ({
+    channelId: row.channel_id as string,
+    peerUserId: row.member_id as string,
+  }));
+}

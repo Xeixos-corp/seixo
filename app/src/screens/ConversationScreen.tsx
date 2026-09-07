@@ -126,7 +126,6 @@ export function ConversationScreen({ route, navigation }: Props) {
   });
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
   const addBlockedPeer = useBlockedPeersStore((state) => state.addBlockedPeer);
-  const removeConversation = useConversationsStore((state) => state.removeConversation);
   const markConversationRead = useConversationsStore((state) => state.markConversationRead);
 
   const handleBlock = useCallback(() => {
@@ -143,7 +142,13 @@ export function ConversationScreen({ route, navigation }: Props) {
               const { userId } = await registerIdentity();
               await blockPeer(userId, peerUserId);
               addBlockedPeer(peerUserId);
-              removeConversation(channelId);
+              // Deliberately NOT removing the conversation. The list already
+              // filters out blocked peers, so removing it as well destroyed
+              // the only local record of the channel -- and unblocking could
+              // then never bring it back, because the app learns about
+              // channels from new-membership events and there is no new
+              // membership to hear about. Hiding is reversible; deleting was
+              // not.
               navigation.navigate('ConversationList');
             } catch (error) {
               // Loudly. This used to only reach the console, so a block that
@@ -158,7 +163,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         },
       ],
     );
-  }, [peerUserId, channelId, addBlockedPeer, removeConversation, navigation, t]);
+  }, [peerUserId, channelId, addBlockedPeer, navigation, t]);
 
   const handleReport = useCallback(() => {
     if (!SUPPORT_CONTACT_EMAIL) return;

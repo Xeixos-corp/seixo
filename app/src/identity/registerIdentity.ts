@@ -15,7 +15,7 @@ import {
   LOCAL_KYBER_PREKEY_ID,
   EXTRA_ONE_TIME_PREKEY_IDS,
 } from '../transport/identities';
-import { subscribeToMyNewMemberships, getOtherMember } from '../transport/channels';
+import { subscribeToMyNewMemberships, getOtherMember, fetchMyChannels } from '../transport/channels';
 import { fetchBlockedPeerIds } from '../transport/blocking';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
@@ -137,6 +137,21 @@ async function finishRegistration(userId: string): Promise<void> {
 
   const blockedPeerIds = await fetchBlockedPeerIds(userId);
   useBlockedPeersStore.getState().setBlockedPeerIds(blockedPeerIds);
+
+  // Reconcile against the server before subscribing. The subscription below
+  // only ever reports *new* memberships, so anything already on the server but
+  // missing locally would stay invisible forever -- see fetchMyChannels.
+  // Non-fatal: a failure here costs a conversation being absent until the next
+  // launch, which is not worth blocking startup over.
+  try {
+    const serverChannels = await fetchMyChannels(userId);
+    const { addConversation } = useConversationsStore.getState();
+    serverChannels.forEach(({ channelId, peerUserId }) => {
+      addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS });
+    });
+  } catch (error) {
+    console.error('[registerIdentity] failed to reconcile channels', error);
+  }
 
   // Detect conversations other people start with us (the receiving side of
   // createDirectChannel — see app/src/transport/channels.ts).
