@@ -95,6 +95,15 @@ export function subscribeToChannelMessages(
   channelId: string,
   onInsert: (message: FetchedMessage) => void,
   onDelete?: (messageId: string) => void,
+  /**
+   * Called when this subscription stops being usable -- the socket dropped,
+   * the join timed out, or the server closed it. Without this the caller has
+   * no way to tell a quiet conversation from a dead connection, which is
+   * exactly the failure users saw: notifications kept arriving (those come
+   * from the server, by a different route) while the app silently received
+   * nothing.
+   */
+  onUnhealthy?: () => void,
 ): () => void {
   const realtimeChannel: RealtimeChannel = supabase
     // Unique per subscription, not just per channel. `supabase.channel(topic)`
@@ -142,7 +151,12 @@ export function subscribeToChannelMessages(
         if (row?.id) onDelete?.(row.id);
       },
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.warn('[messages] realtime subscription unhealthy', channelId, status);
+        onUnhealthy?.();
+      }
+    });
 
   return () => {
     supabase.removeChannel(realtimeChannel);

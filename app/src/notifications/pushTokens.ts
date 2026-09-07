@@ -14,6 +14,19 @@ export async function upsertPushToken(
   notificationTitle: string,
   notificationBody: string,
 ): Promise<void> {
+  // Claim the token for this identity first. A push token belongs to the
+  // *device*, not to an identity -- so creating a new identity on a phone
+  // that already had one used to leave the old row in place, pointing the
+  // same token at a user_id the app no longer uses. The phone then got
+  // notifications for a conversation it could not show. Deleting any other
+  // owner of this token keeps one device to one identity.
+  const { error: claimError } = await supabase
+    .from('push_tokens')
+    .delete()
+    .eq('token', token)
+    .neq('user_id', userId);
+  if (claimError) throw new Error(claimError.message);
+
   const { error } = await supabase.from('push_tokens').upsert(
     {
       user_id: userId,

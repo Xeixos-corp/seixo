@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import type { AppStateStatus } from 'react-native';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useMessagesStore } from '../store/messagesStore';
 import { fetchMessages, subscribeToChannelMessages } from '../transport/messages';
@@ -18,6 +20,39 @@ import { ingestFetchedMessage } from './ingest';
 export function useMessageSync(): void {
   const conversations = useConversationsStore((state) => state.conversations);
 
+  // Bumping this tears every subscription down and builds it again, refetching
+  // as it goes. Two things do it, and both are cases where the connection can
+  // be dead while looking alive:
+  //
+  //  - coming back to the foreground. iOS suspends the app in the background
+  //    and the websocket does not always survive it. The symptom was precise:
+  //    notifications kept arriving (the server sends those, by a route that
+  //    has nothing to do with this socket) while the conversation stayed
+  //    empty until it was closed and reopened -- reopening runs
+  //    ConversationScreen's catch-up fetch, which is why it looked fixed.
+  //
+  //  - the subscription reporting itself unhealthy.
+  const [epoch, setEpoch] = useState(0);
+  const lastResyncRef = useRef(0);
+
+  // Rate-limited, because a channel that fails repeatedly would otherwise
+  // rebuild every subscription in a tight loop -- turning a dropped connection
+  // into a much worse problem.
+  const resync = useCallback((reason: string) => {
+    const now = Date.now();
+    if (now - lastResyncRef.current < 5000) return;
+    lastResyncRef.current = now;
+    console.log('[messageSync] resyncing:', reason);
+    setEpoch((value) => value + 1);
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next === 'active') resync('app returned to foreground');
+    });
+    return () => subscription.remove();
+  }, [resync]);
+
   // Resubscribe only when the set of channels actually changes. Depending on
   // the conversations array itself would tear down and rebuild every
   // subscription on any unrelated change to it -- renaming a contact, or
@@ -28,6 +63,13 @@ export function useMessageSync(): void {
     .join(',');
 
   useEffect(() => {
+    // Tearing a subscription down makes Supabase report it as CLOSED, which
+    // would call onUnhealthy and trigger another resync -- which would tear it
+    // down again. The rate limit would slow that to a cycle every five
+    // seconds rather than stopping it. This flag makes teardown silent, so
+    // only a connection that dies while we still want it counts.
+    let disposed = false;
+
     // Read fresh rather than closing over `conversations`, so this effect
     // does not need it as a dependency.
     const current = useConversationsStore.getState().conversations;
@@ -47,11 +89,15 @@ export function useMessageSync(): void {
         channelId,
         (message) => ingestFetchedMessage(channelId, peerUserId, message),
         (messageId) => useMessagesStore.getState().removeMessage(channelId, messageId),
+        () => {
+          if (!disposed) resync(`channel ${channelId} unhealthy`);
+        },
       );
     });
 
     return () => {
+      disposed = true;
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, [channelKey]);
+  }, [channelKey, epoch, resync]);
 }
