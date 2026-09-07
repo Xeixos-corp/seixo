@@ -36,7 +36,9 @@
     "deleteConversationFailed": "Não foi possível sair da conversa. Tenta novamente.",
     "myIdButton": "O meu ID",
     "myIdClose": "Fechar",
-    "unreadBadgeLabel": "{{count}} mensagens por ler"
+    "unreadBadgeLabel": "{{count}} mensagens por ler",
+    "searchPlaceholder": "Procurar conversas ou mensagens",
+    "searchNoResults": "Nada encontrado para “{{query}}”."
   },
   "conversation": {
     "ttl": {

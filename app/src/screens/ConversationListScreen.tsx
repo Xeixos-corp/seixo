@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,6 +31,20 @@ import { MyIdCard } from '../components/MyIdCard';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConversationList'>;
+
+/**
+ * Lower-cases and strips accents, so "Joao" finds "João" and vice versa --
+ * which matters a lot in Portuguese, where typing the accent is optional in
+ * practice. Decomposing and dropping the combining marks is used rather than
+ * a unicode property escape, which Hermes does not reliably support.
+ */
+function normalizeForSearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
 
 export function ConversationListScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
@@ -76,12 +90,37 @@ export function ConversationListScreen({ navigation }: Props) {
 
   const removeConversation = useConversationsStore((state) => state.removeConversation);
   const clearChannel = useMessagesStore((state) => state.clearChannel);
+  const [searchQuery, setSearchQuery] = useState('');
+
   // The whole map, not a per-channel slice: this component renders every
   // conversation, and selecting the object itself keeps the reference stable
   // between renders (a selector building a new object per call makes zustand
   // v5's useSyncExternalStore re-render forever -- learned the hard way in
   // ConversationScreen).
   const messagesByChannel = useMessagesStore((state) => state.messagesByChannel);
+
+  // Searches the name, the user_id, and the message text -- all of it already
+  // on this device, so nothing about what is being searched for ever leaves
+  // the phone. Searching message content is only possible at all because
+  // history is stored locally (see store/messagesStore.ts); it costs no
+  // privacy beyond what storing it already did.
+  const matchingConversations = useMemo(() => {
+    const needle = normalizeForSearch(searchQuery);
+    if (!needle) return visibleConversations;
+
+    return visibleConversations.filter((conversation) => {
+      if (normalizeForSearch(conversationDisplayName(conversation)).includes(needle)) return true;
+      if (normalizeForSearch(conversation.peerUserId).includes(needle)) return true;
+      return (messagesByChannel[conversation.channelId] ?? []).some((message) =>
+        normalizeForSearch(message.plaintext).includes(needle),
+      );
+    });
+  }, [visibleConversations, messagesByChannel, searchQuery]);
+
+  // Shown only once the list is long enough for finding something to be a
+  // problem. Below that it is a permanent empty box taking up the space the
+  // conversations should have.
+  const showSearch = visibleConversations.length > 5 || searchQuery.length > 0;
 
   const openRename = (conversation: Conversation) => {
     setRenaming(conversation);
@@ -201,8 +240,21 @@ export function ConversationListScreen({ navigation }: Props) {
         <Text style={[styles.errorText, { color: colors.danger }]}>{errorMessage}</Text>
       ) : null}
 
+      {showSearch ? (
+        <TextInput
+          style={[styles.searchInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.surface }]}
+          placeholder={t('conversationList.searchPlaceholder')}
+          placeholderTextColor={colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCorrect={false}
+          autoCapitalize="none"
+          clearButtonMode="while-editing"
+        />
+      ) : null}
+
       <FlatList
-        data={visibleConversations}
+        data={matchingConversations}
         keyExtractor={(item) => item.channelId}
         renderItem={({ item }) => {
           const unread = unreadCount(item, messagesByChannel[item.channelId]);
@@ -244,6 +296,13 @@ export function ConversationListScreen({ navigation }: Props) {
           );
         }}
         ListEmptyComponent={
+          searchQuery ? (
+            <View style={styles.empty}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                {t('conversationList.searchNoResults', { query: searchQuery })}
+              </Text>
+            </View>
+          ) : (
           <View style={styles.empty}>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {t('conversationList.emptyState')}
@@ -252,6 +311,7 @@ export function ConversationListScreen({ navigation }: Props) {
               <MyIdCard />
             </View>
           </View>
+          )
         }
       />
       <Modal
@@ -423,6 +483,15 @@ const styles = StyleSheet.create({
   conversationRow: {
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  searchInput: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
   },
   conversationRowTop: {
     flexDirection: 'row',

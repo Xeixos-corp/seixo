@@ -36,7 +36,9 @@
     "deleteConversationFailed": "Could not leave the conversation. Please try again.",
     "myIdButton": "My ID",
     "myIdClose": "Close",
-    "unreadBadgeLabel": "{{count}} unread messages"
+    "unreadBadgeLabel": "{{count}} unread messages",
+    "searchPlaceholder": "Search conversations or messages",
+    "searchNoResults": "Nothing found for “{{query}}”."
   },
   "conversation": {
     "ttl": {
