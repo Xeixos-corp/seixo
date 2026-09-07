@@ -27,12 +27,30 @@ export type DecryptedMessage = {
    * See messaging/payload.ts.
    */
   replyToId?: string;
+  /**
+   * Delivery state of a message this device is sending. Undefined on
+   * received messages, and on ones sent before this field existed -- both
+   * render without any indicator rather than claiming a state we don't know.
+   *
+   * This is "did the server accept it", nothing more. It says nothing about
+   * whether the other person received or read it; that would need them to
+   * send something back, which is a separate decision with its own metadata
+   * cost (see docs/threat-model.md).
+   */
+  status?: 'sending' | 'sent' | 'failed';
 };
 
 type MessagesState = {
   messagesByChannel: Record<string, DecryptedMessage[]>;
   addMessage: (channelId: string, message: DecryptedMessage) => void;
   removeMessage: (channelId: string, id: string) => void;
+  /**
+   * Swaps a locally-created message for the server's version of it, keeping
+   * its position. Used when a send succeeds: the row only gets its real id,
+   * created_at and expires_at once the server has accepted it.
+   */
+  replaceMessage: (channelId: string, localId: string, message: DecryptedMessage) => void;
+  setMessageStatus: (channelId: string, id: string, status: DecryptedMessage['status']) => void;
   /** Drops every message for a channel — used when leaving a conversation. */
   clearChannel: (channelId: string) => void;
 };
@@ -77,6 +95,26 @@ export const useMessagesStore = create<MessagesState>()(
           },
         }));
       },
+      replaceMessage: (channelId, localId, message) => {
+        set((state) => ({
+          messagesByChannel: {
+            ...state.messagesByChannel,
+            [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) =>
+              m.id === localId ? message : m,
+            ),
+          },
+        }));
+      },
+      setMessageStatus: (channelId, id, status) => {
+        set((state) => ({
+          messagesByChannel: {
+            ...state.messagesByChannel,
+            [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) =>
+              m.id === id ? { ...m, status } : m,
+            ),
+          },
+        }));
+      },
       clearChannel: (channelId) => {
         set((state) => {
           const next = { ...state.messagesByChannel };
@@ -110,7 +148,13 @@ export const useMessagesStore = create<MessagesState>()(
         const alive: Record<string, DecryptedMessage[]> = {};
 
         for (const [channelId, messages] of Object.entries(stored)) {
-          const unexpired = messages.filter((m) => new Date(m.expiresAt).getTime() > now);
+          const unexpired = messages
+            .filter((m) => new Date(m.expiresAt).getTime() > now)
+            // A message left mid-send when the app was killed is not still
+            // sending -- nothing is sending it. Calling it failed is both
+            // true and useful: failed messages can be retried, whereas one
+            // stuck on "sending" forever can only be deleted.
+            .map((m) => (m.status === 'sending' ? { ...m, status: 'failed' as const } : m));
           if (unexpired.length > 0) {
             alive[channelId] = unexpired;
           }

@@ -114,6 +114,8 @@ export function ConversationScreen({ route, navigation }: Props) {
     [messages],
   );
   const addMessage = useMessagesStore((state) => state.addMessage);
+  const replaceMessage = useMessagesStore((state) => state.replaceMessage);
+  const setMessageStatus = useMessagesStore((state) => state.setMessageStatus);
   const removeMessage = useMessagesStore((state) => state.removeMessage);
   const ttlSeconds = useConversationsStore(
     (state) => state.conversations.find((c) => c.channelId === channelId)?.ttlSeconds ?? DEFAULT_TTL_SECONDS,
@@ -304,6 +306,10 @@ export function ConversationScreen({ route, navigation }: Props) {
               // reacts to, but this user asked for it gone and shouldn't
               // watch it linger while the round trip happens.
               dropMessage(messageId);
+              // A message that never reached the server has no row to delete,
+              // and its local id is not even a uuid -- asking Postgres to
+              // delete it would fail on the type, not on the lookup.
+              if (messageId.startsWith('local-')) return;
               try {
                 await deleteMessage(messageId);
               } catch (error) {
@@ -323,6 +329,9 @@ export function ConversationScreen({ route, navigation }: Props) {
   // should not sit one tap away from replying.
   const handleMessageActions = useCallback(
     (messageId: string) => {
+      // A message that never reached the server has no row to delete, and
+      // nothing to reply to yet -- dropping it locally is the only sensible
+      // action, and deleteMessage() below already tolerates that.
       Alert.alert(t('conversation.messageActionsTitle'), undefined, [
         { text: t('conversation.reply'), onPress: () => setReplyToId(messageId) },
         {
@@ -385,42 +394,83 @@ export function ConversationScreen({ route, navigation }: Props) {
     [orderedMessages],
   );
 
+  /**
+   * Puts the message on screen first, then sends it.
+   *
+   * It used to be the other way round -- the message only appeared once the
+   * server had accepted it -- which meant a failed send produced no message at
+   * all, just a line of red text, and the only copy of what you wrote was
+   * whatever was left in the input box. Showing it immediately with a state
+   * attached is both more honest and more useful: a failed message is still
+   * there, still readable, and can be retried.
+   */
+  const deliver = useCallback(
+    async (localId: string, text: string, replyTo: string | undefined) => {
+      try {
+        const envelope = encryptMessage(
+          peerUserId,
+          REMOTE_DEVICE_ID,
+          encodePayload({ text, replyToId: replyTo }),
+        );
+        const { id, createdAt, expiresAt } = await sendMessage(channelId, envelope, ttlSeconds);
+        replaceMessage(channelId, localId, {
+          id,
+          createdAt,
+          expiresAt,
+          plaintext: text,
+          isMine: true,
+          replyToId: replyTo,
+          status: 'sent',
+        });
+        scheduleExpiry(id, expiresAt);
+      } catch (error) {
+        setMessageStatus(channelId, localId, 'failed');
+        if (isUntrustedIdentityError(error)) {
+          setSendSecurityWarning(t('conversation.securityWarningSend', { peerId: peerUserId }));
+        }
+        console.error('[ConversationScreen] failed to send message', error);
+      }
+    },
+    [channelId, peerUserId, ttlSeconds, replaceMessage, setMessageStatus, scheduleExpiry, t],
+  );
+
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || sending) return;
 
     setSending(true);
     setSendError(null);
-    try {
-      const envelope = encryptMessage(
-        peerUserId,
-        REMOTE_DEVICE_ID,
-        encodePayload({ text, replyToId: replyToId ?? undefined }),
-      );
-      const { id, createdAt, expiresAt } = await sendMessage(channelId, envelope, ttlSeconds);
-      addMessage(channelId, {
-        id,
-        createdAt,
-        expiresAt,
-        plaintext: text,
-        isMine: true,
-        replyToId: replyToId ?? undefined,
-      });
-      scheduleExpiry(id, expiresAt);
-      setInputText('');
-      setReplyToId(null);
-    } catch (error) {
-      if (isUntrustedIdentityError(error)) {
-        setSendSecurityWarning(t('conversation.securityWarningSend', { peerId: peerUserId }));
-      } else {
-        setSendError(t('conversation.sendFailed'));
-      }
-      // The text deliberately stays in the input so it isn't lost.
-      console.error('[ConversationScreen] failed to send message', error);
-    } finally {
-      setSending(false);
-    }
+
+    // Local only, and never sent anywhere: the server assigns the real id.
+    // Prefixed so it can never be mistaken for one.
+    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const replyTo = replyToId ?? undefined;
+
+    addMessage(channelId, {
+      id: localId,
+      createdAt: new Date().toISOString(),
+      // A guess until the server rules. It only affects the countdown shown
+      // for the second or two before the real value arrives.
+      expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+      plaintext: text,
+      isMine: true,
+      replyToId: replyTo,
+      status: 'sending',
+    });
+    setInputText('');
+    setReplyToId(null);
+    setSending(false);
+
+    await deliver(localId, text, replyTo);
   };
+
+  const handleRetry = useCallback(
+    (message: DecryptedMessage) => {
+      setMessageStatus(channelId, message.id, 'sending');
+      void deliver(message.id, message.plaintext, message.replyToId);
+    },
+    [channelId, deliver, setMessageStatus],
+  );
 
   return (
     <KeyboardAvoidingView
@@ -549,7 +599,16 @@ export function ConversationScreen({ route, navigation }: Props) {
                 ]}
               >
                 {formatSentAt(item.createdAt)} · {formatTimeLeft(item.expiresAt, now, t)}
+                {item.status ? ` · ${t(`conversation.status.${item.status}`)}` : ''}
               </Text>
+
+              {item.status === 'failed' ? (
+                <Pressable onPress={() => handleRetry(item)} hitSlop={8}>
+                  <Text style={[styles.retryText, { color: colors.onAccent }]}>
+                    {t('conversation.retrySend')}
+                  </Text>
+                </Pressable>
+              ) : null}
             </Pressable>
           )}
         />
@@ -671,6 +730,12 @@ const styles = StyleSheet.create({
   securityWarningText: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  retryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+    marginTop: 4,
   },
   quoteBlock: {
     borderLeftWidth: 3,

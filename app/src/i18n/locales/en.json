@@ -73,7 +73,13 @@
     "reply": "Reply",
     "replyingTo": "Replying to",
     "quoteUnavailable": "Message unavailable",
-    "blockFailed": "Couldn't block. Check your connection and try again."
+    "blockFailed": "Couldn't block. Check your connection and try again.",
+    "status": {
+      "sending": "sending…",
+      "sent": "sent",
+      "failed": "not sent"
+    },
+    "retrySend": "Try sending again"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

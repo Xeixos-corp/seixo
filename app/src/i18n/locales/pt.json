@@ -73,7 +73,13 @@
     "reply": "Responder",
     "replyingTo": "A responder a",
     "quoteUnavailable": "Mensagem indisponível",
-    "blockFailed": "Não foi possível bloquear. Verifica a ligação e tenta outra vez."
+    "blockFailed": "Não foi possível bloquear. Verifica a ligação e tenta outra vez.",
+    "status": {
+      "sending": "a enviar…",
+      "sent": "enviada",
+      "failed": "não enviada"
+    },
+    "retrySend": "Tentar enviar outra vez"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
