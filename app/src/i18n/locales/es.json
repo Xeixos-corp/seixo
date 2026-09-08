@@ -94,10 +94,11 @@
     "reactTitle": "Elige una reacción",
     "reactionFailed": "La reacción no llegó a la otra persona.",
     "voiceMessage": "Mensaje de voz",
-    "holdToRecord": "Mantener para grabar",
     "recordingNow": "Grabando…",
     "recordingFailed": "No se pudo grabar.",
-    "microphoneDenied": "Seixo necesita acceso al micrófono para grabar."
+    "microphoneDenied": "Seixo necesita acceso al micrófono para grabar.",
+    "recordButton": "Grabar voz",
+    "stopRecording": "Parar y enviar · {{elapsed}}"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

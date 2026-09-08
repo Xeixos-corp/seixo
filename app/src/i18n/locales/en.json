@@ -94,10 +94,11 @@
     "reactTitle": "Pick a reaction",
     "reactionFailed": "The reaction didn't reach the other person.",
     "voiceMessage": "Voice message",
-    "holdToRecord": "Hold to record",
     "recordingNow": "Recording…",
     "recordingFailed": "Couldn't record.",
-    "microphoneDenied": "Seixo needs microphone access to record."
+    "microphoneDenied": "Seixo needs microphone access to record.",
+    "recordButton": "Record voice",
+    "stopRecording": "Stop and send · {{elapsed}}"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

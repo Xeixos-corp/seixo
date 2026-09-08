@@ -228,6 +228,10 @@ export function ConversationScreen({ route, navigation }: Props) {
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
+  // Seconds elapsed, ticked while recording. Without it there is no way to
+  // tell a recording that started from one that didn't, nor how close it is
+  // to the one-minute ceiling.
+  const [recordedSeconds, setRecordedSeconds] = useState(0);
   const recordingStartedAt = useRef(0);
   const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
   const listRef = useRef<FlatList<DecryptedMessage>>(null);
@@ -375,6 +379,7 @@ export function ConversationScreen({ route, navigation }: Props) {
       await recorder.prepareToRecordAsync();
       recorder.record();
       recordingStartedAt.current = Date.now();
+      setRecordedSeconds(0);
       setRecording(true);
     } catch (error) {
       console.error('[ConversationScreen] failed to start recording', error);
@@ -385,6 +390,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const stopRecording = useCallback(
     async (send: boolean) => {
       setRecording(false);
+      setRecordedSeconds(0);
       try {
         await recorder.stop();
         const uri = recorder.uri;
@@ -406,11 +412,20 @@ export function ConversationScreen({ route, navigation }: Props) {
   );
 
   // A recording has to end somewhere: the audio travels inside the message, so
-  // there is a hard ceiling on how long it can be.
+  // there is a hard ceiling on how long it can be. Sending what was captured
+  // rather than discarding it -- reaching the limit should not lose a minute
+  // of someone's voice.
   useEffect(() => {
     if (!recording) return;
     const timer = setTimeout(() => void stopRecording(true), MAX_VOICE_DURATION_MS);
-    return () => clearTimeout(timer);
+    const tick = setInterval(
+      () => setRecordedSeconds(Math.floor((Date.now() - recordingStartedAt.current) / 1000)),
+      500,
+    );
+    return () => {
+      clearTimeout(timer);
+      clearInterval(tick);
+    };
   }, [recording, stopRecording]);
 
   const handleReact = useCallback(
@@ -946,17 +961,26 @@ export function ConversationScreen({ route, navigation }: Props) {
             multiline
             blurOnSubmit={false}
           />
+          {recording ? (
+            <Pressable onPress={() => void stopRecording(false)} hitSlop={8} style={styles.discardButton}>
+              <Text style={{ color: colors.textSecondary, fontSize: 18 }}>×</Text>
+            </Pressable>
+          ) : null}
+
           {!inputText.trim() ? (
             <Pressable
-              onPressIn={startRecording}
-              onPressOut={() => void stopRecording(true)}
+              onPress={() => (recording ? void stopRecording(true) : void startRecording())}
               style={({ pressed }) => [
                 styles.sendButton,
-                { backgroundColor: pressed || recording ? colors.danger : colors.accent },
+                { backgroundColor: recording ? colors.danger : pressed ? colors.accentPressed : colors.accent },
               ]}
             >
               <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
-                {recording ? t('conversation.recordingNow') : t('conversation.holdToRecord')}
+                {recording
+                  ? t('conversation.stopRecording', {
+                      elapsed: `${Math.floor(recordedSeconds / 60)}:${String(recordedSeconds % 60).padStart(2, '0')}`,
+                    })
+                  : t('conversation.recordButton')}
               </Text>
             </Pressable>
           ) : null}
@@ -1050,6 +1074,9 @@ const styles = StyleSheet.create({
   securityWarningText: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  discardButton: {
+    paddingHorizontal: 6,
   },
   hidden: {
     display: 'none',
