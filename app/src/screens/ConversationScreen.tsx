@@ -50,6 +50,10 @@ const REMOTE_DEVICE_ID = 1; // single device per identity for now
 // It only bites on channels with no decrypted messages, i.e. exactly when
 // opening a conversation you just started, which is why it survived until
 // someone actually tried to chat.
+// A short, fixed set. A full emoji keyboard turns a one-tap gesture into a
+// search, and these six cover almost everything people actually use.
+const REACTION_EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
+
 const NO_MESSAGES: DecryptedMessage[] = [];
 
 const TTL_OPTIONS: Array<{ key: string; seconds: number }> = [
@@ -109,9 +113,11 @@ export function ConversationScreen({ route, navigation }: Props) {
   // message can appear after a newer one.
   const orderedMessages = useMemo(
     () =>
-      [...messages].sort(
-        (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
-      ),
+      messages
+        // Edits and reactions are stored only so their ids are remembered;
+        // they are instructions, not things to read.
+        .filter((message) => message.isControl !== true)
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     [messages],
   );
   const addMessage = useMessagesStore((state) => state.addMessage);
@@ -295,6 +301,31 @@ export function ConversationScreen({ route, navigation }: Props) {
     [channelId, removeMessage],
   );
 
+  const handleReact = useCallback(
+    async (messageId: string, emoji: string) => {
+      const current = messages.find((m) => m.id === messageId)?.reactions?.mine;
+      // Tapping the same emoji again takes the reaction back, which is what
+      // every messenger does and what people expect without being told.
+      const next = current === emoji ? '' : emoji;
+
+      useMessagesStore.getState().applyReaction(channelId, messageId, 'mine', next);
+
+      try {
+        const envelope = encryptMessage(
+          peerUserId,
+          REMOTE_DEVICE_ID,
+          encodePayload({ text: next, reactsToMessageId: messageId }),
+        );
+        // silent: a reaction should not make the other phone buzz.
+        await sendMessage(channelId, envelope, ttlSeconds, true);
+      } catch (error) {
+        console.error('[ConversationScreen] failed to send reaction', error);
+        setSendError(t('conversation.reactionFailed'));
+      }
+    },
+    [channelId, peerUserId, ttlSeconds, messages, t],
+  );
+
   const handleDeleteMessage = useCallback(
     (messageId: string) => {
       Alert.alert(
@@ -343,6 +374,17 @@ export function ConversationScreen({ route, navigation }: Props) {
       const canEdit = message?.isMine === true && !messageId.startsWith('local-');
 
       Alert.alert(t('conversation.messageActionsTitle'), undefined, [
+        {
+          text: t('conversation.react'),
+          onPress: () =>
+            Alert.alert(t('conversation.reactTitle'), undefined, [
+              ...REACTION_EMOJIS.map((emoji) => ({
+                text: emoji,
+                onPress: () => void handleReact(messageId, emoji),
+              })),
+              { text: t('conversation.cancel'), style: 'cancel' as const },
+            ]),
+        },
         { text: t('conversation.reply'), onPress: () => setReplyToId(messageId) },
         ...(canEdit
           ? [
@@ -365,7 +407,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         { text: t('conversation.cancel'), style: 'cancel' },
       ]);
     },
-    [handleDeleteMessage, messages, t],
+    [handleDeleteMessage, handleReact, messages, t],
   );
 
   // Everything visible here is read by definition. Re-running as `messages`
@@ -692,6 +734,14 @@ export function ConversationScreen({ route, navigation }: Props) {
                 {item.status ? ` · ${t(`conversation.status.${item.status}`)}` : ''}
               </Text>
 
+              {item.reactions && (item.reactions.mine || item.reactions.theirs) ? (
+                <View style={[styles.reactionRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Text style={styles.reactionText}>
+                    {[item.reactions.theirs, item.reactions.mine].filter(Boolean).join(' ')}
+                  </Text>
+                </View>
+              ) : null}
+
               {item.status === 'failed' ? (
                 <Pressable onPress={() => handleRetry(item)} hitSlop={8}>
                   <Text style={[styles.retryText, { color: colors.onAccent }]}>
@@ -852,6 +902,18 @@ const styles = StyleSheet.create({
   securityWarningText: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  reactionRow: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 6,
+  },
+  reactionText: {
+    fontSize: 14,
   },
   link: {
     textDecorationLine: 'underline',

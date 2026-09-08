@@ -89,7 +89,10 @@
     "edited": "editado",
     "editingMessage": "Editando mensaje",
     "editingHint": "La otra persona verá que fue editado.",
-    "editFailed": "La edición no llegó a la otra persona. Inténtalo de nuevo."
+    "editFailed": "La edición no llegó a la otra persona. Inténtalo de nuevo.",
+    "react": "Reaccionar",
+    "reactTitle": "Elige una reacción",
+    "reactionFailed": "La reacción no llegó a la otra persona."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

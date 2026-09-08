@@ -54,6 +54,23 @@ export type DecryptedMessage = {
    * it finally turns up.
    */
   supersedesId?: string;
+  /**
+   * Emoji reactions on this message, keyed by who reacted: 'mine' for this
+   * device, 'theirs' for the other person. One reaction each, replaced rather
+   * than accumulated, which matches how people actually use them and keeps
+   * the bubble from filling up.
+   */
+  reactions?: { mine?: string; theirs?: string };
+  /**
+   * A message that carried an instruction rather than something to read -- an
+   * edit or a reaction. Kept only so that its id is remembered.
+   *
+   * Without this the id is nowhere, so the de-duplication check never
+   * recognises it and every catch-up fetch decrypts it again -- which fails,
+   * because a Double Ratchet message key works exactly once. Harmless but
+   * noisy, and it repeats on every launch. Never rendered.
+   */
+  isControl?: boolean;
 };
 
 type MessagesState = {
@@ -73,6 +90,17 @@ type MessagesState = {
    * disappearing timer, or it would be a way to keep a message alive forever.
    */
   applyEdit: (channelId: string, targetId: string, text: string, editedAt: string) => boolean;
+  /**
+   * Sets or clears one side's reaction on a message. An empty emoji removes
+   * it. Returns false when the target isn't here -- the caller decides what
+   * that means (see messaging/ingest.ts).
+   */
+  applyReaction: (
+    channelId: string,
+    targetId: string,
+    side: 'mine' | 'theirs',
+    emoji: string,
+  ) => boolean;
   /** Drops every message for a channel — used when leaving a conversation. */
   clearChannel: (channelId: string) => void;
 };
@@ -146,6 +174,26 @@ export const useMessagesStore = create<MessagesState>()(
             [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) =>
               m.id === targetId ? { ...m, plaintext: text, editedAt } : m,
             ),
+          },
+        }));
+        return true;
+      },
+      applyReaction: (channelId, targetId, side, emoji) => {
+        const existing = get().messagesByChannel[channelId] ?? [];
+        if (!existing.some((m) => m.id === targetId)) return false;
+        set((state) => ({
+          messagesByChannel: {
+            ...state.messagesByChannel,
+            [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) => {
+              if (m.id !== targetId) return m;
+              const reactions = { ...(m.reactions ?? {}) };
+              if (emoji) reactions[side] = emoji;
+              else delete reactions[side];
+              return {
+                ...m,
+                reactions: Object.keys(reactions).length > 0 ? reactions : undefined,
+              };
+            }),
           },
         }));
         return true;

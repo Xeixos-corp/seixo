@@ -89,7 +89,10 @@
     "edited": "edited",
     "editingMessage": "Editing message",
     "editingHint": "The other person will see it was edited.",
-    "editFailed": "The edit didn't reach the other person. Try again."
+    "editFailed": "The edit didn't reach the other person. Try again.",
+    "react": "React",
+    "reactTitle": "Pick a reaction",
+    "reactionFailed": "The reaction didn't reach the other person."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

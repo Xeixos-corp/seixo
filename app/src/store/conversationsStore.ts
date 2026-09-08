@@ -38,12 +38,16 @@ export type Conversation = {
  */
 export function unreadCount(
   conversation: Conversation,
-  messages: { createdAt: string; isMine?: boolean }[] | undefined,
+  messages: { createdAt: string; isMine?: boolean; isControl?: boolean }[] | undefined,
 ): number {
   if (!messages?.length) return 0;
   const since = conversation.lastReadAt ? new Date(conversation.lastReadAt).getTime() : 0;
   return messages.filter(
-    (message) => message.isMine !== true && new Date(message.createdAt).getTime() > since,
+    (message) =>
+      message.isMine !== true &&
+      // An edit or a reaction is not something new to read.
+      message.isControl !== true &&
+      new Date(message.createdAt).getTime() > since,
   ).length;
 }
 

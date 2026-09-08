@@ -27,6 +27,12 @@ export async function sendMessage(
   channelId: string,
   envelope: EncryptedEnvelope,
   ttlSeconds: number = DEFAULT_MESSAGE_TTL_SECONDS,
+  /**
+   * Suppresses the push notification for this row. For things that are not
+   * messages -- a reaction, say -- where an alert would be noise. See
+   * supabase/migrations/0015_silent_messages.sql for what this costs.
+   */
+  silent = false,
 ): Promise<{ id: string; createdAt: string; expiresAt: string }> {
   const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
   const { data, error } = await supabase
@@ -35,6 +41,7 @@ export async function sendMessage(
       channel_id: channelId,
       ciphertext: encodeEnvelope(envelope),
       expires_at: expiresAt,
+      silent,
     })
     .select('id, created_at, expires_at')
     .single();

@@ -27,6 +27,27 @@ const REMOTE_DEVICE_ID = 1; // single device per identity for now
  */
 const failedThisSession = new Set<string>();
 
+/**
+ * Records that a control message was handled, so it is not decrypted again.
+ *
+ * Edits and reactions are applied to another message rather than added to the
+ * conversation, which left their ids unrecorded -- and the de-duplication
+ * check works on ids. Every catch-up fetch would decrypt them afresh and fail,
+ * because a message key is spent the first time. Storing a minimal, never
+ * rendered row is enough to be recognised, and it expires with everything
+ * else.
+ */
+function rememberControlMessage(channelId: string, fetched: FetchedMessage): void {
+  useMessagesStore.getState().addMessage(channelId, {
+    id: fetched.id,
+    createdAt: fetched.createdAt,
+    expiresAt: fetched.expiresAt,
+    plaintext: '',
+    isMine: false,
+    isControl: true,
+  });
+}
+
 /** Called when the account is deleted -- nothing should outlive that. */
 export function clearFailedMessageCache(): void {
   failedThisSession.clear();
@@ -72,13 +93,27 @@ export function ingestFetchedMessage(
 
   try {
     const raw = decryptMessage(peerUserId, REMOTE_DEVICE_ID, fetched.envelope);
-    const { text, replyToId, editsMessageId } = decodePayload(raw);
+    const { text, replyToId, editsMessageId, reactsToMessageId } = decodePayload(raw);
     const store = useMessagesStore.getState();
+
+    if (reactsToMessageId) {
+      // A reaction is an annotation, not a message: it is never added to the
+      // conversation itself. If the message it refers to is gone -- expired,
+      // deleted, never received -- there is nothing to annotate and the
+      // reaction is simply dropped. Unlike an edit, nothing is lost by that:
+      // an emoji with no message to attach to means nothing on its own.
+      store.applyReaction(channelId, reactsToMessageId, 'theirs', text);
+      rememberControlMessage(channelId, fetched);
+      return;
+    }
 
     if (editsMessageId) {
       // Normal case: rewrite the message this replaces, in place, keeping its
       // original position and expiry.
-      if (store.applyEdit(channelId, editsMessageId, text, fetched.createdAt)) return;
+      if (store.applyEdit(channelId, editsMessageId, text, fetched.createdAt)) {
+        rememberControlMessage(channelId, fetched);
+        return;
+      }
 
       // The edit arrived before the message it edits -- possible when a
       // catch-up fetch and a realtime insert interleave. Standing in for the

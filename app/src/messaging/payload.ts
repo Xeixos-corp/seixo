@@ -50,22 +50,35 @@ type Encoded = {
    * impossible, not merely awkward.
    */
   e?: string;
+  /**
+   * A reaction: the id of the message being reacted to. `t` carries the emoji,
+   * or an empty string to take the reaction back.
+   *
+   * Reactions ride the same encrypted path as everything else -- there is no
+   * other way to reach the other device -- but they are marked `silent` on the
+   * wire so they do not fire a push notification each
+   * (supabase/migrations/0015_silent_messages.sql).
+   */
+  x?: string;
 };
 
 export type MessagePayload = {
   text: string;
   replyToId?: string;
   editsMessageId?: string;
+  /** Id of the message being reacted to; `text` is then the emoji, or ''. */
+  reactsToMessageId?: string;
 };
 
 export function encodePayload(payload: MessagePayload): string {
-  if (!payload.replyToId && !payload.editsMessageId) {
+  if (!payload.replyToId && !payload.editsMessageId && !payload.reactsToMessageId) {
     // Unchanged wire format for the overwhelmingly common case.
     return payload.text;
   }
   const encoded: Encoded = { k: MARKER, t: payload.text };
   if (payload.replyToId) encoded.r = payload.replyToId;
   if (payload.editsMessageId) encoded.e = payload.editsMessageId;
+  if (payload.reactsToMessageId) encoded.x = payload.reactsToMessageId;
   return JSON.stringify(encoded);
 }
 
@@ -83,6 +96,7 @@ export function decodePayload(raw: string): MessagePayload {
       text: parsed.t,
       replyToId: typeof parsed.r === 'string' ? parsed.r : undefined,
       editsMessageId: typeof parsed.e === 'string' ? parsed.e : undefined,
+      reactsToMessageId: typeof parsed.x === 'string' ? parsed.x : undefined,
     };
   } catch {
     // Genuinely just a message that starts with a brace.
