@@ -861,6 +861,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingTop: 6,
+    // The chips had no space beneath them at all, so they sat directly on
+    // whatever came next. This separates the setting from the conversation.
+    paddingBottom: 14,
   },
   ttlChip: {
     borderWidth: StyleSheet.hairlineWidth,
