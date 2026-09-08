@@ -11,7 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.xeixos.seixo",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "O Seixo usa o microfone só para gravares mensagens de voz. A gravação é cifrada no telemóvel antes de sair, e nada é enviado sem seres tu a mandar."
       }
     },
     "android": {
@@ -47,8 +48,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Seixo usa a câmara só para ler o código QR de outra pessoa e iniciar uma conversa cifrada com ela.",
-          "microphonePermission": false
+          "cameraPermission": "Seixo usa a câmara só para ler o código QR de outra pessoa e iniciar uma conversa cifrada com ela."
         }
       ],
       [
@@ -57,11 +57,10 @@
           "faceIDPermission": "O Seixo usa o Face ID só para desbloquear a app neste dispositivo. Nada sai do telemóvel."
         }
       ],
-      "expo-audio",
       [
         "expo-audio",
         {
-          "microphonePermission": "O Seixo usa o microfone só para gravares mensagens de voz. A gravação é cifrada no telemóvel antes de sair, e nada é enviado para lado nenhum sem seres tu a mandar."
+          "microphonePermission": "O Seixo usa o microfone só para gravares mensagens de voz. A gravação é cifrada no telemóvel antes de sair, e nada é enviado sem seres tu a mandar."
         }
       ]
     ],
