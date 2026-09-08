@@ -29,6 +29,7 @@ import { ingestFetchedMessage } from '../messaging/ingest';
 import { encodePayload } from '../messaging/payload';
 import { splitLinks } from '../messaging/links';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
+import { setActiveConversation } from '../messaging/activeConversation';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
 import { encryptMessage, isUntrustedIdentityError } from '../crypto';
@@ -409,6 +410,14 @@ export function ConversationScreen({ route, navigation }: Props) {
     },
     [handleDeleteMessage, handleReact, messages, t],
   );
+
+  // Lets an arriving notification know it has nothing to announce while this
+  // conversation is being read. Cleared on the way out, so leaving the screen
+  // restores normal notifications immediately.
+  useEffect(() => {
+    setActiveConversation(channelId);
+    return () => setActiveConversation(null);
+  }, [channelId]);
 
   // Everything visible here is read by definition. Re-running as `messages`
   // changes covers the message that arrives while the user is looking at the

@@ -6,6 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { registerIdentity } from '../identity/registerIdentity';
 import { upsertPushToken } from './pushTokens';
 import { requestOpenNewestUnread } from './notificationRouting';
+import {
+  getActiveConversation,
+  hasUnreadOutsideActiveConversation,
+} from '../messaging/activeConversation';
 
 /**
  * Registers this device for push notifications and keeps its token on the
@@ -59,15 +63,25 @@ export function usePushRegistration(): void {
       const Notifications = loadModule();
       if (!Notifications) return;
 
-      // Show something even when the app is already open -- otherwise a
-      // message arriving while the user is on the conversation list is
-      // silently swallowed by iOS.
+      // Only consulted when a notification arrives while the app is in the
+      // foreground; iOS decides on its own when the app is not.
+      //
+      // Announcing a message to someone already reading that exact
+      // conversation is pure noise -- they watched it arrive. But the
+      // notification does not say which conversation it belongs to, on
+      // purpose (see messaging/activeConversation.ts), so the decision is
+      // made from what the device knows: show it only if something is
+      // actually unread somewhere other than the conversation on screen.
       Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: false,
-        }),
+        handleNotification: async () => {
+          const worthShowing =
+            getActiveConversation() === null || hasUnreadOutsideActiveConversation();
+          return {
+            shouldShowAlert: worthShowing,
+            shouldPlaySound: worthShowing,
+            shouldSetBadge: false,
+          };
+        },
       });
 
       // Two separate paths, both needed: the listener covers a tap while the
