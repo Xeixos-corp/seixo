@@ -17,6 +17,7 @@ import {
 } from '../transport/identities';
 import { subscribeToMyNewMemberships, getOtherMember, fetchMyChannels } from '../transport/channels';
 import { fetchBlockedPeerIds } from '../transport/blocking';
+import { markAccountActive } from './lastActive';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { loadPrekeyAllocation, savePrekeyAllocation } from './prekeyState';
@@ -137,6 +138,10 @@ async function finishRegistration(userId: string): Promise<void> {
 
   const blockedPeerIds = await fetchBlockedPeerIds(userId);
   useBlockedPeersStore.getState().setBlockedPeerIds(blockedPeerIds);
+
+  // Keeps the account out of the abandoned-account purge. Fire-and-forget:
+  // it must never delay or fail startup.
+  void markAccountActive(userId);
 
   // Reconcile against the server before subscribing. The subscription below
   // only ever reports *new* memberships, so anything already on the server but
