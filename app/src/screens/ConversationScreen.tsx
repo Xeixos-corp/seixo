@@ -30,6 +30,14 @@ import { encodePayload } from '../messaging/payload';
 import { splitLinks } from '../messaging/links';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { setActiveConversation } from '../messaging/activeConversation';
+import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
+import {
+  VOICE_RECORDING_OPTIONS,
+  MAX_VOICE_DURATION_MS,
+  VOICE_SERVER_TTL_SECONDS,
+} from '../audio/recordingOptions';
+import { readRecordingAndDelete } from '../audio/voiceFiles';
+import { VoiceMessage } from '../components/VoiceMessage';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
 import { encryptMessage, isUntrustedIdentityError } from '../crypto';
@@ -219,6 +227,9 @@ export function ConversationScreen({ route, navigation }: Props) {
   const [sendError, setSendError] = useState<string | null>(null);
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const recordingStartedAt = useRef(0);
+  const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
   const listRef = useRef<FlatList<DecryptedMessage>>(null);
   const inputRef = useRef<TextInput>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -302,6 +313,106 @@ export function ConversationScreen({ route, navigation }: Props) {
     [channelId, removeMessage],
   );
 
+  const sendVoiceMessage = useCallback(
+    async (audioBase64: string, durationMs: number) => {
+      const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      addMessage(channelId, {
+        id: localId,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+        plaintext: '',
+        isMine: true,
+        status: 'sending',
+        audioBase64,
+        audioDurationMs: durationMs,
+      });
+
+      try {
+        const envelope = encryptMessage(
+          peerUserId,
+          REMOTE_DEVICE_ID,
+          encodePayload({
+            text: '',
+            audioBase64,
+            audioDurationMs: durationMs,
+            // The device lifetime rides inside the encryption, because the
+            // server's copy is capped at a day no matter what was chosen.
+            localTtlSeconds: ttlSeconds,
+          }),
+        );
+        const { id, createdAt, expiresAt } = await sendMessage(channelId, envelope, ttlSeconds, {
+          serverTtlSeconds: VOICE_SERVER_TTL_SECONDS,
+        });
+        replaceMessage(channelId, localId, {
+          id,
+          createdAt,
+          // Deliberately not the row's expires_at: that is the server's
+          // waiting-room deadline, not how long this message should live here.
+          expiresAt: new Date(Date.parse(createdAt) + ttlSeconds * 1000).toISOString(),
+          plaintext: '',
+          isMine: true,
+          status: 'sent',
+          audioBase64,
+          audioDurationMs: durationMs,
+        });
+        scheduleExpiry(id, new Date(Date.parse(createdAt) + ttlSeconds * 1000).toISOString());
+      } catch (error) {
+        setMessageStatus(channelId, localId, 'failed');
+        console.error('[ConversationScreen] failed to send voice message', error);
+      }
+    },
+    [channelId, peerUserId, ttlSeconds, addMessage, replaceMessage, setMessageStatus, scheduleExpiry],
+  );
+
+  const startRecording = useCallback(async () => {
+    const permission = await requestRecordingPermissionsAsync();
+    if (!permission.granted) {
+      setSendError(t('conversation.microphoneDenied'));
+      return;
+    }
+    try {
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      recordingStartedAt.current = Date.now();
+      setRecording(true);
+    } catch (error) {
+      console.error('[ConversationScreen] failed to start recording', error);
+      setSendError(t('conversation.recordingFailed'));
+    }
+  }, [recorder, t]);
+
+  const stopRecording = useCallback(
+    async (send: boolean) => {
+      setRecording(false);
+      try {
+        await recorder.stop();
+        const uri = recorder.uri;
+        const durationMs = Math.min(Date.now() - recordingStartedAt.current, MAX_VOICE_DURATION_MS);
+        if (!uri) return;
+        if (!send || durationMs < 700) {
+          // Too short to be anything but a mis-tap.
+          await readRecordingAndDelete(uri);
+          return;
+        }
+        const base64 = await readRecordingAndDelete(uri);
+        await sendVoiceMessage(base64, durationMs);
+      } catch (error) {
+        console.error('[ConversationScreen] failed to finish recording', error);
+        setSendError(t('conversation.recordingFailed'));
+      }
+    },
+    [recorder, sendVoiceMessage, t],
+  );
+
+  // A recording has to end somewhere: the audio travels inside the message, so
+  // there is a hard ceiling on how long it can be.
+  useEffect(() => {
+    if (!recording) return;
+    const timer = setTimeout(() => void stopRecording(true), MAX_VOICE_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [recording, stopRecording]);
+
   const handleReact = useCallback(
     async (messageId: string, emoji: string) => {
       const current = messages.find((m) => m.id === messageId)?.reactions?.mine;
@@ -318,7 +429,7 @@ export function ConversationScreen({ route, navigation }: Props) {
           encodePayload({ text: next, reactsToMessageId: messageId }),
         );
         // silent: a reaction should not make the other phone buzz.
-        await sendMessage(channelId, envelope, ttlSeconds, true);
+        await sendMessage(channelId, envelope, ttlSeconds, { silent: true });
       } catch (error) {
         console.error('[ConversationScreen] failed to send reaction', error);
         setSendError(t('conversation.reactionFailed'));
@@ -716,6 +827,14 @@ export function ConversationScreen({ route, navigation }: Props) {
                 </Pressable>
               ) : null}
 
+              {item.audioBase64 ? (
+                <VoiceMessage
+                  messageId={item.id}
+                  audioBase64={item.audioBase64}
+                  durationMs={item.audioDurationMs}
+                  tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
+                />
+              ) : (
               <Text style={{ color: item.isMine === true ? colors.onAccent : colors.textPrimary }}>
                 {splitLinks(item.plaintext).map((segment, index) =>
                   segment.url ? (
@@ -731,6 +850,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                   ),
                 )}
               </Text>
+              )}
               <Text
                 style={[
                   styles.messageExpiry,
@@ -826,6 +946,21 @@ export function ConversationScreen({ route, navigation }: Props) {
             multiline
             blurOnSubmit={false}
           />
+          {!inputText.trim() ? (
+            <Pressable
+              onPressIn={startRecording}
+              onPressOut={() => void stopRecording(true)}
+              style={({ pressed }) => [
+                styles.sendButton,
+                { backgroundColor: pressed || recording ? colors.danger : colors.accent },
+              ]}
+            >
+              <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
+                {recording ? t('conversation.recordingNow') : t('conversation.holdToRecord')}
+              </Text>
+            </Pressable>
+          ) : null}
+
           <Pressable
             disabled={sending || !inputText.trim()}
             onPress={handleSend}
@@ -833,6 +968,7 @@ export function ConversationScreen({ route, navigation }: Props) {
               styles.sendButton,
               { backgroundColor: pressed ? colors.accentPressed : colors.accent },
               (sending || !inputText.trim()) && styles.sendButtonDisabled,
+              !inputText.trim() && styles.hidden,
             ]}
           >
             <Text style={{ color: colors.onAccent, fontWeight: '600' }}>{t('conversation.sendButton')}</Text>
@@ -914,6 +1050,9 @@ const styles = StyleSheet.create({
   securityWarningText: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  hidden: {
+    display: 'none',
   },
   reactionRow: {
     alignSelf: 'flex-start',

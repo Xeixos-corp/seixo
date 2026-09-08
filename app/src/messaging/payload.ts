@@ -60,6 +60,31 @@ type Encoded = {
    * (supabase/migrations/0015_silent_messages.sql).
    */
   x?: string;
+  /** Voice message: the recording, base64. */
+  a?: string;
+  /** Voice message: duration in milliseconds, so it can be shown before playing. */
+  d?: number;
+  /**
+   * How long this message should live on the *devices*, in seconds.
+   *
+   * Separate from the row's `expires_at`, which is only how long the server
+   * holds it waiting for delivery. Voice messages are capped to 24 hours on
+   * the server no matter what the sender chose, because audio is large and
+   * the server is a waiting room, not an archive -- but the message should
+   * still live for as long as the sender asked once it has arrived. Sending
+   * that inside the encryption keeps the real lifetime out of the server's
+   * view: it only ever learns when it may throw its copy away.
+   */
+  l?: number;
+  /**
+   * Padding. Voice recordings are encoded at a constant bitrate, so the size
+   * of the ciphertext would otherwise be the duration of the recording --
+   * telling the server "these two exchanged 47 seconds of speech at 21:14".
+   * Rounding the payload up to a fixed bucket reduces that to a range.
+   *
+   * Never read. Costs bandwidth and storage, buys back a piece of metadata.
+   */
+  p?: string;
 };
 
 export type MessagePayload = {
@@ -68,10 +93,28 @@ export type MessagePayload = {
   editsMessageId?: string;
   /** Id of the message being reacted to; `text` is then the emoji, or ''. */
   reactsToMessageId?: string;
+  /** Base64 audio for a voice message. `text` is empty for these. */
+  audioBase64?: string;
+  audioDurationMs?: number;
+  /** Lifetime on the devices, in seconds, when it differs from the row's. */
+  localTtlSeconds?: number;
 };
 
+/**
+ * Payload sizes are rounded up to a multiple of this before encryption, so
+ * that a recording's length is not readable from the row size. 64 KB keeps
+ * the number of distinct sizes small without wasting much on a short clip.
+ */
+const PADDING_BUCKET = 64 * 1024;
+
 export function encodePayload(payload: MessagePayload): string {
-  if (!payload.replyToId && !payload.editsMessageId && !payload.reactsToMessageId) {
+  if (
+    !payload.replyToId &&
+    !payload.editsMessageId &&
+    !payload.reactsToMessageId &&
+    !payload.audioBase64 &&
+    !payload.localTtlSeconds
+  ) {
     // Unchanged wire format for the overwhelmingly common case.
     return payload.text;
   }
@@ -79,7 +122,19 @@ export function encodePayload(payload: MessagePayload): string {
   if (payload.replyToId) encoded.r = payload.replyToId;
   if (payload.editsMessageId) encoded.e = payload.editsMessageId;
   if (payload.reactsToMessageId) encoded.x = payload.reactsToMessageId;
-  return JSON.stringify(encoded);
+  if (payload.audioDurationMs) encoded.d = payload.audioDurationMs;
+  if (payload.localTtlSeconds) encoded.l = payload.localTtlSeconds;
+
+  if (!payload.audioBase64) return JSON.stringify(encoded);
+
+  encoded.a = payload.audioBase64;
+  const unpadded = JSON.stringify(encoded);
+  const target = Math.ceil(unpadded.length / PADDING_BUCKET) * PADDING_BUCKET;
+  // The padding field costs a few characters of its own, so the fill is
+  // measured against the string that will actually be produced.
+  const overhead = JSON.stringify({ ...encoded, p: '' }).length;
+  const fill = Math.max(0, target - overhead);
+  return JSON.stringify({ ...encoded, p: '0'.repeat(fill) });
 }
 
 export function decodePayload(raw: string): MessagePayload {
@@ -97,6 +152,9 @@ export function decodePayload(raw: string): MessagePayload {
       replyToId: typeof parsed.r === 'string' ? parsed.r : undefined,
       editsMessageId: typeof parsed.e === 'string' ? parsed.e : undefined,
       reactsToMessageId: typeof parsed.x === 'string' ? parsed.x : undefined,
+      audioBase64: typeof parsed.a === 'string' ? parsed.a : undefined,
+      audioDurationMs: typeof parsed.d === 'number' ? parsed.d : undefined,
+      localTtlSeconds: typeof parsed.l === 'number' ? parsed.l : undefined,
     };
   } catch {
     // Genuinely just a message that starts with a brace.

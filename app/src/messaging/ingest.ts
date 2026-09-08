@@ -93,7 +93,15 @@ export function ingestFetchedMessage(
 
   try {
     const raw = decryptMessage(peerUserId, REMOTE_DEVICE_ID, fetched.envelope);
-    const { text, replyToId, editsMessageId, reactsToMessageId } = decodePayload(raw);
+    const { text, replyToId, editsMessageId, reactsToMessageId, audioBase64, audioDurationMs, localTtlSeconds } =
+      decodePayload(raw);
+
+    // The row's expires_at is only how long the *server* held it. When the
+    // sender asked for a longer life on the devices, that travels inside the
+    // encryption and wins here.
+    const expiresAt = localTtlSeconds
+      ? new Date(Date.parse(fetched.createdAt) + localTtlSeconds * 1000).toISOString()
+      : fetched.expiresAt;
     const store = useMessagesStore.getState();
 
     if (reactsToMessageId) {
@@ -142,10 +150,12 @@ export function ingestFetchedMessage(
     store.addMessage(channelId, {
       id: fetched.id,
       createdAt: fetched.createdAt,
-      expiresAt: fetched.expiresAt,
+      expiresAt,
       plaintext: text,
       isMine: false,
       replyToId,
+      audioBase64,
+      audioDurationMs,
     });
   } catch (error) {
     failedThisSession.add(fetched.id);

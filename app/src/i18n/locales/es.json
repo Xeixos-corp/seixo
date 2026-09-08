@@ -92,7 +92,12 @@
     "editFailed": "La edición no llegó a la otra persona. Inténtalo de nuevo.",
     "react": "Reaccionar",
     "reactTitle": "Elige una reacción",
-    "reactionFailed": "La reacción no llegó a la otra persona."
+    "reactionFailed": "La reacción no llegó a la otra persona.",
+    "voiceMessage": "Mensaje de voz",
+    "holdToRecord": "Mantener para grabar",
+    "recordingNow": "Grabando…",
+    "recordingFailed": "No se pudo grabar.",
+    "microphoneDenied": "Seixo necesita acceso al micrófono para grabar."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

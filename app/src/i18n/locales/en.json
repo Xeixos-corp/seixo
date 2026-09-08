@@ -92,7 +92,12 @@
     "editFailed": "The edit didn't reach the other person. Try again.",
     "react": "React",
     "reactTitle": "Pick a reaction",
-    "reactionFailed": "The reaction didn't reach the other person."
+    "reactionFailed": "The reaction didn't reach the other person.",
+    "voiceMessage": "Voice message",
+    "holdToRecord": "Hold to record",
+    "recordingNow": "Recording…",
+    "recordingFailed": "Couldn't record.",
+    "microphoneDenied": "Seixo needs microphone access to record."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

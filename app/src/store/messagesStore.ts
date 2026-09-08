@@ -71,6 +71,9 @@ export type DecryptedMessage = {
    * noisy, and it repeats on every launch. Never rendered.
    */
   isControl?: boolean;
+  /** Voice message: the recording, base64. `plaintext` is empty for these. */
+  audioBase64?: string;
+  audioDurationMs?: number;
 };
 
 type MessagesState = {

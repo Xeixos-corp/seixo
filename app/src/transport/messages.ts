@@ -27,21 +27,35 @@ export async function sendMessage(
   channelId: string,
   envelope: EncryptedEnvelope,
   ttlSeconds: number = DEFAULT_MESSAGE_TTL_SECONDS,
-  /**
-   * Suppresses the push notification for this row. For things that are not
-   * messages -- a reaction, say -- where an alert would be noise. See
-   * supabase/migrations/0015_silent_messages.sql for what this costs.
-   */
-  silent = false,
+  options: {
+    /**
+     * Suppresses the push notification for this row. For things that are not
+     * messages -- a reaction, say -- where an alert would be noise. See
+     * supabase/migrations/0015_silent_messages.sql for what this costs.
+     */
+    silent?: boolean;
+    /**
+     * How long the *server* holds this row, when that should be shorter than
+     * how long the message lives on the devices.
+     *
+     * Used for voice messages: audio is large, and the server is a waiting
+     * room rather than an archive, so it keeps a copy for at most a day
+     * regardless of the timer the sender chose. The real lifetime travels
+     * inside the ciphertext (messaging/payload.ts), so this is all the server
+     * ever learns.
+     */
+    serverTtlSeconds?: number;
+  } = {},
 ): Promise<{ id: string; createdAt: string; expiresAt: string }> {
-  const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+  const serverTtl = Math.min(ttlSeconds, options.serverTtlSeconds ?? ttlSeconds);
+  const expiresAt = new Date(Date.now() + serverTtl * 1000).toISOString();
   const { data, error } = await supabase
     .from('messages')
     .insert({
       channel_id: channelId,
       ciphertext: encodeEnvelope(envelope),
       expires_at: expiresAt,
-      silent,
+      silent: options.silent ?? false,
     })
     .select('id, created_at, expires_at')
     .single();

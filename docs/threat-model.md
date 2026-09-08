@@ -1102,3 +1102,59 @@ TTL purge removes on schedule.
 What editing does not do, and must not be presented as doing: unsend. If the
 other person has already read the message, they have read it. The edit
 corrects the record, not their memory.
+
+### Voice messages (2026-09-08)
+
+Voice messages do not change what the app protects. A recording is another
+kind of content inside the same encrypted payload as text: same libsignal,
+same channel, no sender column, opaque to the server. What they change is
+everything around the content, and three decisions were made deliberately.
+
+**The audio lives inside the message row, not in object storage.** The
+obvious design puts the file in Supabase Storage and a reference in the
+message. That would break the disappearing-message promise in a way nobody
+would see: the TTL purge deletes *rows*, so the audio would outlive the
+message that was supposed to take it away. Keeping it in the row means
+deleting the row deletes the audio, with no new lifecycle code that has to
+keep working. The cost is a hard 60-second cap -- about 180 KB at 24 kbps
+mono, which Postgres carries without complaint where five minutes would not.
+This does not scale: for a real user base the audio belongs in object storage
+with a purge of its own, and that purge becomes a thing that must never fail
+silently. Recorded here so the decision is revisited rather than inherited.
+
+**The server holds a voice message for at most 24 hours**, however long the
+sender's timer is. Until now, one number was doing two jobs: how long the
+message lives on the devices, and how long the server waits to deliver it.
+Audio makes the second expensive, so they are now separate -- the device
+lifetime travels inside the ciphertext, and the server only learns when it may
+throw its copy away. A message not collected within a day is lost, which is
+the price of not letting audio accumulate; 24 hours rather than something
+tighter because a message sent at 21:00 must survive until the recipient
+wakes.
+
+Deliberately not applied to text. There the same change would trade
+reliability for a benefit the user can already choose more directly by
+picking a shorter timer -- and a hidden 24-hour ceiling would silently
+discard messages to anyone away for a couple of days.
+
+**Recordings are constant-bitrate and payloads are padded to 64 KB
+buckets.** Variable bitrate encodes louder passages larger, leaking the
+rhythm of speech into the file size; there is published work recovering
+phrases from exactly that in encrypted VoIP. Constant bitrate makes size a
+function of duration alone, and the padding then blurs the duration into a
+range. What padding does *not* hide is that a message is voice at all: tens
+of kilobytes against a few hundred bytes for text. Hiding that would mean
+padding text to the same size, which is not reasonable.
+
+Two costs with no technical answer. Voice is biometric in a way text is not
+-- an intercepted recording identifies the speaker to anyone who knows them.
+And a recording captures what happens to be around: a television, a
+conversation nearby, a station announcement. Neither changes what the app
+defends against; both change the consequences if a device is compromised,
+which was already out of scope.
+
+**Playback writes decrypted audio to disk**, because playing a file requires
+one. Every such file is deleted as soon as playback ends, when the screen is
+left, and the whole directory is emptied at launch -- the last covering a
+crash that skipped the first two. Without that, audio would sit in the app's
+cache after the message it came from had expired.

@@ -11,6 +11,7 @@ import { useMessageSync } from './src/messaging/useMessageSync';
 import { AppLockGate } from './src/components/AppLockGate';
 import { SplashOverlay } from './src/components/SplashOverlay';
 import { usePushRegistration } from './src/notifications/usePushRegistration';
+import { clearVoiceCache } from './src/audio/voiceFiles';
 
 // Called before the component tree exists, which is the point: the native
 // splash must be told to stay up before React has a chance to render a blank
@@ -31,6 +32,14 @@ export default function App() {
   usePushRegistration();
 
   const [splashVisible, setSplashVisible] = useState(true);
+
+  useEffect(() => {
+    // Decrypted audio is written to disk only while it is playing, and
+    // deleted immediately after -- but a crash or a force-quit mid-playback
+    // skips that, and the file would then outlive the message it came from.
+    // Emptying the directory at launch is the backstop.
+    void clearVoiceCache();
+  }, []);
 
   useEffect(() => {
     // Hand over from the native splash to SplashOverlay immediately. They are

@@ -56,6 +56,13 @@
         {
           "faceIDPermission": "O Seixo usa o Face ID só para desbloquear a app neste dispositivo. Nada sai do telemóvel."
         }
+      ],
+      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "O Seixo usa o microfone só para gravares mensagens de voz. A gravação é cifrada no telemóvel antes de sair, e nada é enviado para lado nenhum sem seres tu a mandar."
+        }
       ]
     ],
     "extra": {
