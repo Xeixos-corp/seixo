@@ -24,11 +24,19 @@ export function VoiceMessage({
   audioBase64,
   durationMs,
   tint,
+  onLongPress,
 }: {
   messageId: string;
   audioBase64: string;
   durationMs?: number;
   tint: string;
+  /**
+   * Forwarded from the bubble. A Pressable swallows gestures from the one
+   * beneath it, and this button covers nearly the whole voice bubble -- so
+   * without this there is nowhere left to long-press, and a voice message
+   * could not be deleted or replied to at all.
+   */
+  onLongPress?: () => void;
 }) {
   const { t } = useTranslation();
   const [playing, setPlaying] = useState(false);
@@ -94,7 +102,7 @@ export function VoiceMessage({
   }, [playing, stop, messageId, audioBase64]);
 
   return (
-    <Pressable onPress={toggle} style={styles.row} hitSlop={6}>
+    <Pressable onPress={toggle} onLongPress={onLongPress} delayLongPress={350} style={styles.row} hitSlop={6}>
       <Text style={[styles.icon, { color: tint }]}>{playing ? '\u25A0' : '\u25B6'}</Text>
       <Text style={[styles.label, { color: tint }]}>
         {durationMs ? formatDuration(durationMs) : t('conversation.voiceMessage')}

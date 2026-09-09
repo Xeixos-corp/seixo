@@ -63,6 +63,17 @@ const REMOTE_DEVICE_ID = 1; // single device per identity for now
 // search, and these six cover almost everything people actually use.
 const REACTION_EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
 
+/**
+ * What to show for a quoted message. A voice message has no text at all, so
+ * quoting one used to render an empty line -- looking like a bug rather than
+ * a quote.
+ */
+function quotePreview(message: DecryptedMessage | undefined, t: TFunction): string {
+  if (!message) return t('conversation.quoteUnavailable');
+  if (message.audioBase64) return t('conversation.voiceMessage');
+  return message.plaintext;
+}
+
 const NO_MESSAGES: DecryptedMessage[] = [];
 
 const TTL_OPTIONS: Array<{ key: string; seconds: number }> = [
@@ -502,7 +513,10 @@ export function ConversationScreen({ route, navigation }: Props) {
       // Editing is offered only for your own messages that actually reached
       // the server. Editing one that never arrived is just typing it again,
       // and there is nothing on the other side to correct.
-      const canEdit = message?.isMine === true && !messageId.startsWith('local-');
+      // Not offered for voice: there is no way to edit a recording, and the
+      // edit path would replace it with empty text.
+      const canEdit =
+        message?.isMine === true && !messageId.startsWith('local-') && !message.audioBase64;
 
       Alert.alert(t('conversation.messageActionsTitle'), undefined, [
         {
@@ -841,7 +855,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                       !findQuoted(item.replyToId) && styles.quoteMissing,
                     ]}
                   >
-                    {findQuoted(item.replyToId)?.plaintext ?? t('conversation.quoteUnavailable')}
+                    {quotePreview(findQuoted(item.replyToId), t)}
                   </Text>
                 </Pressable>
               ) : null}
@@ -852,6 +866,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                   audioBase64={item.audioBase64}
                   durationMs={item.audioDurationMs}
                   tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
+                  onLongPress={() => handleMessageActions(item.id)}
                 />
               ) : (
               <Text style={{ color: item.isMine === true ? colors.onAccent : colors.textPrimary }}>
@@ -937,7 +952,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                 {t('conversation.replyingTo')}
               </Text>
               <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 13 }}>
-                {findQuoted(replyToId)?.plaintext ?? t('conversation.quoteUnavailable')}
+                {quotePreview(findQuoted(replyToId), t)}
               </Text>
             </View>
             <Pressable onPress={() => setReplyToId(null)} hitSlop={12}>
