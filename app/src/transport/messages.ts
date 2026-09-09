@@ -13,7 +13,15 @@ export type FetchedMessage = {
   id: string;
   createdAt: string;
   expiresAt: string;
-  envelope: EncryptedEnvelope;
+  /**
+   * Exactly what the server stored, undecoded.
+   *
+   * This used to be a decoded envelope, which quietly assumed every message
+   * was one-to-one. A group message is a different shape entirely -- one
+   * envelope per member, wrapped together -- and only the ingest layer knows
+   * which it is looking at. Decoding here would have to guess.
+   */
+  ciphertext: string;
 };
 
 /**
@@ -23,6 +31,36 @@ export type FetchedMessage = {
  * decrypt its own sent ciphertext (sending and receiving use separate
  * Double Ratchet chain keys), so that echo must never reach decryptMessage.
  */
+/**
+ * Sends an already-packed ciphertext. Used by group messages, which wrap one
+ * envelope per member and so cannot go through the single-envelope path.
+ */
+export async function sendPackedMessage(
+  channelId: string,
+  ciphertext: string,
+  ttlSeconds: number = DEFAULT_MESSAGE_TTL_SECONDS,
+  options: { silent?: boolean; serverTtlSeconds?: number } = {},
+): Promise<{ id: string; createdAt: string; expiresAt: string }> {
+  const serverTtl = Math.min(ttlSeconds, options.serverTtlSeconds ?? ttlSeconds);
+  const expiresAt = new Date(Date.now() + serverTtl * 1000).toISOString();
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      channel_id: channelId,
+      ciphertext,
+      expires_at: expiresAt,
+      silent: options.silent ?? false,
+    })
+    .select('id, created_at, expires_at')
+    .single();
+  if (error || !data) throw error ?? new Error('Insert returned no row');
+  return {
+    id: data.id as string,
+    createdAt: data.created_at as string,
+    expiresAt: data.expires_at as string,
+  };
+}
+
 export async function sendMessage(
   channelId: string,
   envelope: EncryptedEnvelope,
@@ -81,7 +119,7 @@ export async function fetchMessages(channelId: string): Promise<FetchedMessage[]
     id: row.id as string,
     createdAt: row.created_at as string,
     expiresAt: row.expires_at as string,
-    envelope: decodeEnvelope(row.ciphertext as string),
+    ciphertext: row.ciphertext as string,
   }));
 }
 
@@ -127,7 +165,7 @@ export async function fetchMessageById(id: string): Promise<FetchedMessage | nul
     id: data.id as string,
     createdAt: data.created_at as string,
     expiresAt: data.expires_at as string,
-    envelope: decodeEnvelope(data.ciphertext as string),
+    ciphertext: data.ciphertext as string,
   };
 }
 
@@ -192,7 +230,7 @@ export function subscribeToChannelMessages(
           id: row.id,
           createdAt: row.created_at,
           expiresAt: row.expires_at,
-          envelope: decodeEnvelope(row.ciphertext),
+          ciphertext: row.ciphertext,
         });
       },
     )

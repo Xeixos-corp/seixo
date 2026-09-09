@@ -29,6 +29,15 @@ export type Conversation = {
    * opened; both are treated as "everything received so far is unread".
    */
   lastReadAt?: string;
+  /**
+   * A group, rather than a one-to-one conversation. Absent on conversations
+   * recorded before groups existed, which are all direct.
+   */
+  isGroup?: boolean;
+  /** Everyone in the group, this device included. Empty for direct chats. */
+  memberIds?: string[];
+  /** Who may add and remove members. Only they see those controls. */
+  ownerId?: string;
 };
 
 /**
@@ -60,6 +69,11 @@ export function unreadCount(
 export function conversationDisplayName(conversation: Conversation): string {
   const nickname = conversation.nickname?.trim();
   if (nickname) return nickname;
+  // A group with no name yet is described by its size rather than by a
+  // meaningless id -- "Grupo (4)" tells you more than "a1b2c3d4…" does.
+  if (conversation.isGroup) {
+    return `${conversation.memberIds?.length ?? 0}`;
+  }
   return `${conversation.peerUserId.slice(0, 8)}…`;
 }
 
@@ -70,6 +84,8 @@ type ConversationsState = {
   setConversationTtl: (channelId: string, ttlSeconds: number) => void;
   setConversationNickname: (channelId: string, nickname: string) => void;
   markConversationRead: (channelId: string) => void;
+  /** Replaces a group's membership after the server confirms a change. */
+  setGroupMembers: (channelId: string, memberIds: string[]) => void;
   removeConversation: (channelId: string) => void;
 };
 
@@ -103,6 +119,13 @@ export const useConversationsStore = create<ConversationsState>()(
         set((state) => ({
           conversations: state.conversations.map((c) =>
             c.channelId === channelId ? { ...c, nickname: trimmed || undefined } : c,
+          ),
+        }));
+      },
+      setGroupMembers: (channelId, memberIds) => {
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.channelId === channelId ? { ...c, memberIds } : c,
           ),
         }));
       },

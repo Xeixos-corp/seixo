@@ -38,7 +38,9 @@
     "myIdClose": "Close",
     "unreadBadgeLabel": "{{count}} unread messages",
     "searchPlaceholder": "Search conversations or messages",
-    "searchNoResults": "Nothing found for “{{query}}”."
+    "searchNoResults": "Nothing found for “{{query}}”.",
+    "newGroupButton": "New group",
+    "creatingGroup": "Creating…"
   },
   "conversation": {
     "ttl": {
@@ -98,7 +100,16 @@
     "recordingFailed": "Couldn't record.",
     "microphoneDenied": "Seixo needs microphone access to record.",
     "recordButton": "Record voice",
-    "stopRecording": "Stop and send · {{elapsed}}"
+    "stopRecording": "Stop and send · {{elapsed}}",
+    "membersTitle": "Group members",
+    "addMemberPlaceholder": "user_id to add",
+    "addMemberButton": "Add",
+    "removeMemberTitle": "Remove from group?",
+    "removeMemberConfirm": "Remove",
+    "membersButton": "Members",
+    "groupOwnerNote": "Only whoever created the group can add or remove people.",
+    "groupNoHistoryNote": "Anyone joining now cannot see earlier messages — they were encrypted with keys that person does not have.",
+    "close": "Close"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

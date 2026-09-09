@@ -3,6 +3,8 @@ import { useMessagesStore } from '../store/messagesStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { decodePayload } from './payload';
+import { decodeEnvelope } from '../crypto/messageCodec';
+import { unpackGroupMessage, isGroupMessage } from './groupEnvelope';
 import type { FetchedMessage } from '../transport/messages';
 
 const REMOTE_DEVICE_ID = 1; // single device per identity for now
@@ -72,6 +74,12 @@ export function ingestFetchedMessage(
   channelId: string,
   peerUserId: string,
   fetched: FetchedMessage,
+  /**
+   * Set for a group, where the sender is whoever the message says it is
+   * rather than "the other person in this conversation". Passed in so this
+   * function never has to guess which kind of channel it is looking at.
+   */
+  selfUserId?: string,
 ): void {
   // Normally unreachable -- blocking removes the conversation -- but a
   // realtime event could arrive in the gap before that completes.
@@ -91,8 +99,30 @@ export function ingestFetchedMessage(
   // about to be discarded anyway.
   if (new Date(fetched.expiresAt).getTime() <= Date.now()) return;
 
+  // Who actually sent this, and which copy of it is ours. In a one-to-one
+  // conversation both are trivially the other person; in a group the message
+  // carries its sender and one envelope per member.
+  let sender = peerUserId;
+  let envelope;
+  if (isGroupMessage(fetched.ciphertext)) {
+    if (!selfUserId) return;
+    const unpacked = unpackGroupMessage(fetched.ciphertext, selfUserId);
+    // No copy addressed to this device: normal when someone joined between a
+    // message being composed and sent. Nothing to decrypt and nothing wrong.
+    if (!unpacked) return;
+    // Own message coming back from the server; the local copy is already
+    // shown, and there is no session with oneself to decrypt it with.
+    if (unpacked.senderUserId === selfUserId) return;
+    sender = unpacked.senderUserId;
+    envelope = unpacked.envelope;
+  } else {
+    envelope = decodeEnvelope(fetched.ciphertext);
+  }
+
+  if (useBlockedPeersStore.getState().isBlocked(sender)) return;
+
   try {
-    const raw = decryptMessage(peerUserId, REMOTE_DEVICE_ID, fetched.envelope);
+    const raw = decryptMessage(sender, REMOTE_DEVICE_ID, envelope);
     const { text, replyToId, editsMessageId, reactsToMessageId, audioBase64, audioDurationMs, localTtlSeconds } =
       decodePayload(raw);
 
@@ -156,6 +186,7 @@ export function ingestFetchedMessage(
       replyToId,
       audioBase64,
       audioDurationMs,
+      senderUserId: sender,
     });
   } catch (error) {
     failedThisSession.add(fetched.id);

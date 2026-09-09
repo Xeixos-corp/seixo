@@ -157,3 +157,90 @@ export async function fetchMyChannels(
     peerUserId: row.member_id as string,
   }));
 }
+
+/** Creates a group. The caller becomes its owner and only member. */
+export async function createGroupChannel(): Promise<string> {
+  const { data, error } = await supabase.rpc('create_group_channel');
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+/**
+ * Adds someone to a group. Owner only, enforced server-side -- the client
+ * check that hides the button is convenience, not security.
+ */
+export async function addGroupMember(channelId: string, peerUserId: string): Promise<void> {
+  const { error } = await supabase.rpc('add_group_member', {
+    channel_id: channelId,
+    peer_id: peerUserId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function removeGroupMember(channelId: string, peerUserId: string): Promise<void> {
+  const { error } = await supabase.rpc('remove_group_member', {
+    channel_id: channelId,
+    peer_id: peerUserId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** Everyone in a channel, including the caller. */
+export async function fetchChannelMembers(channelId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('channel_members')
+    .select('member_id')
+    .eq('channel_id', channelId);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => row.member_id as string);
+}
+
+export type ServerChannel = {
+  channelId: string;
+  kind: 'direct' | 'group';
+  ownerId: string | null;
+  memberIds: string[];
+};
+
+/**
+ * Every channel this user belongs to, with its kind and full membership.
+ *
+ * Replaces the direct-only version: a group has no single "other member", and
+ * reconciliation has to be able to bring back a group as readily as a
+ * one-to-one conversation.
+ */
+export async function fetchMyChannelsDetailed(selfUserId: string): Promise<ServerChannel[]> {
+  const { data: mine, error: mineError } = await supabase
+    .from('channel_members')
+    .select('channel_id')
+    .eq('member_id', selfUserId);
+  if (mineError) throw new Error(mineError.message);
+
+  const channelIds = (mine ?? []).map((row) => row.channel_id as string);
+  if (channelIds.length === 0) return [];
+
+  const { data: channels, error: channelsError } = await supabase
+    .from('channels')
+    .select('id, kind, owner_id')
+    .in('id', channelIds);
+  if (channelsError) throw new Error(channelsError.message);
+
+  const { data: members, error: membersError } = await supabase
+    .from('channel_members')
+    .select('channel_id, member_id')
+    .in('channel_id', channelIds);
+  if (membersError) throw new Error(membersError.message);
+
+  const byChannel = new Map<string, string[]>();
+  for (const row of members ?? []) {
+    const id = row.channel_id as string;
+    byChannel.set(id, [...(byChannel.get(id) ?? []), row.member_id as string]);
+  }
+
+  return (channels ?? []).map((row) => ({
+    channelId: row.id as string,
+    kind: (row.kind as 'direct' | 'group') ?? 'direct',
+    ownerId: (row.owner_id as string | null) ?? null,
+    memberIds: byChannel.get(row.id as string) ?? [],
+  }));
+}

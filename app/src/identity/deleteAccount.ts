@@ -6,6 +6,7 @@ import { resetRegisteredIdentity } from './registerIdentity';
 import { clearPrekeyAllocation } from './prekeyState';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { clearFailedMessageCache } from '../messaging/ingest';
+import { setCurrentUserId } from './currentUser';
 import { resetPushRegistration } from '../notifications/usePushRegistration';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
@@ -52,4 +53,5 @@ export async function deleteAccountAndAllLocalData(): Promise<void> {
   // just makes sure the next identity on this device registers a fresh token
   // rather than assuming one is still published.
   resetPushRegistration();
+  setCurrentUserId(null);
 }

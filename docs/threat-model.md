@@ -1376,3 +1376,47 @@ And the network path itself is unchanged: whoever carries the traffic still
 sees this device talking to this backend. Only the copy kept in the database
 is gone. Tor remains the thing that would address the rest, and remains
 unimplemented.
+
+### Group conversations (2026-09-10)
+
+Groups reuse the existing model rather than introducing a second one: channels
+and channel_members were never limited to two people. What is new is
+ownership, and one metadata cost that was chosen deliberately.
+
+**How a group message is encrypted.** The Signal Protocol encrypts between two
+devices, so a group message is encrypted once per member and the copies are
+stored as a single row (`app/src/messaging/groupEnvelope.ts`). The work and
+the bytes grow with the group, which is why membership is capped at ten
+server-side: a minute of audio is about 180 KB, and fifty copies of that would
+not be reasonable.
+
+**The sender travels in the clear, and that is the cost.** A recipient has to
+know whose session to decrypt with, and cannot learn it after decrypting.
+There is no way around that without real sealed sender, which this project
+does not have and which would not help while a stable IP accompanies every
+request (see the two corrections above).
+
+What makes it acceptable is that the record is not permanent. The sender lives
+inside the message, and messages delete themselves on the timer the user
+chose. So the server knows who spoke for as long as that message exists --
+thirty seconds, an hour, a week -- rather than forever. The comparison is "an
+instant" against "the lifetime of the message", not "never" against "always".
+
+**What is not in the clear:** the member ids in the envelope are keys of a map,
+and reveal nothing the server could not read in `channel_members` one table
+over. Group names are encrypted and never reach the server at all.
+
+**Membership is enforced server-side.** Only the owner adds or removes, in
+`SECURITY DEFINER` functions, and blocking is respected in both directions --
+being in a group with someone is no less contact than messaging them
+privately. Client-side checks only hide buttons.
+
+**What this cannot defend against:** a compromised server adding a member
+silently. Signal built an entire private group system to prevent that; here
+the answer is weaker and honest -- the member list is always visible, and
+changes are shown in the conversation, so an addition is noticeable rather
+than invisible. It does not prevent the attack.
+
+**Joining shows no history**, and the app says so rather than presenting an
+empty group. Earlier messages were encrypted to keys the new member does not
+have; no amount of interface work changes that.

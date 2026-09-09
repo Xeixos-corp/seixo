@@ -15,9 +15,10 @@ import {
   LOCAL_KYBER_PREKEY_ID,
   EXTRA_ONE_TIME_PREKEY_IDS,
 } from '../transport/identities';
-import { subscribeToMyNewMemberships, getOtherMember, fetchMyChannels } from '../transport/channels';
+import { subscribeToMyNewMemberships, getOtherMember, fetchMyChannelsDetailed } from '../transport/channels';
 import { fetchBlockedPeerIds } from '../transport/blocking';
 import { markAccountActive } from './lastActive';
+import { setCurrentUserId } from './currentUser';
 import { rotatePrekeysIfDue } from './rotatePrekeys';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
@@ -148,6 +149,10 @@ async function doRegister(): Promise<RegisteredIdentity> {
 
 /** The parts of registration that run whether or not keys were just published. */
 async function finishRegistration(userId: string): Promise<void> {
+  // Recorded before anything else here: group message ingest needs it
+  // synchronously, and cannot wait on this function to finish.
+  setCurrentUserId(userId);
+
 
   const blockedPeerIds = await fetchBlockedPeerIds(userId);
   useBlockedPeersStore.getState().setBlockedPeerIds(blockedPeerIds);
@@ -162,9 +167,28 @@ async function finishRegistration(userId: string): Promise<void> {
   // Non-fatal: a failure here costs a conversation being absent until the next
   // launch, which is not worth blocking startup over.
   try {
-    const serverChannels = await fetchMyChannels(userId);
-    const { addConversation } = useConversationsStore.getState();
-    serverChannels.forEach(({ channelId, peerUserId }) => {
+    const serverChannels = await fetchMyChannelsDetailed(userId);
+    const { addConversation, setGroupMembers } = useConversationsStore.getState();
+    serverChannels.forEach(({ channelId, kind, ownerId, memberIds }) => {
+      if (kind === 'group') {
+        addConversation({
+          channelId,
+          // A group has no single peer. Kept as the empty string rather than
+          // made optional, so every existing code path that reads it gets
+          // something harmless instead of undefined.
+          peerUserId: '',
+          ttlSeconds: DEFAULT_TTL_SECONDS,
+          isGroup: true,
+          memberIds,
+          ownerId: ownerId ?? undefined,
+        });
+        // Membership changes while this device was away, so it is refreshed
+        // on every launch rather than only when the group is first seen.
+        setGroupMembers(channelId, memberIds);
+        return;
+      }
+      const peerUserId = memberIds.find((id) => id !== userId);
+      if (!peerUserId) return;
       addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS });
     });
   } catch (error) {

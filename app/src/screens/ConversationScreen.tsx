@@ -3,6 +3,7 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Linking,
   Platform,
   Pressable,
@@ -30,6 +31,13 @@ import { encodePayload } from '../messaging/payload';
 import { splitLinks } from '../messaging/links';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { setActiveConversation } from '../messaging/activeConversation';
+import { getCurrentUserId } from '../identity/currentUser';
+import { sendGroupMessage } from '../messaging/sendToGroup';
+import {
+  addGroupMember,
+  removeGroupMember,
+  fetchChannelMembers,
+} from '../transport/channels';
 import { AudioModule, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 import {
   iosRecorderOptions,
@@ -150,6 +158,11 @@ export function ConversationScreen({ route, navigation }: Props) {
     (state) => state.conversations.find((c) => c.channelId === channelId)?.ttlSeconds ?? DEFAULT_TTL_SECONDS,
   );
   const setConversationTtl = useConversationsStore((state) => state.setConversationTtl);
+  const conversation = useConversationsStore((state) =>
+    state.conversations.find((item) => item.channelId === channelId),
+  );
+  const isGroup = conversation?.isGroup === true;
+  const groupMemberIds = conversation?.memberIds;
   // Returns a string, so this selector compares by value and stays stable.
   const conversationName = useConversationsStore((state) => {
     const conversation = state.conversations.find((c) => c.channelId === channelId);
@@ -208,6 +221,13 @@ export function ConversationScreen({ route, navigation }: Props) {
       title: conversationName,
       headerRight: () => (
         <View style={styles.headerButtons}>
+          {isGroup ? (
+            <Pressable onPress={() => setShowMembers(true)} hitSlop={8}>
+              <Text style={{ color: colors.accent, fontSize: 13 }}>
+                {t('conversation.membersButton')}
+              </Text>
+            </Pressable>
+          ) : null}
           {SUPPORT_CONTACT_EMAIL ? (
             <Pressable onPress={handleReport} hitSlop={8}>
               <Text style={{ color: colors.accent, fontSize: 13 }}>{t('conversation.reportButton')}</Text>
@@ -239,6 +259,8 @@ export function ConversationScreen({ route, navigation }: Props) {
   const [sendError, setSendError] = useState<string | null>(null);
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showMembers, setShowMembers] = useState(false);
+  const [newMemberId, setNewMemberId] = useState('');
   const [recording, setRecording] = useState(false);
   // Seconds elapsed, ticked while recording. Without it there is no way to
   // tell a recording that started from one that didn't, nor how close it is
@@ -334,6 +356,33 @@ export function ConversationScreen({ route, navigation }: Props) {
     [channelId, removeMessage],
   );
 
+  /**
+   * The one place that knows whether this conversation has one recipient or
+   * several. Every send -- text, voice, reaction, edit -- goes through here,
+   * so none of them has to repeat the decision or risk getting it wrong.
+   */
+  const transmit = useCallback(
+    async (payload: string, options: { silent?: boolean; serverTtlSeconds?: number } = {}) => {
+      if (isGroup) {
+        const selfUserId = getCurrentUserId();
+        if (!selfUserId || !groupMemberIds?.length) {
+          throw new Error('Group membership not loaded yet');
+        }
+        return sendGroupMessage(
+          channelId,
+          selfUserId,
+          groupMemberIds,
+          payload,
+          ttlSeconds,
+          options,
+        );
+      }
+      const envelope = encryptMessage(peerUserId, REMOTE_DEVICE_ID, payload);
+      return sendMessage(channelId, envelope, ttlSeconds, options);
+    },
+    [isGroup, groupMemberIds, channelId, peerUserId, ttlSeconds],
+  );
+
   const sendVoiceMessage = useCallback(
     async (audioBase64: string, durationMs: number) => {
       const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -349,9 +398,7 @@ export function ConversationScreen({ route, navigation }: Props) {
       });
 
       try {
-        const envelope = encryptMessage(
-          peerUserId,
-          REMOTE_DEVICE_ID,
+        const { id, createdAt, expiresAt } = await transmit(
           encodePayload({
             text: '',
             audioBase64,
@@ -360,10 +407,8 @@ export function ConversationScreen({ route, navigation }: Props) {
             // server's copy is capped at a day no matter what was chosen.
             localTtlSeconds: ttlSeconds,
           }),
+          { serverTtlSeconds: VOICE_SERVER_TTL_SECONDS },
         );
-        const { id, createdAt, expiresAt } = await sendMessage(channelId, envelope, ttlSeconds, {
-          serverTtlSeconds: VOICE_SERVER_TTL_SECONDS,
-        });
         replaceMessage(channelId, localId, {
           id,
           createdAt,
@@ -382,7 +427,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         console.error('[ConversationScreen] failed to send voice message', error);
       }
     },
-    [channelId, peerUserId, ttlSeconds, addMessage, replaceMessage, setMessageStatus, scheduleExpiry],
+    [channelId, transmit, ttlSeconds, addMessage, replaceMessage, setMessageStatus, scheduleExpiry],
   );
 
   const startRecording = useCallback(async () => {
@@ -460,6 +505,59 @@ export function ConversationScreen({ route, navigation }: Props) {
     };
   }, [recording, stopRecording]);
 
+  const setGroupMembers = useConversationsStore((state) => state.setGroupMembers);
+  const isOwner = isGroup && conversation?.ownerId === getCurrentUserId();
+
+  // Refreshed from the server rather than trusted from local state: the owner
+  // may have added or removed people while this device was elsewhere, and
+  // sending to a stale list means either leaving someone out or encrypting to
+  // someone who is no longer there.
+  const refreshMembers = useCallback(async () => {
+    if (!isGroup) return;
+    try {
+      setGroupMembers(channelId, await fetchChannelMembers(channelId));
+    } catch (error) {
+      console.error('[ConversationScreen] failed to refresh members', error);
+    }
+  }, [isGroup, channelId, setGroupMembers]);
+
+  useEffect(() => {
+    void refreshMembers();
+  }, [refreshMembers]);
+
+  const handleAddMember = useCallback(async () => {
+    const peerId = newMemberId.trim();
+    if (!peerId) return;
+    try {
+      await addGroupMember(channelId, peerId);
+      setNewMemberId('');
+      await refreshMembers();
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : String(error));
+    }
+  }, [channelId, newMemberId, refreshMembers]);
+
+  const handleRemoveMember = useCallback(
+    (peerId: string) => {
+      Alert.alert(t('conversation.removeMemberTitle'), peerId, [
+        { text: t('conversation.cancel'), style: 'cancel' },
+        {
+          text: t('conversation.removeMemberConfirm'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeGroupMember(channelId, peerId);
+              await refreshMembers();
+            } catch (error) {
+              setSendError(error instanceof Error ? error.message : String(error));
+            }
+          },
+        },
+      ]);
+    },
+    [channelId, refreshMembers, t],
+  );
+
   const handleReact = useCallback(
     async (messageId: string, emoji: string) => {
       const current = messages.find((m) => m.id === messageId)?.reactions?.mine;
@@ -470,19 +568,16 @@ export function ConversationScreen({ route, navigation }: Props) {
       useMessagesStore.getState().applyReaction(channelId, messageId, 'mine', next);
 
       try {
-        const envelope = encryptMessage(
-          peerUserId,
-          REMOTE_DEVICE_ID,
-          encodePayload({ text: next, reactsToMessageId: messageId }),
-        );
         // silent: a reaction should not make the other phone buzz.
-        await sendMessage(channelId, envelope, ttlSeconds, { silent: true });
+        await transmit(encodePayload({ text: next, reactsToMessageId: messageId }), {
+          silent: true,
+        });
       } catch (error) {
         console.error('[ConversationScreen] failed to send reaction', error);
         setSendError(t('conversation.reactionFailed'));
       }
     },
-    [channelId, peerUserId, ttlSeconds, messages, t],
+    [channelId, transmit, messages, t],
   );
 
   const handleDeleteMessage = useCallback(
@@ -597,7 +692,9 @@ export function ConversationScreen({ route, navigation }: Props) {
     fetchMessages(channelId)
       .then((fetched) => {
         if (cancelled) return;
-        fetched.forEach((message) => ingestFetchedMessage(channelId, peerUserId, message));
+        fetched.forEach((message) =>
+          ingestFetchedMessage(channelId, peerUserId, message, getCurrentUserId() ?? undefined),
+        );
       })
       .catch((error) => {
         if (!cancelled) {
@@ -642,12 +739,9 @@ export function ConversationScreen({ route, navigation }: Props) {
   const deliver = useCallback(
     async (localId: string, text: string, replyTo: string | undefined) => {
       try {
-        const envelope = encryptMessage(
-          peerUserId,
-          REMOTE_DEVICE_ID,
+        const { id, createdAt, expiresAt } = await transmit(
           encodePayload({ text, replyToId: replyTo }),
         );
-        const { id, createdAt, expiresAt } = await sendMessage(channelId, envelope, ttlSeconds);
         replaceMessage(channelId, localId, {
           id,
           createdAt,
@@ -666,7 +760,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         console.error('[ConversationScreen] failed to send message', error);
       }
     },
-    [channelId, peerUserId, ttlSeconds, replaceMessage, setMessageStatus, scheduleExpiry, t],
+    [channelId, transmit, replaceMessage, setMessageStatus, scheduleExpiry, t],
   );
 
   const handleSend = async () => {
@@ -687,12 +781,7 @@ export function ConversationScreen({ route, navigation }: Props) {
       inputRef.current?.focus();
 
       try {
-        const envelope = encryptMessage(
-          peerUserId,
-          REMOTE_DEVICE_ID,
-          encodePayload({ text, editsMessageId: editingId }),
-        );
-        await sendMessage(channelId, envelope, ttlSeconds);
+        await transmit(encodePayload({ text, editsMessageId: editingId }));
       } catch (error) {
         console.error('[ConversationScreen] failed to send edit', error);
         setSendError(t('conversation.editFailed'));
@@ -1034,6 +1123,74 @@ export function ConversationScreen({ route, navigation }: Props) {
             <Text style={{ color: colors.onAccent, fontWeight: '600' }}>{t('conversation.sendButton')}</Text>
           </Pressable>
         </View>
+        <Modal
+          visible={showMembers}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowMembers(false)}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowMembers(false)}>
+            <Pressable
+              style={[styles.membersCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={(event) => event.stopPropagation()}
+            >
+              <Text style={[styles.membersTitle, { color: colors.textPrimary }]}>
+                {t('conversation.membersTitle')}
+              </Text>
+
+              {(groupMemberIds ?? []).map((memberId) => (
+                <View key={memberId} style={styles.memberRow}>
+                  <Text style={{ color: colors.textPrimary, flex: 1, fontSize: 13 }} numberOfLines={1}>
+                    {memberId}
+                  </Text>
+                  {isOwner && memberId !== getCurrentUserId() ? (
+                    <Pressable onPress={() => handleRemoveMember(memberId)} hitSlop={8}>
+                      <Text style={{ color: colors.danger, fontSize: 13 }}>
+                        {t('conversation.removeMemberConfirm')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+
+              {isOwner ? (
+                <View style={styles.addMemberRow}>
+                  <TextInput
+                    style={[styles.addMemberInput, { color: colors.textPrimary, borderColor: colors.border }]}
+                    placeholder={t('conversation.addMemberPlaceholder')}
+                    placeholderTextColor={colors.textSecondary}
+                    value={newMemberId}
+                    onChangeText={setNewMemberId}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <Pressable
+                    onPress={handleAddMember}
+                    style={[styles.sendButton, { backgroundColor: colors.accent }]}
+                  >
+                    <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
+                      {t('conversation.addMemberButton')}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Text style={[styles.membersNote, { color: colors.textSecondary }]}>
+                  {t('conversation.groupOwnerNote')}
+                </Text>
+              )}
+
+              <Text style={[styles.membersNote, { color: colors.textSecondary }]}>
+                {t('conversation.groupNoHistoryNote')}
+              </Text>
+
+              <Pressable onPress={() => setShowMembers(false)} style={styles.membersClose}>
+                <Text style={{ color: colors.accent, fontWeight: '600' }}>
+                  {t('conversation.close')}
+                </Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -1113,6 +1270,53 @@ const styles = StyleSheet.create({
   },
   discardButton: {
     paddingHorizontal: 6,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  membersCard: {
+    width: '100%',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    gap: 10,
+  },
+  membersTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  addMemberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  addMemberInput: {
+    flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  membersNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 6,
+  },
+  membersClose: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
   },
   hidden: {
     display: 'none',

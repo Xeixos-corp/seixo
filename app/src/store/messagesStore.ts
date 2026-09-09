@@ -75,6 +75,11 @@ export type DecryptedMessage = {
   /** Voice message: the recording, base64. `plaintext` is empty for these. */
   audioBase64?: string;
   audioDurationMs?: number;
+  /**
+   * Who sent it, in a group. Undefined in a one-to-one conversation, where
+   * `isMine` already says everything there is to say.
+   */
+  senderUserId?: string;
 };
 
 type MessagesState = {

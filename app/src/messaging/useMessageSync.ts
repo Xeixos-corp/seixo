@@ -5,6 +5,7 @@ import { useConversationsStore } from '../store/conversationsStore';
 import { useMessagesStore } from '../store/messagesStore';
 import { fetchMessages, subscribeToChannelMessages } from '../transport/messages';
 import { ingestFetchedMessage } from './ingest';
+import { getCurrentUserId } from '../identity/currentUser';
 
 /**
  * Keeps every conversation up to date, not just the one on screen.
@@ -79,7 +80,9 @@ export function useMessageSync(): void {
       // realtime subscription below only covers what happens from now on.
       fetchMessages(channelId)
         .then((fetched) => {
-          fetched.forEach((message) => ingestFetchedMessage(channelId, peerUserId, message));
+          fetched.forEach((message) =>
+            ingestFetchedMessage(channelId, peerUserId, message, getCurrentUserId() ?? undefined),
+          );
         })
         .catch((error) => {
           console.error('[messageSync] catch-up fetch failed', channelId, error);
@@ -87,7 +90,8 @@ export function useMessageSync(): void {
 
       return subscribeToChannelMessages(
         channelId,
-        (message) => ingestFetchedMessage(channelId, peerUserId, message),
+        (message) =>
+          ingestFetchedMessage(channelId, peerUserId, message, getCurrentUserId() ?? undefined),
         (messageId) => useMessagesStore.getState().removeMessage(channelId, messageId),
         () => {
           if (!disposed) resync(`channel ${channelId} unhealthy`);

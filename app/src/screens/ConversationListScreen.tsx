@@ -18,11 +18,12 @@ import {
   useConversationsStore,
   conversationDisplayName,
   unreadCount,
+  DEFAULT_TTL_SECONDS,
   type Conversation,
 } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { startConversationWithPeer, SelfConversationError } from '../identity/startConversation';
-import { leaveChannel } from '../transport/channels';
+import { leaveChannel, createGroupChannel } from '../transport/channels';
 import { registerIdentity } from '../identity/registerIdentity';
 import { useMessagesStore } from '../store/messagesStore';
 import { isBlockedChannelError } from '../transport/blocking';
@@ -78,6 +79,7 @@ export function ConversationListScreen({ navigation }: Props) {
   // Rename flow. Long-pressing a row opens this; the label is stored locally
   // only (see conversationsStore) and never leaves the device.
   const setConversationNickname = useConversationsStore((state) => state.setConversationNickname);
+  const addConversation = useConversationsStore((state) => state.addConversation);
   const [renaming, setRenaming] = useState<Conversation | null>(null);
   const [nicknameDraft, setNicknameDraft] = useState('');
   // The id card used to appear only in this screen's empty state and in
@@ -91,6 +93,7 @@ export function ConversationListScreen({ navigation }: Props) {
   const removeConversation = useConversationsStore((state) => state.removeConversation);
   const clearChannel = useMessagesStore((state) => state.clearChannel);
   const [searchQuery, setSearchQuery] = useState('');
+  const [creatingGroup, setCreatingGroup] = useState(false);
 
   // The whole map, not a per-channel slice: this component renders every
   // conversation, and selecting the object itself keeps the reference stable
@@ -174,6 +177,29 @@ export function ConversationListScreen({ navigation }: Props) {
     setRenaming(null);
   };
 
+  const handleCreateGroup = async () => {
+    setCreatingGroup(true);
+    setErrorMessage(null);
+    try {
+      const { userId } = await registerIdentity();
+      const channelId = await createGroupChannel();
+      addConversation({
+        channelId,
+        // A group has no single peer; the member list stands in for it.
+        peerUserId: '',
+        ttlSeconds: DEFAULT_TTL_SECONDS,
+        isGroup: true,
+        memberIds: [userId],
+        ownerId: userId,
+      });
+      navigation.navigate('Conversation', { channelId, peerUserId: '' });
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
+
   const handleStartConversation = async () => {
     const trimmedPeerId = peerUserId.trim();
     if (!trimmedPeerId) return;
@@ -233,6 +259,12 @@ export function ConversationListScreen({ navigation }: Props) {
       <Pressable onPress={() => setShowMyId(true)} hitSlop={8} style={styles.myIdButton}>
         <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '600' }}>
           {t('conversationList.myIdButton')}
+        </Text>
+      </Pressable>
+
+      <Pressable onPress={handleCreateGroup} disabled={creatingGroup} hitSlop={8}>
+        <Text style={[styles.myIdButton, { color: colors.accent }, creatingGroup && styles.busy]}>
+          {creatingGroup ? t('conversationList.creatingGroup') : t('conversationList.newGroupButton')}
         </Text>
       </Pressable>
 
@@ -483,6 +515,9 @@ const styles = StyleSheet.create({
   conversationRow: {
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  busy: {
+    opacity: 0.6,
   },
   searchInput: {
     marginHorizontal: 16,
