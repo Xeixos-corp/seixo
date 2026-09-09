@@ -1,0 +1,25 @@
+-- Anyone authenticated could add themselves to any channel.
+--
+-- The insert policy on channel_members checked only `member_id = auth.uid()`
+-- -- that the row was about yourself -- and nothing whatsoever about the
+-- channel. So a user who knew a channel's id could join it and read
+-- everything sent there afterwards.
+--
+-- Channel ids are random uuids and are not readable through the API unless
+-- you are already a member, so this was not remotely exploitable by a
+-- stranger. It was exploitable by anyone who had ever *been* a member: they
+-- keep the id forever, and could rejoin a conversation they had left or been
+-- removed from. With groups about to exist, "removed from" stops being
+-- hypothetical -- removing someone would not have worked at all.
+--
+-- Nothing needs the policy. Every membership row is created by
+-- create_direct_channel, which is SECURITY DEFINER and bypasses RLS; no
+-- client code inserts into this table (checked across app/src). The same
+-- applies to creating channels, which is why that policy goes too: with both
+-- gone, joining a channel is possible only through a function that decides
+-- whether you may.
+--
+-- Leaving remains self-service, which is right: you should always be able to
+-- take yourself out of a conversation.
+drop policy if exists "channel membership is self-insertable" on public.channel_members;
+drop policy if exists "channels are creatable by any authenticated user" on public.channels;

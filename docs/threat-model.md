@@ -1203,3 +1203,36 @@ of this existed.
 Still not rotated: the identity key itself. That is by design and matches
 Signal -- it *is* the identity, and changing it is what the untrusted-identity
 warning exists to report.
+
+### Anyone could join any channel they knew the id of (found 2026-09-09)
+
+Found while reading the membership rules before building groups, not by
+anything going wrong.
+
+`channel_members` had an insert policy of `member_id = auth.uid()`: it checked
+that the row you were inserting was about *yourself*, and nothing at all about
+the channel. Knowing a channel's id was therefore enough to join it and read
+everything sent there from that moment on.
+
+How bad it actually was: channel ids are random uuids, and `channel_members`
+is only readable by members, so there was no way for a stranger to discover
+one through the API. The realistic attacker was someone who had already been
+in the channel -- they keep the id forever and could rejoin a conversation
+they had left. Between two people that is close to harmless. For groups it
+would have been fatal: removing someone would simply not have worked, and
+neither would blocking them from a shared channel.
+
+The fix removes the policy entirely, along with the one allowing anyone to
+create channels. Nothing needed either: every membership row is written by
+`create_direct_channel`, which is `SECURITY DEFINER` and bypasses RLS, and no
+client code inserts into those tables. Joining a channel is now possible only
+through a function that decides whether you may -- which is the only shape
+that can support "the group owner adds members" without also meaning "anyone
+can add themselves".
+
+Verified by role-switching in SQL: creating a direct conversation still works,
+and a deliberate attempt to insert oneself into someone else's channel is
+refused by RLS.
+
+Leaving stays self-service. Being able to remove yourself from a conversation
+should never require anyone's permission.
