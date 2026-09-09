@@ -18,6 +18,7 @@ import type {
   EncryptedEnvelope,
   OneTimePrekeyPublic,
   PreKeyBundleData,
+  RotatedPrekeys,
 } from '../../modules/signal-native-expo/src/SignalNativeExpo.types';
 import { getOrCreateMasterKeyBase64 } from './masterKey';
 
@@ -68,6 +69,23 @@ export function generatePrekeyBundle(
 export function generateExtraOneTimePrekeys(ids: number[]): OneTimePrekeyPublic[] {
   requireInitialized();
   return SignalNativeExpoModule.generateExtraOneTimePrekeys(ids);
+}
+
+/**
+ * Generates a new signed prekey and Kyber prekey under new ids, keeping the
+ * previous ones. See the Rust doc comment: rotation is additive on purpose,
+ * because a peer may have fetched the old bundle moments ago and be about to
+ * send with it.
+ */
+export function rotateSignedPrekeys(signedPrekeyId: number, kyberPrekeyId: number): RotatedPrekeys {
+  requireInitialized();
+  return SignalNativeExpoModule.rotateSignedPrekeys(signedPrekeyId, kyberPrekeyId);
+}
+
+/** Deletes stored signed/Kyber prekeys other than the ones listed. */
+export function prunePrekeys(keepSignedIds: number[], keepKyberIds: number[]): void {
+  requireInitialized();
+  SignalNativeExpoModule.prunePrekeys(keepSignedIds, keepKyberIds);
 }
 
 export function establishSession(

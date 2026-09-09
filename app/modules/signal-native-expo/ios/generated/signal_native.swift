@@ -543,6 +543,38 @@ public protocol SignalDeviceProtocol : AnyObject {
     
     func identityPublicKeyBase64()  -> String
     
+    /**
+     * Deletes every stored signed and Kyber prekey whose id is not listed.
+     *
+     * Called only after a grace period long enough that no message encrypted
+     * to a discarded key can still be in flight. Getting this wrong in the
+     * unsafe direction — pruning too early — silently destroys messages, so
+     * the caller keeps a generous window (see the client's rotation policy).
+     *
+     * Passing an empty list would delete everything, so it is refused: that
+     * can only be a bug in the caller, and the consequence would be an
+     * identity nobody can start a conversation with.
+     */
+    func prunePrekeys(keepSignedIds: [UInt32], keepKyberIds: [UInt32]) throws 
+    
+    /**
+     * Generates a new signed prekey and a new Kyber prekey, under *new* ids,
+     * and stores them alongside the existing ones.
+     *
+     * Deliberately additive. The store is a map keyed by id, so saving under
+     * a new id leaves the previous keys in place — and that is the whole
+     * point: a peer may have fetched the old bundle seconds ago and be about
+     * to send a message encrypted to it. Deleting the old private key at the
+     * moment of rotation would make that message permanently unreadable, the
+     * same failure as the one-time prekey regeneration bug, but worse
+     * because a signed prekey serves every new session rather than one.
+     *
+     * Old keys are removed separately and much later, by `prune_prekeys`.
+     *
+     * Does not touch the identity key or any one-time prekey.
+     */
+    func rotateSignedPrekeys(signedPrekeyId: UInt32, kyberPrekeyId: UInt32) throws  -> RotatedPrekeys
+    
 }
 
 /**
@@ -695,6 +727,51 @@ open func generatePrekeyBundle(oneTimePrekeyId: UInt32, signedPrekeyId: UInt32, 
 open func identityPublicKeyBase64() -> String {
     return try!  FfiConverterString.lift(try! rustCall() {
     uniffi_signal_native_fn_method_signaldevice_identity_public_key_base64(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Deletes every stored signed and Kyber prekey whose id is not listed.
+     *
+     * Called only after a grace period long enough that no message encrypted
+     * to a discarded key can still be in flight. Getting this wrong in the
+     * unsafe direction — pruning too early — silently destroys messages, so
+     * the caller keeps a generous window (see the client's rotation policy).
+     *
+     * Passing an empty list would delete everything, so it is refused: that
+     * can only be a bug in the caller, and the consequence would be an
+     * identity nobody can start a conversation with.
+     */
+open func prunePrekeys(keepSignedIds: [UInt32], keepKyberIds: [UInt32])throws  {try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_method_signaldevice_prune_prekeys(self.uniffiClonePointer(),
+        FfiConverterSequenceUInt32.lower(keepSignedIds),
+        FfiConverterSequenceUInt32.lower(keepKyberIds),$0
+    )
+}
+}
+    
+    /**
+     * Generates a new signed prekey and a new Kyber prekey, under *new* ids,
+     * and stores them alongside the existing ones.
+     *
+     * Deliberately additive. The store is a map keyed by id, so saving under
+     * a new id leaves the previous keys in place — and that is the whole
+     * point: a peer may have fetched the old bundle seconds ago and be about
+     * to send a message encrypted to it. Deleting the old private key at the
+     * moment of rotation would make that message permanently unreadable, the
+     * same failure as the one-time prekey regeneration bug, but worse
+     * because a signed prekey serves every new session rather than one.
+     *
+     * Old keys are removed separately and much later, by `prune_prekeys`.
+     *
+     * Does not touch the identity key or any one-time prekey.
+     */
+open func rotateSignedPrekeys(signedPrekeyId: UInt32, kyberPrekeyId: UInt32)throws  -> RotatedPrekeys {
+    return try  FfiConverterTypeRotatedPrekeys.lift(try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_method_signaldevice_rotate_signed_prekeys(self.uniffiClonePointer(),
+        FfiConverterUInt32.lower(signedPrekeyId),
+        FfiConverterUInt32.lower(kyberPrekeyId),$0
     )
 })
 }
@@ -1043,6 +1120,108 @@ public func FfiConverterTypePreKeyBundleData_lower(_ value: PreKeyBundleData) ->
 }
 
 
+/**
+ * The public halves of a freshly rotated signed + Kyber prekey pair, ready
+ * to publish. Returned by `rotate_signed_prekeys`.
+ */
+public struct RotatedPrekeys {
+    public var signedPrekeyId: UInt32
+    public var signedPrekeyPublicBase64: String
+    public var signedPrekeySignatureBase64: String
+    public var kyberPrekeyId: UInt32
+    public var kyberPrekeyPublicBase64: String
+    public var kyberPrekeySignatureBase64: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(signedPrekeyId: UInt32, signedPrekeyPublicBase64: String, signedPrekeySignatureBase64: String, kyberPrekeyId: UInt32, kyberPrekeyPublicBase64: String, kyberPrekeySignatureBase64: String) {
+        self.signedPrekeyId = signedPrekeyId
+        self.signedPrekeyPublicBase64 = signedPrekeyPublicBase64
+        self.signedPrekeySignatureBase64 = signedPrekeySignatureBase64
+        self.kyberPrekeyId = kyberPrekeyId
+        self.kyberPrekeyPublicBase64 = kyberPrekeyPublicBase64
+        self.kyberPrekeySignatureBase64 = kyberPrekeySignatureBase64
+    }
+}
+
+
+
+extension RotatedPrekeys: Equatable, Hashable {
+    public static func ==(lhs: RotatedPrekeys, rhs: RotatedPrekeys) -> Bool {
+        if lhs.signedPrekeyId != rhs.signedPrekeyId {
+            return false
+        }
+        if lhs.signedPrekeyPublicBase64 != rhs.signedPrekeyPublicBase64 {
+            return false
+        }
+        if lhs.signedPrekeySignatureBase64 != rhs.signedPrekeySignatureBase64 {
+            return false
+        }
+        if lhs.kyberPrekeyId != rhs.kyberPrekeyId {
+            return false
+        }
+        if lhs.kyberPrekeyPublicBase64 != rhs.kyberPrekeyPublicBase64 {
+            return false
+        }
+        if lhs.kyberPrekeySignatureBase64 != rhs.kyberPrekeySignatureBase64 {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(signedPrekeyId)
+        hasher.combine(signedPrekeyPublicBase64)
+        hasher.combine(signedPrekeySignatureBase64)
+        hasher.combine(kyberPrekeyId)
+        hasher.combine(kyberPrekeyPublicBase64)
+        hasher.combine(kyberPrekeySignatureBase64)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRotatedPrekeys: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RotatedPrekeys {
+        return
+            try RotatedPrekeys(
+                signedPrekeyId: FfiConverterUInt32.read(from: &buf), 
+                signedPrekeyPublicBase64: FfiConverterString.read(from: &buf), 
+                signedPrekeySignatureBase64: FfiConverterString.read(from: &buf), 
+                kyberPrekeyId: FfiConverterUInt32.read(from: &buf), 
+                kyberPrekeyPublicBase64: FfiConverterString.read(from: &buf), 
+                kyberPrekeySignatureBase64: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RotatedPrekeys, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.signedPrekeyId, into: &buf)
+        FfiConverterString.write(value.signedPrekeyPublicBase64, into: &buf)
+        FfiConverterString.write(value.signedPrekeySignatureBase64, into: &buf)
+        FfiConverterUInt32.write(value.kyberPrekeyId, into: &buf)
+        FfiConverterString.write(value.kyberPrekeyPublicBase64, into: &buf)
+        FfiConverterString.write(value.kyberPrekeySignatureBase64, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRotatedPrekeys_lift(_ buf: RustBuffer) throws -> RotatedPrekeys {
+    return try FfiConverterTypeRotatedPrekeys.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRotatedPrekeys_lower(_ value: RotatedPrekeys) -> RustBuffer {
+    return FfiConverterTypeRotatedPrekeys.lower(value)
+}
+
+
 public enum SignalNativeError {
 
     
@@ -1236,6 +1415,12 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_signal_native_checksum_method_signaldevice_identity_public_key_base64() != 52526) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_method_signaldevice_prune_prekeys() != 25844) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_method_signaldevice_rotate_signed_prekeys() != 42226) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_signal_native_checksum_constructor_signaldevice_new() != 2486) {

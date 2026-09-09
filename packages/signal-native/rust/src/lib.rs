@@ -120,6 +120,18 @@ pub struct PreKeyBundleData {
     pub kyber_prekey_signature_base64: String,
 }
 
+/// The public halves of a freshly rotated signed + Kyber prekey pair, ready
+/// to publish. Returned by `rotate_signed_prekeys`.
+#[derive(uniffi::Record)]
+pub struct RotatedPrekeys {
+    pub signed_prekey_id: u32,
+    pub signed_prekey_public_base64: String,
+    pub signed_prekey_signature_base64: String,
+    pub kyber_prekey_id: u32,
+    pub kyber_prekey_public_base64: String,
+    pub kyber_prekey_signature_base64: String,
+}
+
 /// One additional one-time prekey's public half, returned by
 /// `generate_extra_one_time_prekeys` for publishing alongside the bundle
 /// from `generate_prekey_bundle` — see that function's docs for why a single
@@ -239,6 +251,95 @@ impl SignalDevice {
                 kyber_prekey_signature_base64: b64_encode(kyber_record.signature()?),
             })
         })
+    }
+
+    /// Generates a new signed prekey and a new Kyber prekey, under *new* ids,
+    /// and stores them alongside the existing ones.
+    ///
+    /// Deliberately additive. The store is a map keyed by id, so saving under
+    /// a new id leaves the previous keys in place — and that is the whole
+    /// point: a peer may have fetched the old bundle seconds ago and be about
+    /// to send a message encrypted to it. Deleting the old private key at the
+    /// moment of rotation would make that message permanently unreadable, the
+    /// same failure as the one-time prekey regeneration bug, but worse
+    /// because a signed prekey serves every new session rather than one.
+    ///
+    /// Old keys are removed separately and much later, by `prune_prekeys`.
+    ///
+    /// Does not touch the identity key or any one-time prekey.
+    pub fn rotate_signed_prekeys(
+        &self,
+        signed_prekey_id: u32,
+        kyber_prekey_id: u32,
+    ) -> Result<RotatedPrekeys, SignalNativeError> {
+        blocking_runtime().block_on(async {
+            let mut rng = rand::rngs::OsRng.unwrap_err();
+            let mut store = self.store.lock().expect("store mutex poisoned");
+
+            let signed_keypair = KeyPair::generate(&mut rng);
+            let signed_signature = self
+                .identity_key_pair
+                .private_key()
+                .calculate_signature(&signed_keypair.public_key.serialize(), &mut rng)
+                .map_err(|e| SignalNativeError::Protocol(e.to_string()))?;
+            let signed_id: SignedPreKeyId = signed_prekey_id.into();
+            let signed_record = SignedPreKeyRecord::new(
+                signed_id,
+                now_timestamp(),
+                &signed_keypair,
+                &signed_signature,
+            );
+            store
+                .signed_pre_key_store
+                .save_signed_pre_key(signed_id, &signed_record)
+                .await?;
+
+            let kyber_id: KyberPreKeyId = kyber_prekey_id.into();
+            let kyber_record = KyberPreKeyRecord::generate(
+                kem::KeyType::Kyber1024,
+                kyber_id,
+                self.identity_key_pair.private_key(),
+            )?;
+            store
+                .kyber_pre_key_store
+                .save_kyber_pre_key(kyber_id, &kyber_record)
+                .await?;
+
+            Ok(RotatedPrekeys {
+                signed_prekey_id,
+                signed_prekey_public_base64: b64_encode(signed_keypair.public_key.serialize()),
+                signed_prekey_signature_base64: b64_encode(&signed_signature),
+                kyber_prekey_id,
+                kyber_prekey_public_base64: b64_encode(kyber_record.public_key()?.serialize()),
+                kyber_prekey_signature_base64: b64_encode(kyber_record.signature()?),
+            })
+        })
+    }
+
+    /// Deletes every stored signed and Kyber prekey whose id is not listed.
+    ///
+    /// Called only after a grace period long enough that no message encrypted
+    /// to a discarded key can still be in flight. Getting this wrong in the
+    /// unsafe direction — pruning too early — silently destroys messages, so
+    /// the caller keeps a generous window (see the client's rotation policy).
+    ///
+    /// Passing an empty list would delete everything, so it is refused: that
+    /// can only be a bug in the caller, and the consequence would be an
+    /// identity nobody can start a conversation with.
+    pub fn prune_prekeys(
+        &self,
+        keep_signed_ids: Vec<u32>,
+        keep_kyber_ids: Vec<u32>,
+    ) -> Result<(), SignalNativeError> {
+        if keep_signed_ids.is_empty() || keep_kyber_ids.is_empty() {
+            return Err(SignalNativeError::Protocol(
+                "refusing to prune every prekey".to_string(),
+            ));
+        }
+        let mut store = self.store.lock().expect("store mutex poisoned");
+        store.signed_pre_key_store.retain_ids(&keep_signed_ids)?;
+        store.kyber_pre_key_store.retain_ids(&keep_kyber_ids)?;
+        Ok(())
     }
 
     /// Generates and stores `ids.len()` additional one-time EC prekeys,
@@ -446,6 +547,95 @@ mod tests {
     /// `app/src/crypto/masterKey.ts` — any 32 bytes work for the store itself.
     fn test_master_key() -> Vec<u8> {
         vec![0x42; 32]
+    }
+
+    /// The property that makes rotation safe to ship: a message encrypted to
+    /// the *old* signed prekey is still readable after rotating.
+    ///
+    /// This is the failure that would matter. Alice fetches Bob's bundle and
+    /// sends; before Bob reads it, Bob rotates. If rotation replaced the key
+    /// rather than adding one, that message would be lost forever, silently,
+    /// and only the person who sent it would ever know it existed. Same shape
+    /// as the one-time prekey bug fixed on 2026-09-05, but worse: a signed
+    /// prekey serves every new session rather than one.
+    #[test]
+    fn rotating_keeps_messages_encrypted_to_the_old_prekey_readable() {
+        let key = test_master_key();
+        let alice =
+            SignalDevice::new("alice".to_string(), 1, key.clone(), temp_storage_dir("rot-alice"))
+                .unwrap();
+        let bob =
+            SignalDevice::new("bob".to_string(), 1, key, temp_storage_dir("rot-bob")).unwrap();
+
+        // Alice takes Bob's bundle and sends, as if fetched moments earlier.
+        let bob_bundle = bob.generate_prekey_bundle(1, 1, 1).unwrap();
+        let bob_registration_id = bob_bundle.registration_id;
+        alice.establish_session("bob".to_string(), 1, bob_bundle).unwrap();
+        let in_flight = alice
+            .encrypt("bob".to_string(), 1, "sent just before rotation".to_string())
+            .unwrap();
+
+        // Bob rotates before reading it.
+        let rotated = bob.rotate_signed_prekeys(2, 2).unwrap();
+        assert_eq!(rotated.signed_prekey_id, 2);
+        assert_eq!(rotated.kyber_prekey_id, 2);
+
+        // The in-flight message must still open.
+        let decrypted = bob.decrypt("alice".to_string(), 1, in_flight).unwrap();
+        assert_eq!(decrypted, "sent just before rotation");
+
+        // And the new keys work for a new session: Carol uses the rotated
+        // bundle and reaches Bob.
+        let carol =
+            SignalDevice::new("carol".to_string(), 1, test_master_key(), temp_storage_dir("rot-carol"))
+                .unwrap();
+        // Built by hand rather than via generate_prekey_bundle, which would
+        // regenerate the signed and Kyber keys under the same ids and throw
+        // away what rotation just produced. This is what a real client
+        // assembles from the server: the identity, a one-time prekey, and the
+        // rotated signed/Kyber pair.
+        let extra = bob.generate_extra_one_time_prekeys(vec![9]).unwrap();
+        let fresh = PreKeyBundleData {
+            registration_id: bob_registration_id,
+            device_id: 1,
+            identity_key_base64: bob.identity_public_key_base64(),
+            one_time_prekey_id: 9,
+            one_time_prekey_public_base64: extra[0].public_key_base64.clone(),
+            signed_prekey_id: rotated.signed_prekey_id,
+            signed_prekey_public_base64: rotated.signed_prekey_public_base64.clone(),
+            signed_prekey_signature_base64: rotated.signed_prekey_signature_base64.clone(),
+            kyber_prekey_id: rotated.kyber_prekey_id,
+            kyber_prekey_public_base64: rotated.kyber_prekey_public_base64.clone(),
+            kyber_prekey_signature_base64: rotated.kyber_prekey_signature_base64.clone(),
+        };
+        carol.establish_session("bob".to_string(), 1, fresh).unwrap();
+        let from_carol = carol
+            .encrypt("bob".to_string(), 1, "hello from carol".to_string())
+            .unwrap();
+        assert_eq!(bob.decrypt("carol".to_string(), 1, from_carol).unwrap(), "hello from carol");
+    }
+
+    /// Pruning must never be able to empty the store: an identity with no
+    /// signed prekey is one nobody can start a conversation with, and the
+    /// failure would show up as strangers being unable to message you rather
+    /// than as an error anyone would see.
+    #[test]
+    fn pruning_refuses_to_delete_everything() {
+        let bob = SignalDevice::new(
+            "bob".to_string(),
+            1,
+            test_master_key(),
+            temp_storage_dir("prune-bob"),
+        )
+        .unwrap();
+        bob.generate_prekey_bundle(1, 1, 1).unwrap();
+
+        assert!(bob.prune_prekeys(vec![], vec![1]).is_err());
+        assert!(bob.prune_prekeys(vec![1], vec![]).is_err());
+
+        // A real prune keeps what it is told to keep.
+        bob.rotate_signed_prekeys(2, 2).unwrap();
+        bob.prune_prekeys(vec![2], vec![2]).unwrap();
     }
 
     /// Proves the real libsignal-protocol integration end to end: Alice

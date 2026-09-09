@@ -174,3 +174,41 @@ export async function claimPeerPrekeyBundle(peerUserId: string): Promise<PreKeyB
     kyberPrekeySignatureBase64: signedPrekey.kyber_prekey_signature,
   };
 }
+
+/**
+ * Replaces this identity's published signed + Kyber prekey with a rotated one.
+ *
+ * Only ever one row per identity on the server: it hands out whatever is
+ * current, and older keys are of no use to anyone starting a conversation
+ * now. The *private* halves of the old keys stay on this device for a while
+ * longer, so a message encrypted to one that is still in flight can still be
+ * opened -- see identity/rotatePrekeys.ts.
+ */
+export async function replaceSignedPrekey(
+  userId: string,
+  rotated: {
+    signedPrekeyId: number;
+    signedPrekeyPublicBase64: string;
+    signedPrekeySignatureBase64: string;
+    kyberPrekeyId: number;
+    kyberPrekeyPublicBase64: string;
+    kyberPrekeySignatureBase64: string;
+  },
+): Promise<void> {
+  const { error: deleteError } = await supabase
+    .from('signed_prekeys')
+    .delete()
+    .eq('owner_id', userId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  const { error } = await supabase.from('signed_prekeys').insert({
+    owner_id: userId,
+    signed_prekey_id: rotated.signedPrekeyId,
+    public_key: rotated.signedPrekeyPublicBase64,
+    signature: rotated.signedPrekeySignatureBase64,
+    kyber_prekey_id: rotated.kyberPrekeyId,
+    kyber_prekey_public_key: rotated.kyberPrekeyPublicBase64,
+    kyber_prekey_signature: rotated.kyberPrekeySignatureBase64,
+  });
+  if (error) throw new Error(error.message);
+}

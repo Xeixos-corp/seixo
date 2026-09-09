@@ -27,3 +27,13 @@ export type EncryptedEnvelope = {
   messageType: number;
   ciphertextBase64: string;
 };
+
+/** Public halves of a freshly rotated signed + Kyber prekey pair. */
+export type RotatedPrekeys = {
+  signedPrekeyId: number;
+  signedPrekeyPublicBase64: string;
+  signedPrekeySignatureBase64: string;
+  kyberPrekeyId: number;
+  kyberPrekeyPublicBase64: string;
+  kyberPrekeySignatureBase64: string;
+};

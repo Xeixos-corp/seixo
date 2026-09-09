@@ -96,6 +96,28 @@ class SignalNativeExpoModule : Module() {
       requireDevice().generateExtraOneTimePrekeys(ids.map { it.toUInt() }).map(::oneTimePrekeyToMap)
     }
 
+    Function("rotateSignedPrekeys") { signedPrekeyId: Int, kyberPrekeyId: Int ->
+      val rotated = requireDevice().rotateSignedPrekeys(
+        signedPrekeyId.toUInt(),
+        kyberPrekeyId.toUInt(),
+      )
+      mapOf(
+        "signedPrekeyId" to rotated.signedPrekeyId.toInt(),
+        "signedPrekeyPublicBase64" to rotated.signedPrekeyPublicBase64,
+        "signedPrekeySignatureBase64" to rotated.signedPrekeySignatureBase64,
+        "kyberPrekeyId" to rotated.kyberPrekeyId.toInt(),
+        "kyberPrekeyPublicBase64" to rotated.kyberPrekeyPublicBase64,
+        "kyberPrekeySignatureBase64" to rotated.kyberPrekeySignatureBase64,
+      )
+    }
+
+    Function("prunePrekeys") { keepSignedIds: List<Int>, keepKyberIds: List<Int> ->
+      requireDevice().prunePrekeys(
+        keepSignedIds.map { it.toUInt() },
+        keepKyberIds.map { it.toUInt() },
+      )
+    }
+
     Function("establishSession") { remoteUserId: String, remoteDeviceId: Int, bundle: Map<String, Any?> ->
       translatingSignalErrors {
         requireDevice().establishSession(remoteUserId, remoteDeviceId.toUInt(), mapToBundle(bundle))

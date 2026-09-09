@@ -728,6 +728,10 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -764,6 +768,10 @@ internal interface UniffiLib : Library {
     fun uniffi_signal_native_fn_method_signaldevice_generate_prekey_bundle(`ptr`: Pointer,`oneTimePrekeyId`: Int,`signedPrekeyId`: Int,`kyberPrekeyId`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_signal_native_fn_method_signaldevice_identity_public_key_base64(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_signal_native_fn_method_signaldevice_prune_prekeys(`ptr`: Pointer,`keepSignedIds`: RustBuffer.ByValue,`keepKyberIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_signal_native_fn_method_signaldevice_rotate_signed_prekeys(`ptr`: Pointer,`signedPrekeyId`: Int,`kyberPrekeyId`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_signal_native_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -889,6 +897,10 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_identity_public_key_base64(
     ): Short
+    fun uniffi_signal_native_checksum_method_signaldevice_prune_prekeys(
+    ): Short
+    fun uniffi_signal_native_checksum_method_signaldevice_rotate_signed_prekeys(
+    ): Short
     fun uniffi_signal_native_checksum_constructor_signaldevice_new(
     ): Short
     fun ffi_signal_native_uniffi_contract_version(
@@ -924,6 +936,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_signal_native_checksum_method_signaldevice_identity_public_key_base64() != 52526.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_method_signaldevice_prune_prekeys() != 25844.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_method_signaldevice_rotate_signed_prekeys() != 42226.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_signal_native_checksum_constructor_signaldevice_new() != 2486.toShort()) {
@@ -1313,6 +1331,38 @@ public interface SignalDeviceInterface {
     
     fun `identityPublicKeyBase64`(): kotlin.String
     
+    /**
+     * Deletes every stored signed and Kyber prekey whose id is not listed.
+     *
+     * Called only after a grace period long enough that no message encrypted
+     * to a discarded key can still be in flight. Getting this wrong in the
+     * unsafe direction — pruning too early — silently destroys messages, so
+     * the caller keeps a generous window (see the client's rotation policy).
+     *
+     * Passing an empty list would delete everything, so it is refused: that
+     * can only be a bug in the caller, and the consequence would be an
+     * identity nobody can start a conversation with.
+     */
+    fun `prunePrekeys`(`keepSignedIds`: List<kotlin.UInt>, `keepKyberIds`: List<kotlin.UInt>)
+    
+    /**
+     * Generates a new signed prekey and a new Kyber prekey, under *new* ids,
+     * and stores them alongside the existing ones.
+     *
+     * Deliberately additive. The store is a map keyed by id, so saving under
+     * a new id leaves the previous keys in place — and that is the whole
+     * point: a peer may have fetched the old bundle seconds ago and be about
+     * to send a message encrypted to it. Deleting the old private key at the
+     * moment of rotation would make that message permanently unreadable, the
+     * same failure as the one-time prekey regeneration bug, but worse
+     * because a signed prekey serves every new session rather than one.
+     *
+     * Old keys are removed separately and much later, by `prune_prekeys`.
+     *
+     * Does not touch the identity key or any one-time prekey.
+     */
+    fun `rotateSignedPrekeys`(`signedPrekeyId`: kotlin.UInt, `kyberPrekeyId`: kotlin.UInt): RotatedPrekeys
+    
     companion object
 }
 
@@ -1520,6 +1570,59 @@ open class SignalDevice: Disposable, AutoCloseable, SignalDeviceInterface {
     
 
     
+    /**
+     * Deletes every stored signed and Kyber prekey whose id is not listed.
+     *
+     * Called only after a grace period long enough that no message encrypted
+     * to a discarded key can still be in flight. Getting this wrong in the
+     * unsafe direction — pruning too early — silently destroys messages, so
+     * the caller keeps a generous window (see the client's rotation policy).
+     *
+     * Passing an empty list would delete everything, so it is refused: that
+     * can only be a bug in the caller, and the consequence would be an
+     * identity nobody can start a conversation with.
+     */
+    @Throws(SignalNativeException::class)override fun `prunePrekeys`(`keepSignedIds`: List<kotlin.UInt>, `keepKyberIds`: List<kotlin.UInt>)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_method_signaldevice_prune_prekeys(
+        it, FfiConverterSequenceUInt.lower(`keepSignedIds`),FfiConverterSequenceUInt.lower(`keepKyberIds`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Generates a new signed prekey and a new Kyber prekey, under *new* ids,
+     * and stores them alongside the existing ones.
+     *
+     * Deliberately additive. The store is a map keyed by id, so saving under
+     * a new id leaves the previous keys in place — and that is the whole
+     * point: a peer may have fetched the old bundle seconds ago and be about
+     * to send a message encrypted to it. Deleting the old private key at the
+     * moment of rotation would make that message permanently unreadable, the
+     * same failure as the one-time prekey regeneration bug, but worse
+     * because a signed prekey serves every new session rather than one.
+     *
+     * Old keys are removed separately and much later, by `prune_prekeys`.
+     *
+     * Does not touch the identity key or any one-time prekey.
+     */
+    @Throws(SignalNativeException::class)override fun `rotateSignedPrekeys`(`signedPrekeyId`: kotlin.UInt, `kyberPrekeyId`: kotlin.UInt): RotatedPrekeys {
+            return FfiConverterTypeRotatedPrekeys.lift(
+    callWithPointer {
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_method_signaldevice_rotate_signed_prekeys(
+        it, FfiConverterUInt.lower(`signedPrekeyId`),FfiConverterUInt.lower(`kyberPrekeyId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
 
     
     
@@ -1693,6 +1796,58 @@ public object FfiConverterTypePreKeyBundleData: FfiConverterRustBuffer<PreKeyBun
             FfiConverterString.write(value.`identityKeyBase64`, buf)
             FfiConverterUInt.write(value.`oneTimePrekeyId`, buf)
             FfiConverterString.write(value.`oneTimePrekeyPublicBase64`, buf)
+            FfiConverterUInt.write(value.`signedPrekeyId`, buf)
+            FfiConverterString.write(value.`signedPrekeyPublicBase64`, buf)
+            FfiConverterString.write(value.`signedPrekeySignatureBase64`, buf)
+            FfiConverterUInt.write(value.`kyberPrekeyId`, buf)
+            FfiConverterString.write(value.`kyberPrekeyPublicBase64`, buf)
+            FfiConverterString.write(value.`kyberPrekeySignatureBase64`, buf)
+    }
+}
+
+
+
+/**
+ * The public halves of a freshly rotated signed + Kyber prekey pair, ready
+ * to publish. Returned by `rotate_signed_prekeys`.
+ */
+data class RotatedPrekeys (
+    var `signedPrekeyId`: kotlin.UInt, 
+    var `signedPrekeyPublicBase64`: kotlin.String, 
+    var `signedPrekeySignatureBase64`: kotlin.String, 
+    var `kyberPrekeyId`: kotlin.UInt, 
+    var `kyberPrekeyPublicBase64`: kotlin.String, 
+    var `kyberPrekeySignatureBase64`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRotatedPrekeys: FfiConverterRustBuffer<RotatedPrekeys> {
+    override fun read(buf: ByteBuffer): RotatedPrekeys {
+        return RotatedPrekeys(
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RotatedPrekeys) = (
+            FfiConverterUInt.allocationSize(value.`signedPrekeyId`) +
+            FfiConverterString.allocationSize(value.`signedPrekeyPublicBase64`) +
+            FfiConverterString.allocationSize(value.`signedPrekeySignatureBase64`) +
+            FfiConverterUInt.allocationSize(value.`kyberPrekeyId`) +
+            FfiConverterString.allocationSize(value.`kyberPrekeyPublicBase64`) +
+            FfiConverterString.allocationSize(value.`kyberPrekeySignatureBase64`)
+    )
+
+    override fun write(value: RotatedPrekeys, buf: ByteBuffer) {
             FfiConverterUInt.write(value.`signedPrekeyId`, buf)
             FfiConverterString.write(value.`signedPrekeyPublicBase64`, buf)
             FfiConverterString.write(value.`signedPrekeySignatureBase64`, buf)

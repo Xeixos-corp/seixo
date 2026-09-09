@@ -319,6 +319,14 @@ impl FileSignedPreKeyStore {
         }
         self.file.save(&SignedPreKeyFileData { keys })
     }
+
+    /// Drops every key whose id is not listed. Used by prekey rotation, once
+    /// the old keys are old enough that nothing encrypted to them can still
+    /// be in flight.
+    pub fn retain_ids(&mut self, keep: &[u32]) -> Result<(), SignalNativeError> {
+        self.keys.retain(|id, _| keep.contains(id));
+        self.persist()
+    }
 }
 
 #[async_trait(?Send)]
@@ -397,6 +405,15 @@ impl FileKyberPreKeyStore {
             keys,
             base_keys_seen,
         })
+    }
+
+    /// Drops every key whose id is not listed, along with the replay-protection
+    /// records that belong to them -- those are keyed by kyber prekey id, and
+    /// keeping them for a key that no longer exists would grow without bound.
+    pub fn retain_ids(&mut self, keep: &[u32]) -> Result<(), SignalNativeError> {
+        self.keys.retain(|id, _| keep.contains(id));
+        self.base_keys_seen.retain(|(kyber_id, _), _| keep.contains(kyber_id));
+        self.persist()
     }
 }
 

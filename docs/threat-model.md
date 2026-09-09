@@ -1158,3 +1158,48 @@ one. Every such file is deleted as soon as playback ends, when the screen is
 left, and the whole directory is emptied at launch -- the last covering a
 crash that skipped the first two. Without that, audio would sit in the app's
 cache after the message it came from had expired.
+
+### Signed prekey rotation (2026-09-09)
+
+The signed prekey and the Kyber prekey were generated once, at registration,
+and never changed. Their private halves therefore sat on the device
+indefinitely, and a seized device exposed the session-establishment material
+of *every* session anyone had ever started with that identity, back to the
+beginning. Rotation turns "since forever" into "since the last rotation".
+
+Every session in flight is at stake here, so the design is deliberately
+lopsided towards keeping keys too long rather than too little:
+
+**Rotation is additive.** A new pair is generated under new ids and stored
+alongside the old ones; nothing is deleted at the moment of rotation. A peer
+may have fetched the old bundle seconds earlier and be about to send with it.
+Replacing rather than adding would make that message permanently unreadable,
+silently, and only the sender would ever know it existed -- the same failure
+as the one-time prekey regeneration bug of 2026-09-05, but worse, because a
+signed prekey serves every new session rather than one. There is a Rust test
+for exactly this: a message encrypted before rotation must still decrypt
+after it.
+
+**Ids are never reused.** A peer holding an old public key must never find a
+different private key behind the same id.
+
+**Old keys are kept 30 days, rotated every 2.** The keep window is far longer
+than any plausible delay between fetching a bundle and sending, because being
+wrong in that direction destroys messages while being wrong in the other
+merely holds a key slightly longer than necessary. `prune_prekeys` refuses an
+empty keep-list outright: an identity with no signed prekey is one nobody can
+start a conversation with, and it would present as strangers being unable to
+reach you rather than as any visible error.
+
+**The server keeps only the current key.** It hands out what is current;
+superseded public keys help nobody starting a conversation now. The private
+halves live on the device for the grace period, which is where they are
+needed.
+
+Rotation runs at registration, is non-fatal, and skips silently on failure --
+the previous key then stays in use, which is exactly the position before any
+of this existed.
+
+Still not rotated: the identity key itself. That is by design and matches
+Signal -- it *is* the identity, and changing it is what the untrusted-identity
+warning exists to report.

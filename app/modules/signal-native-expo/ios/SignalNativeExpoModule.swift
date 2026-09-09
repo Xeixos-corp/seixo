@@ -87,6 +87,28 @@ public class SignalNativeExpoModule: Module {
       return extras.map(SignalNativeExpoModule.oneTimePrekeyToDict)
     }
 
+    Function("rotateSignedPrekeys") { (signedPrekeyId: Int, kyberPrekeyId: Int) -> [String: Any] in
+      let rotated = try self.requireDevice().rotateSignedPrekeys(
+        signedPrekeyId: UInt32(signedPrekeyId),
+        kyberPrekeyId: UInt32(kyberPrekeyId)
+      )
+      return [
+        "signedPrekeyId": Int(rotated.signedPrekeyId),
+        "signedPrekeyPublicBase64": rotated.signedPrekeyPublicBase64,
+        "signedPrekeySignatureBase64": rotated.signedPrekeySignatureBase64,
+        "kyberPrekeyId": Int(rotated.kyberPrekeyId),
+        "kyberPrekeyPublicBase64": rotated.kyberPrekeyPublicBase64,
+        "kyberPrekeySignatureBase64": rotated.kyberPrekeySignatureBase64,
+      ]
+    }
+
+    Function("prunePrekeys") { (keepSignedIds: [Int], keepKyberIds: [Int]) in
+      try self.requireDevice().prunePrekeys(
+        keepSignedIds: keepSignedIds.map { UInt32($0) },
+        keepKyberIds: keepKyberIds.map { UInt32($0) }
+      )
+    }
+
     Function("establishSession") { (remoteUserId: String, remoteDeviceId: Int, bundle: [String: Any]) in
       try SignalNativeExpoModule.translatingSignalErrors {
         try self.requireDevice().establishSession(

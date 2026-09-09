@@ -18,6 +18,7 @@ import {
 import { subscribeToMyNewMemberships, getOtherMember, fetchMyChannels } from '../transport/channels';
 import { fetchBlockedPeerIds } from '../transport/blocking';
 import { markAccountActive } from './lastActive';
+import { rotatePrekeysIfDue } from './rotatePrekeys';
 import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { loadPrekeyAllocation, savePrekeyAllocation } from './prekeyState';
@@ -118,6 +119,16 @@ async function doRegister(): Promise<RegisteredIdentity> {
     await savePrekeyAllocation({
       userId,
       nextId: Math.max(LOCAL_ONE_TIME_PREKEY_ID, ...EXTRA_ONE_TIME_PREKEY_IDS) + 1,
+      // The bundle just published is the first entry in the rotation history,
+      // so its age is known and it can be rotated out on schedule.
+      signedPrekeys: [
+        {
+          signedId: LOCAL_SIGNED_PREKEY_ID,
+          kyberId: LOCAL_KYBER_PREKEY_ID,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      nextSignedId: Math.max(LOCAL_SIGNED_PREKEY_ID, LOCAL_KYBER_PREKEY_ID) + 1,
     });
 
     await finishRegistration(userId);
@@ -127,6 +138,8 @@ async function doRegister(): Promise<RegisteredIdentity> {
   // Already published for this identity: leave every existing key alone and
   // just top the pool up if peers have been claiming from it.
   await replenishOneTimePrekeysIfLow(userId, allocation.nextId);
+  // Bounds how far back a stolen signed prekey reaches. Non-fatal.
+  await rotatePrekeysIfDue(userId);
 
   const publicKey = identityPublicKeyBase64();
   await finishRegistration(userId);

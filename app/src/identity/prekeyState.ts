@@ -22,6 +22,21 @@ export type PrekeyAllocation = {
   userId: string;
   /** The next id that is safe to allocate; every id below it is spoken for. */
   nextId: number;
+  /**
+   * Signed and Kyber prekeys this device has generated, newest last.
+   *
+   * Kept because rotation is additive: the private halves of older keys stay
+   * in the local store so that a message encrypted to one still opens. This
+   * records which ids exist and when, so they can eventually be pruned --
+   * and it is the only place that knows, since the store itself has no notion
+   * of age.
+   *
+   * Absent on records written before rotation existed; treated as "one key,
+   * generated at registration".
+   */
+  signedPrekeys?: { signedId: number; kyberId: number; createdAt: string }[];
+  /** Next id to use for a rotated signed/Kyber pair. Separate id space from one-time prekeys. */
+  nextSignedId?: number;
 };
 
 export async function loadPrekeyAllocation(userId: string): Promise<PrekeyAllocation | null> {
