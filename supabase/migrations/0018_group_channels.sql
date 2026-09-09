@@ -1,0 +1,32 @@
+-- Group conversations.
+--
+-- The data model already carried these: channels and channel_members were
+-- never limited to two people, only create_direct_channel was. What is new is
+-- ownership, since a group needs someone answerable for who is in it.
+--
+-- Membership changes go exclusively through SECURITY DEFINER functions, which
+-- is only possible because 0017 removed the policy that let anyone insert
+-- themselves into any channel. Without that, "the owner decides who joins"
+-- would have been decoration -- anyone could have added themselves anyway.
+--
+-- The full function bodies as applied are in the migration history; this file
+-- records the shape and the reasoning:
+--
+--   channels.kind     'direct' | 'group'
+--   channels.owner_id the group owner, null for direct conversations
+--
+--   create_direct_channel  now filters to kind='direct' with exactly two
+--                          members, so two people who share a group can still
+--                          start a private conversation. Without that filter
+--                          it would have found the group, returned it, and
+--                          their private messages would have gone to everyone.
+--   create_group_channel   caller becomes owner and first member
+--   add_group_member       owner only, group only, respects blocking in both
+--                          directions, capped at 10 members
+--   remove_group_member    owner only, never themselves (leaving is
+--                          self-service and always available)
+--
+-- The cap of 10 is enforced here rather than only in the app because a
+-- message is encrypted separately for every member: the work and the bytes
+-- grow with the group, and a voice message multiplied by fifty would be
+-- untenable.
