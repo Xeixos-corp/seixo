@@ -10,7 +10,7 @@ import { navigationRef } from '../navigation/navigationRef';
  * payload passes through Expo's push service and Apple's, so both would learn
  * which conversation each device belongs to -- enough, across many
  * notifications, to reconstruct who talks to whom. That is precisely the
- * metadata the sealed-sender design and
+ * metadata the no-sender-column design and
  * supabase/migrations/0010_push_notifications.sql go out of their way not to
  * create, and it would be careless to hand it to a third party for the sake of
  * a convenience. The device already knows which conversation has a new

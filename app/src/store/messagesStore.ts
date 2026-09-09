@@ -11,7 +11,8 @@ export type DecryptedMessage = {
    * Whether this device sent it. Set at the point we know for certain —
    * true in handleSend, false in decryptAndStore — rather than derived
    * later, because nothing in the ciphertext or the row identifies a
-   * sender: `messages` has no sender_id column by design (sealed sender,
+   * sender: `messages` has no sender_id column by design (not sealed sender --
+   * see docs/threat-model.md's correction of that term;
    * supabase/migrations/0001_init.sql).
    *
    * Optional because messages persisted before this field existed have no

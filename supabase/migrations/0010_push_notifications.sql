@@ -1,7 +1,7 @@
 -- Push notifications, without telling the server anything new.
 --
--- The hard part is that `messages` has no sender column on purpose (sealed
--- sender, 0001_init.sql), so the server cannot look at a stored row and say
+-- The hard part is that `messages` has no sender column on purpose
+-- (0001_init.sql), so the server cannot look at a *stored* row and say
 -- who sent it -- which is exactly what a naive "notify everyone else in the
 -- channel" needs to know.
 --
