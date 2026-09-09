@@ -1305,3 +1305,43 @@ Found while working out how group messages would identify their sender, which
 is the same question one layer down: a recipient in a group has to know which
 key to decrypt with, and that is precisely what sealed sender is designed to
 answer without telling the server.
+
+### The complete list of retained metadata, and an IP log nobody knew about (2026-09-10)
+
+Written after being asked, plainly, what metadata survives. Answering it
+required reading the database rather than this document, and that turned up
+something this document had wrong.
+
+**Per account, for as long as it exists:** the user id, identity public key
+and registration id; the prekeys; the push token and the notification strings
+that go with it; the date -- not time -- of last use; and the block list,
+which deliberately never expires because a block is a standing safety
+preference rather than conversation. No email and no phone number: accounts
+are anonymous.
+
+**Per conversation, while it is alive:** which channels exist, their kind and
+owner, who belongs to each, and for every message its channel, exact
+timestamp, size and silent flag. Never content. All of it disappears once a
+channel has no unexpired messages left (`purge-empty-stale-channels`), so the
+social graph lasts as long as the conversation does rather than forever --
+which is better than an earlier passage in this document implied.
+
+**And, not ours: `auth.sessions` stores the client IP address and user
+agent.** This document said the backend "sees" the IP. It does not merely see
+it; Supabase's auth layer *retains* it, per session, indefinitely. On this
+project's own instance that is 13 sessions and 4 distinct IP addresses going
+back to 2026-07-25 -- a longer and more identifying record than anything the
+app's own schema keeps, and it arrived with the authentication service rather
+than by any decision made here.
+
+It is worth stating what that means for everything else in this file: an IP
+address is a stable identifier for a device and, with an ISP's cooperation, a
+name. Any argument about hiding *who sent a message* is worth little while
+that sits in a table. It is the strongest single reason why Tor (or any other
+IP-hiding path) belongs ahead of sender-metadata work, not after it.
+
+`auth.audit_log_entries`, which would hold more of the same, is empty.
+
+Also found: `identities.display_name_ciphertext`, a column added at the start
+and never written to -- zero rows populated. Dead schema, harmless, but it
+should go rather than sit there implying a feature.
