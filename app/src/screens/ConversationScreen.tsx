@@ -393,6 +393,10 @@ export function ConversationScreen({ route, navigation }: Props) {
       setRecordedSeconds(0);
       try {
         await recorder.stop();
+        // Leave the recording audio mode behind. iOS keeps routing playback
+        // to the earpiece at low volume while allowsRecording is true, so a
+        // voice message played right after recording one sounds broken.
+        await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
         const uri = recorder.uri;
         const durationMs = Math.min(Date.now() - recordingStartedAt.current, MAX_VOICE_DURATION_MS);
         if (!uri) return;
