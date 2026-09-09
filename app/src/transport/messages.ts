@@ -112,6 +112,25 @@ export async function deleteMessage(messageId: string): Promise<void> {
  * key in the WAL, so the channel_id filter below has nothing to match and
  * Realtime cannot evaluate the RLS policy to decide who may receive it.
  */
+/**
+ * Fetches a single message, for when the realtime event arrived without it.
+ */
+export async function fetchMessageById(id: string): Promise<FetchedMessage | null> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, ciphertext, created_at, expires_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return {
+    id: data.id as string,
+    createdAt: data.created_at as string,
+    expiresAt: data.expires_at as string,
+    envelope: decodeEnvelope(data.ciphertext as string),
+  };
+}
+
 export function subscribeToChannelMessages(
   channelId: string,
   onInsert: (message: FetchedMessage) => void,
@@ -147,10 +166,28 @@ export function subscribeToChannelMessages(
       (payload) => {
         const row = payload.new as {
           id: string;
-          ciphertext: string;
+          ciphertext?: string;
           created_at: string;
           expires_at: string;
         };
+
+        // Realtime drops large fields rather than the whole event: past a
+        // size limit, only values of 64 bytes or less survive. A voice
+        // message is hundreds of kilobytes, so the notification arrives with
+        // no ciphertext at all -- which looked exactly like "voice messages
+        // do not arrive until you reopen the conversation", since only the
+        // catch-up fetch ever saw them.
+        if (!row.ciphertext) {
+          fetchMessageById(row.id)
+            .then((message) => {
+              if (message) onInsert(message);
+            })
+            .catch((error) => {
+              console.error('[messages] could not fetch truncated realtime row', row.id, error);
+            });
+          return;
+        }
+
         onInsert({
           id: row.id,
           createdAt: row.created_at,

@@ -4,6 +4,10 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import { useTranslation } from 'react-i18next';
 import { materialiseForPlayback, discard } from '../audio/voiceFiles';
 import { claimPlayback, releasePlayback } from '../audio/playbackRegistry';
+import {
+  startEarpieceRouting,
+  stopEarpieceRouting,
+} from '../../modules/audio-session-expo/src';
 
 function formatDuration(ms: number): string {
   const total = Math.round(ms / 1000);
@@ -65,6 +69,10 @@ export function VoiceMessage({
       uriRef.current = null;
     }
     busyRef.current = false;
+    // Turn the proximity sensor back off. Left on, the screen blanks whenever
+    // anything comes near the phone, which is alarming in an app that is not
+    // on a call.
+    void stopEarpieceRouting();
     releasePlayback(stop);
     setPlaying(false);
   }, []);
@@ -84,6 +92,9 @@ export function VoiceMessage({
       // low volume; leaving it there after a recording makes every later
       // message sound broken.
       await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      // Speaker by default, earpiece while the phone is held to the ear --
+      // iOS does not do this on its own, an app has to watch the sensor.
+      await startEarpieceRouting();
 
       const uri = await materialiseForPlayback(messageId, audioBase64);
       uriRef.current = uri;

@@ -1236,3 +1236,34 @@ refused by RLS.
 
 Leaving stays self-service. Being able to remove yourself from a conversation
 should never require anyone's permission.
+
+### Voice message audio routing needed a native module (2026-09-10)
+
+Three problems on real devices, two of which expo-audio cannot fix.
+
+**Voice messages did not arrive until the conversation was reopened.** Not an
+audio problem at all: Supabase Realtime drops oversized fields rather than
+whole events -- past a size limit, only values of 64 bytes or less survive.
+A voice message is 170-260 KB, so the event arrived with no ciphertext, and
+only the catch-up fetch on opening a conversation ever saw the message. The
+subscription now fetches the row by id when the payload comes back without
+one.
+
+**Recording through Bluetooth headphones did not work**, and **playback would
+not move to the earpiece** when the phone was held to the ear. Both are
+`AVAudioSession` category and option concerns, and expo-audio exposes only
+`allowsRecording` -- known and open upstream (expo/expo#37512, #43086). So
+this project now has a second local native module, `audio-session-expo`,
+doing what the package will not: `.playAndRecord` with `.allowBluetooth`
+while recording, so the microphone on AirPods is reachable at all; `.playback`
+with `.allowBluetoothA2DP` while playing, for full-quality output; and
+proximity-sensor routing to the receiver during playback, which iOS does not
+do by itself.
+
+The proximity sensor is turned off again as soon as playback ends. Left on, it
+blanks the screen whenever anything approaches the phone, which is alarming in
+an app that is not a phone call.
+
+The module is loaded with `requireOptionalNativeModule`, so a build predating
+it keeps working with plain audio rather than crashing -- the same guard, for
+the same reason, as the app lock and push registration.

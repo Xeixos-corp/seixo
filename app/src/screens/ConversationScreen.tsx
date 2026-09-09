@@ -37,6 +37,7 @@ import {
   VOICE_SERVER_TTL_SECONDS,
 } from '../audio/recordingOptions';
 import { readRecordingAndDelete } from '../audio/voiceFiles';
+import { configureForRecording, configureForPlayback } from '../../modules/audio-session-expo/src';
 import { VoiceMessage } from '../components/VoiceMessage';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
@@ -392,6 +393,9 @@ export function ConversationScreen({ route, navigation }: Props) {
     }
     try {
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      // The part expo-audio cannot do: allowing the hands-free profile, which
+      // is what makes the microphone on Bluetooth headphones usable at all.
+      await configureForRecording();
       const recorder = new AudioModule.AudioRecorder(iosRecorderOptions());
       recorderRef.current = recorder;
       await recorder.prepareToRecordAsync();
@@ -421,6 +425,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         // earpiece and away from Bluetooth.
         recorder.release();
         await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+        await configureForPlayback();
         const durationMs = Math.min(Date.now() - recordingStartedAt.current, MAX_VOICE_DURATION_MS);
         if (!uri) return;
         if (!send || durationMs < 700) {
