@@ -12,8 +12,9 @@ underlying implementation (linked file) changes without this doc being updated.
   see that this device talked to the backend, and when — see the Tor note
   below; nothing in this app hides that today.
 - **The backend operator** (us, or Supabase Inc. if Cloud is used during dev)
-  should never see plaintext message content or the raw sender-recipient
-  mapping of an individual message (sealed sender, see `supabase/migrations/0001_init.sql`).
+  should never see plaintext message content. On *who sent what*, the honest
+  claim is narrower than this document used to make — see "What 'sealed
+  sender' here does and does not mean" below.
 - **A device compromise after the fact** should not retroactively expose past
   conversations forever — this is why messages carry `expires_at` and are
   purged server-side by `pg_cron` regardless of whether the recipient ever
@@ -1267,3 +1268,40 @@ an app that is not a phone call.
 The module is loaded with `requireOptionalNativeModule`, so a build predating
 it keeps working with plain audio rather than crashing -- the same guard, for
 the same reason, as the app lock and push registration.
+
+
+### What "sealed sender" here does and does not mean (corrected 2026-09-10)
+
+This document claimed the backend "should never see the raw sender-recipient
+mapping of an individual message (sealed sender)". That was wrong, and the
+correction matters more than the original claim did.
+
+**What is true:** `messages` has no sender column
+(`supabase/migrations/0001_init.sql`). A dump of the database, a backup, or a
+subpoena served on stored data does not say who sent which message. That is a
+real property and it still holds.
+
+**What is not true:** that the server cannot see it. Every insert is
+authenticated, so `auth.uid()` identifies the sender at the moment the message
+is written. Three features depend on exactly that and could not work
+otherwise: the notification trigger excludes the sender
+(`0010_push_notifications.sql`), blocked peers are filtered by it
+(`0012_dont_notify_when_blocked.sql`), and channel creation checks it
+(`0013`). A backend operator who wanted this could log it in a line of SQL.
+
+So what this project has is **unlogged sender metadata**, not sealed sender.
+The distinction is between *observing* and *retaining*, and it is worth
+something — but far less than the name suggested, and nobody should decide
+anything on the strength of the stronger claim.
+
+Real sealed sender, as Signal implements it, encrypts the sender's identity so
+the server cannot read it at all. libsignal has it
+(`sealed_sender_encrypt`), and it requires a `SenderCertificate` signed by a
+server key with an expiry — meaning server-side signing infrastructure,
+certificate issuance and rotation. It is buildable here and has never been
+built.
+
+Found while working out how group messages would identify their sender, which
+is the same question one layer down: a recipient in a group has to know which
+key to decrypt with, and that is precisely what sealed sender is designed to
+answer without telling the server.
