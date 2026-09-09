@@ -1345,3 +1345,34 @@ IP-hiding path) belongs ahead of sender-metadata work, not after it.
 Also found: `identities.display_name_ciphertext`, a column added at the start
 and never written to -- zero rows populated. Dead schema, harmless, but it
 should go rather than sit there implying a feature.
+
+
+### IP addresses are now scrubbed every minute (2026-09-10)
+
+Following directly from the finding above. `auth.sessions` held the client IP
+and user agent for the life of each session -- 13 sessions and 4 addresses
+going back to July on this instance.
+
+Deleting those rows is not available: accounts are anonymous, so a device that
+loses its session does not log back in, it creates a *new identity* and loses
+its user id, contacts and conversations. The rows have to stay.
+
+Blanking the two columns does not: both are nullable, neither takes part in
+authentication -- the JWT and refresh token carry that -- and they exist for
+"last seen from" screens this app does not have. A cron job now clears them
+every minute, alongside deleting any audit-log entries older than an hour.
+Verified on a real device: messaging continued to work and no identity was
+recreated.
+
+**What this does not achieve.** The auth layer rewrites the IP whenever a
+token is refreshed, so an address exists for up to a minute before being
+cleared. An operator watching in that window, or holding database backups,
+still sees it. Reducing that to zero would mean patching a service this
+project does not control. The honest claim is a permanent record reduced to a
+transient one -- which matters a great deal against a subpoena for stored
+data, and not at all against someone watching in real time.
+
+And the network path itself is unchanged: whoever carries the traffic still
+sees this device talking to this backend. Only the copy kept in the database
+is gone. Tor remains the thing that would address the rest, and remains
+unimplemented.
