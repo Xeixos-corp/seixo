@@ -47,3 +47,21 @@ export const MAX_VOICE_DURATION_MS = 60_000;
 
 /** How long the server holds a voice message waiting for delivery. */
 export const VOICE_SERVER_TTL_SECONDS = 24 * 60 * 60;
+
+/**
+ * The flattened, iOS-shaped options that `AudioModule.AudioRecorder` expects.
+ *
+ * `useAudioRecorder` does this conversion internally, but the hook builds a
+ * recorder as soon as the screen mounts -- and on iOS the existence of a
+ * recorder is enough to put the audio session into a record-and-play mode,
+ * where playback is routed away from Bluetooth output. Voice messages then
+ * play to nothing at all on AirPods, even when no recording has happened.
+ *
+ * Creating the recorder only while actually recording removes the cause
+ * rather than trying to undo it afterwards. That means doing this conversion
+ * here, since the package does not export it.
+ */
+export function iosRecorderOptions(): Record<string, unknown> {
+  const { extension, sampleRate, numberOfChannels, bitRate, ios } = VOICE_RECORDING_OPTIONS;
+  return { extension, sampleRate, numberOfChannels, bitRate, isMeteringEnabled: false, ...ios };
+}

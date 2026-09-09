@@ -30,9 +30,9 @@ import { encodePayload } from '../messaging/payload';
 import { splitLinks } from '../messaging/links';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { setActiveConversation } from '../messaging/activeConversation';
-import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
+import { AudioModule, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 import {
-  VOICE_RECORDING_OPTIONS,
+  iosRecorderOptions,
   MAX_VOICE_DURATION_MS,
   VOICE_SERVER_TTL_SECONDS,
 } from '../audio/recordingOptions';
@@ -244,7 +244,12 @@ export function ConversationScreen({ route, navigation }: Props) {
   // to the one-minute ceiling.
   const [recordedSeconds, setRecordedSeconds] = useState(0);
   const recordingStartedAt = useRef(0);
-  const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
+  // Created only while recording, and destroyed straight after. useAudioRecorder
+  // would build one the moment this screen mounts, and on iOS merely having a
+  // recorder puts the audio session into a record-and-play mode that routes
+  // playback away from Bluetooth -- so voice messages played to silence on
+  // AirPods even in a conversation where nothing was ever recorded.
+  const recorderRef = useRef<InstanceType<typeof AudioModule.AudioRecorder> | null>(null);
   const listRef = useRef<FlatList<DecryptedMessage>>(null);
   const inputRef = useRef<TextInput>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -387,6 +392,8 @@ export function ConversationScreen({ route, navigation }: Props) {
     }
     try {
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      const recorder = new AudioModule.AudioRecorder(iosRecorderOptions());
+      recorderRef.current = recorder;
       await recorder.prepareToRecordAsync();
       recorder.record();
       recordingStartedAt.current = Date.now();
@@ -396,19 +403,24 @@ export function ConversationScreen({ route, navigation }: Props) {
       console.error('[ConversationScreen] failed to start recording', error);
       setSendError(t('conversation.recordingFailed'));
     }
-  }, [recorder, t]);
+  }, [t]);
 
   const stopRecording = useCallback(
     async (send: boolean) => {
       setRecording(false);
       setRecordedSeconds(0);
+      const recorder = recorderRef.current;
+      recorderRef.current = null;
+      if (!recorder) return;
+
       try {
         await recorder.stop();
-        // Leave the recording audio mode behind. iOS keeps routing playback
-        // to the earpiece at low volume while allowsRecording is true, so a
-        // voice message played right after recording one sounds broken.
-        await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
         const uri = recorder.uri;
+        // Destroy the recorder and leave the recording audio mode, in that
+        // order. While either survives, iOS keeps playback routed to the
+        // earpiece and away from Bluetooth.
+        recorder.release();
+        await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
         const durationMs = Math.min(Date.now() - recordingStartedAt.current, MAX_VOICE_DURATION_MS);
         if (!uri) return;
         if (!send || durationMs < 700) {
@@ -423,7 +435,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         setSendError(t('conversation.recordingFailed'));
       }
     },
-    [recorder, sendVoiceMessage, t],
+    [sendVoiceMessage, t],
   );
 
   // A recording has to end somewhere: the audio travels inside the message, so
