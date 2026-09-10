@@ -134,7 +134,13 @@
     "securitySection": "Segurança",
     "appLockLabel": "Pedir Face ID para abrir a app",
     "appLockHint": "Quando está ligado, o Seixo pede o Face ID (ou o código do telemóvel) sempre que voltas à app. As mensagens continuam a chegar enquanto está bloqueado.",
-    "appLockUnavailable": "Este telemóvel não tem Face ID, Touch ID nem código definido, por isso não há nada que o Seixo possa verificar."
+    "appLockUnavailable": "Este telemóvel não tem Face ID, Touch ID nem código definido, por isso não há nada que o Seixo possa verificar.",
+    "appearanceSection": "Aspeto",
+    "theme": {
+      "system": "Automático",
+      "light": "Claro",
+      "dark": "Escuro"
+    }
   },
   "screenshotWarning": {
     "title": "Captura de ecrã",

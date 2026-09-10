@@ -134,7 +134,13 @@
     "securitySection": "Seguridad",
     "appLockLabel": "Pedir Face ID para abrir la app",
     "appLockHint": "Cuando está activado, Seixo pide Face ID (o el código del dispositivo) cada vez que vuelves a la app. Los mensajes siguen llegando mientras está bloqueada.",
-    "appLockUnavailable": "Este dispositivo no tiene Face ID, Touch ID ni código configurado, así que no hay nada que Seixo pueda comprobar."
+    "appLockUnavailable": "Este dispositivo no tiene Face ID, Touch ID ni código configurado, así que no hay nada que Seixo pueda comprobar.",
+    "appearanceSection": "Aspecto",
+    "theme": {
+      "system": "Automático",
+      "light": "Claro",
+      "dark": "Oscuro"
+    }
   },
   "screenshotWarning": {
     "title": "Captura de pantalla",

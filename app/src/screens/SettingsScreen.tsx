@@ -9,6 +9,7 @@ import { SUPPORT_CONTACT_EMAIL, PRIVACY_POLICY_URL } from '../config/support';
 import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
 import { MyIdCard } from '../components/MyIdCard';
 import { useAppLockStore } from '../store/appLockStore';
+import { useThemeStore, type ThemePreference } from '../store/themeStore';
 import { isAppLockAvailable } from '../security/appLock';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -18,6 +19,8 @@ export function SettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const themePreference = useThemeStore((state) => state.preference);
+  const setThemePreference = useThemeStore((state) => state.setPreference);
   const appLockEnabled = useAppLockStore((state) => state.enabled);
   const setAppLockEnabled = useAppLockStore((state) => state.setEnabled);
   // null while the check is in flight -- the toggle stays disabled until we
@@ -62,6 +65,34 @@ export function SettingsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.section}>
         <MyIdCard />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+          {t('settings.appearanceSection')}
+        </Text>
+        <View style={styles.themeRow}>
+          {(['system', 'light', 'dark'] as ThemePreference[]).map((option) => {
+            const selected = themePreference === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => setThemePreference(option)}
+                style={[
+                  styles.themeChip,
+                  {
+                    backgroundColor: selected ? colors.accent : colors.surfaceAlt,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text style={{ color: selected ? colors.onAccent : colors.textSecondary, fontSize: 13 }}>
+                  {t(`settings.theme.${option}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -135,6 +166,17 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
     gap: 8,
+  },
+  themeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  themeChip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   settingRow: {
     flexDirection: 'row',

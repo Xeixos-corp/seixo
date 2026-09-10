@@ -134,7 +134,13 @@
     "securitySection": "Security",
     "appLockLabel": "Require Face ID to open the app",
     "appLockHint": "When on, Seixo asks for Face ID (or your device passcode) every time you come back to it. Messages still arrive while it's locked.",
-    "appLockUnavailable": "This device has no Face ID, Touch ID or passcode set, so there is nothing for Seixo to check against."
+    "appLockUnavailable": "This device has no Face ID, Touch ID or passcode set, so there is nothing for Seixo to check against.",
+    "appearanceSection": "Appearance",
+    "theme": {
+      "system": "Automatic",
+      "light": "Light",
+      "dark": "Dark"
+    }
   },
   "screenshotWarning": {
     "title": "Screenshot",
