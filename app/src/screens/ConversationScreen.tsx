@@ -32,7 +32,7 @@ import { splitLinks } from '../messaging/links';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { setActiveConversation } from '../messaging/activeConversation';
 import { getCurrentUserId } from '../identity/currentUser';
-import { sendGroupMessage } from '../messaging/sendToGroup';
+import { sendGroupMessage, EmptyGroupError } from '../messaging/sendToGroup';
 import {
   addGroupMember,
   removeGroupMember,
@@ -754,7 +754,9 @@ export function ConversationScreen({ route, navigation }: Props) {
         scheduleExpiry(id, expiresAt);
       } catch (error) {
         setMessageStatus(channelId, localId, 'failed');
-        if (isUntrustedIdentityError(error)) {
+        if (error instanceof EmptyGroupError) {
+          setSendError(t('conversation.emptyGroupNotice'));
+        } else if (isUntrustedIdentityError(error)) {
           setSendSecurityWarning(t('conversation.securityWarningSend', { peerId: peerUserId }));
         }
         console.error('[ConversationScreen] failed to send message', error);
@@ -860,6 +862,14 @@ export function ConversationScreen({ route, navigation }: Props) {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {loadError ? (
           <Text style={[styles.errorText, { color: colors.danger }]}>{loadError}</Text>
+        ) : null}
+
+        {isGroup && (groupMemberIds?.length ?? 0) <= 1 ? (
+          <View style={[styles.securityWarning, { backgroundColor: colors.surfaceAlt, borderColor: colors.accent }]}>
+            <Text style={[styles.securityWarningText, { color: colors.textSecondary }]}>
+              {t('conversation.emptyGroupNotice')}
+            </Text>
+          </View>
         ) : null}
 
         {securityWarning ? (

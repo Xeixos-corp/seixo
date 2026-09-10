@@ -15,7 +15,11 @@ import {
   LOCAL_KYBER_PREKEY_ID,
   EXTRA_ONE_TIME_PREKEY_IDS,
 } from '../transport/identities';
-import { subscribeToMyNewMemberships, getOtherMember, fetchMyChannelsDetailed } from '../transport/channels';
+import {
+  subscribeToMyNewMemberships,
+  fetchChannelMembers,
+  fetchMyChannelsDetailed,
+} from '../transport/channels';
 import { fetchBlockedPeerIds } from '../transport/blocking';
 import { markAccountActive } from './lastActive';
 import { setCurrentUserId } from './currentUser';
@@ -199,10 +203,30 @@ async function finishRegistration(userId: string): Promise<void> {
   // createDirectChannel — see app/src/transport/channels.ts).
   subscribeToMyNewMemberships(userId, async (channelId) => {
     try {
-      const peerUserId = await getOtherMember(channelId, userId);
-      useConversationsStore
-        .getState()
-        .addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS });
+      // Asking "who is the other person" only makes sense in a two-person
+      // conversation. A group has several -- or, in the moment right after
+      // creating one, only you -- so this used to throw every time a group
+      // was created, and would have left a group added by someone else out of
+      // the list entirely.
+      const members = await fetchChannelMembers(channelId);
+      const others = members.filter((id) => id !== userId);
+
+      if (members.length > 2 || others.length === 0) {
+        useConversationsStore.getState().addConversation({
+          channelId,
+          peerUserId: '',
+          ttlSeconds: DEFAULT_TTL_SECONDS,
+          isGroup: true,
+          memberIds: members,
+        });
+        return;
+      }
+
+      useConversationsStore.getState().addConversation({
+        channelId,
+        peerUserId: others[0],
+        ttlSeconds: DEFAULT_TTL_SECONDS,
+      });
     } catch (error) {
       console.error('[registerIdentity] failed to resolve new channel membership', error);
     }

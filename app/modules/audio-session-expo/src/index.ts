@@ -15,18 +15,36 @@ type AudioSessionModule = {
  */
 const native = requireOptionalNativeModule<AudioSessionModule>('AudioSessionExpo');
 
+/**
+ * Every call here is best-effort and never throws.
+ *
+ * This module improves audio routing; it is not what makes recording or
+ * playback work. When an invalid category option made configureForPlayback
+ * fail with OSStatus -50, the rejection propagated and took the whole
+ * stop-recording path with it -- so a routing nicety broke the feature it was
+ * meant to improve, and the recording was lost. Nothing here is worth that.
+ */
+async function attempt(label: string, run: (() => Promise<void>) | undefined): Promise<void> {
+  if (!run) return;
+  try {
+    await run();
+  } catch (error) {
+    console.warn(`[audioSession] ${label} failed; continuing without it`, error);
+  }
+}
+
 export async function configureForPlayback(): Promise<void> {
-  await native?.configureForPlayback();
+  await attempt('configureForPlayback', native?.configureForPlayback.bind(native));
 }
 
 export async function configureForRecording(): Promise<void> {
-  await native?.configureForRecording();
+  await attempt('configureForRecording', native?.configureForRecording.bind(native));
 }
 
 export async function startEarpieceRouting(): Promise<void> {
-  await native?.startEarpieceRouting();
+  await attempt('startEarpieceRouting', native?.startEarpieceRouting.bind(native));
 }
 
 export async function stopEarpieceRouting(): Promise<void> {
-  await native?.stopEarpieceRouting();
+  await attempt('stopEarpieceRouting', native?.stopEarpieceRouting.bind(native));
 }

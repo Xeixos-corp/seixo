@@ -109,7 +109,8 @@
     "membersButton": "Members",
     "groupOwnerNote": "Only whoever created the group can add or remove people.",
     "groupNoHistoryNote": "Anyone joining now cannot see earlier messages — they were encrypted with keys that person does not have.",
-    "close": "Close"
+    "close": "Close",
+    "emptyGroupNotice": "This group has nobody in it yet. Tap Members to add people — messages can only be sent after that."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

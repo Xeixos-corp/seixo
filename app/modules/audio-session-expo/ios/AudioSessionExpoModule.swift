@@ -34,7 +34,11 @@ public class AudioSessionExpoModule: Module {
     /// Bluetooth as a headset rather than as headphones.
     AsyncFunction("configureForPlayback") {
       let session = AVAudioSession.sharedInstance()
-      try session.setCategory(.playback, mode: .default, options: [.allowBluetoothA2DP])
+      // No options. `.allowBluetoothA2DP` is only accepted with a
+      // record-capable category -- with `.playback`, high-quality Bluetooth
+      // output is already the default, and passing the option explicitly is
+      // an invalid parameter (OSStatus -50), which is what broke recording.
+      try session.setCategory(.playback, mode: .default)
       try session.setActive(true)
     }
 
@@ -46,10 +50,12 @@ public class AudioSessionExpoModule: Module {
     /// recording, and it is the only way to reach the microphone on AirPods.
     AsyncFunction("configureForRecording") {
       let session = AVAudioSession.sharedInstance()
+      // `.defaultToSpeaker` is dropped: nothing is played while recording, and
+      // forcing the speaker fights the Bluetooth route this exists to enable.
       try session.setCategory(
         .playAndRecord,
         mode: .default,
-        options: [.allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker]
+        options: [.allowBluetooth, .allowBluetoothA2DP]
       )
       try session.setActive(true)
     }

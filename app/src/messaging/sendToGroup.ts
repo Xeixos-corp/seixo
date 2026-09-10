@@ -6,6 +6,9 @@ import type { EncryptedEnvelope } from '../crypto';
 
 const REMOTE_DEVICE_ID = 1;
 
+/** Thrown when a group has no members besides this device. */
+export class EmptyGroupError extends Error {}
+
 /**
  * Encrypts one copy of a message for every other member and sends them as a
  * single row.
@@ -49,6 +52,13 @@ export async function sendGroupMessage(
         console.error('[sendToGroup] skipping unreachable member', memberId, error);
       }
     }
+  }
+
+  if (recipients.length === 0) {
+    // A group with nobody else in it. Distinct from "everyone is
+    // unreachable": there is nothing wrong, the group is simply empty, and
+    // the caller can say something useful instead of reporting a failure.
+    throw new EmptyGroupError();
   }
 
   if (Object.keys(perMember).length === 0) {

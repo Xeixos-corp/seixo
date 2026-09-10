@@ -109,7 +109,8 @@
     "membersButton": "Miembros",
     "groupOwnerNote": "Solo quien creó el grupo puede añadir o quitar personas.",
     "groupNoHistoryNote": "Quien entre ahora no verá los mensajes anteriores — se cifraron con claves que esa persona no tiene.",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "emptyGroupNotice": "Este grupo aún no tiene a nadie. Toca Miembros para añadir personas — solo después se pueden enviar mensajes."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
