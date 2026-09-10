@@ -173,6 +173,23 @@ impl FileIdentityKeyStore {
         }
     }
 
+    /// Forgets the stored identity key for one peer.
+    ///
+    /// Without this, a peer whose identity key changes is blocked forever:
+    /// `is_trusted_identity` compares against what was seen first and refuses
+    /// anything else, and there was no way to say "I checked, this really is
+    /// them". Reinstalling the app was enough to become permanently
+    /// unreachable to everyone who already knew you.
+    ///
+    /// Deliberately narrow: it forgets, it does not trust. The next message
+    /// establishes the new key on first use, exactly as the first one did --
+    /// so the decision to accept is the user's, made after comparing safety
+    /// numbers out of band, and never something the server can cause.
+    pub fn forget_identity(&mut self, address: &ProtocolAddress) -> Result<(), SignalNativeError> {
+        self.known_keys.remove(&address_key(address));
+        self.persist()
+    }
+
     pub fn identity_key_pair(&self) -> IdentityKeyPair {
         self.identity_key_pair
     }
@@ -487,6 +504,14 @@ impl FileSessionStore {
             sessions.insert(address.clone(), record.serialize()?);
         }
         self.file.save(&SessionFileData { sessions })
+    }
+
+    /// Drops the session with one peer. Used when the user deliberately
+    /// forgets that peer's identity: ratchet state derived from a key no
+    /// longer trusted is worse than none.
+    pub fn forget_session(&mut self, address: &ProtocolAddress) -> Result<(), SignalNativeError> {
+        self.sessions.remove(&address_key(address));
+        self.persist()
     }
 }
 

@@ -118,7 +118,8 @@
     "deleteGroupConfirm": "Eliminar",
     "groupNamePlaceholder": "Nome do grupo",
     "groupNameSave": "Guardar",
-    "groupNameFailed": "O nome não chegou aos outros membros."
+    "groupNameFailed": "O nome não chegou aos outros membros.",
+    "verifyButton": "Verificar"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -176,5 +177,11 @@
     "title": "Seixo",
     "body": "Tens uma mensagem nova.",
     "groupBody": "Foste adicionado a um grupo."
+  },
+  "safetyNumber": {
+    "title": "Código de segurança",
+    "explanation": "Compara este código com a outra pessoa — ao vivo, por chamada, ou por outro meio que não esta app. Se for igual nos dois telemóveis, ninguém está no meio a ler-vos.",
+    "resetWarning": "A chave de segurança desta pessoa mudou. Isso acontece quando reinstala a app — mas também é o que se veria se alguém estivesse a fazer-se passar por ela. Só continues se tiveres confirmado o código acima com ela por outro meio.",
+    "resetButton": "Confirmei — voltar a confiar"
   }
 }

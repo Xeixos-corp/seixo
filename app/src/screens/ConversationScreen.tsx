@@ -31,6 +31,7 @@ import { encodePayload } from '../messaging/payload';
 import { splitLinks } from '../messaging/links';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
 import { setActiveConversation } from '../messaging/activeConversation';
+import { SafetyNumberCard } from '../components/SafetyNumberCard';
 import { getCurrentUserId } from '../identity/currentUser';
 import { sendGroupMessage, EmptyGroupError } from '../messaging/sendToGroup';
 import {
@@ -230,7 +231,13 @@ export function ConversationScreen({ route, navigation }: Props) {
                 {t('conversation.membersButton')}
               </Text>
             </Pressable>
-          ) : null}
+          ) : (
+            <Pressable onPress={() => setShowSafetyNumber(true)} hitSlop={8}>
+              <Text style={{ color: colors.accent, fontSize: 13 }}>
+                {t('conversation.verifyButton')}
+              </Text>
+            </Pressable>
+          )}
           {SUPPORT_CONTACT_EMAIL ? (
             <Pressable onPress={handleReport} hitSlop={8}>
               <Text style={{ color: colors.accent, fontSize: 13 }}>{t('conversation.reportButton')}</Text>
@@ -262,6 +269,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const [sendError, setSendError] = useState<string | null>(null);
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showSafetyNumber, setShowSafetyNumber] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [newMemberId, setNewMemberId] = useState('');
   const [groupNameDraft, setGroupNameDraft] = useState('');
@@ -291,6 +299,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const untrusted = useSecurityWarningsStore(
     (state) => state.untrustedByChannel[channelId] === true,
   );
+  const clearUntrusted = useSecurityWarningsStore((state) => state.clearUntrusted);
   const [sendSecurityWarning, setSendSecurityWarning] = useState<string | null>(null);
   const securityWarning = untrusted
     ? t('conversation.securityWarningDecrypt', { peerId: peerUserId })
@@ -1190,6 +1199,34 @@ export function ConversationScreen({ route, navigation }: Props) {
           </Pressable>
         </View>
         <Modal
+          visible={showSafetyNumber}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowSafetyNumber(false)}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowSafetyNumber(false)}>
+            <Pressable style={styles.safetyWrapper} onPress={(event) => event.stopPropagation()}>
+              <SafetyNumberCard
+                peerUserId={peerUserId}
+                // Offered only when the conversation is actually blocked by a
+                // changed key. A permanent "trust anything" button would be a
+                // reflex rather than a decision.
+                showResetOption={untrusted}
+                onReset={() => {
+                  clearUntrusted(channelId);
+                  setShowSafetyNumber(false);
+                }}
+              />
+              <Pressable onPress={() => setShowSafetyNumber(false)} style={styles.membersClose}>
+                <Text style={{ color: colors.accent, fontWeight: '600' }}>
+                  {t('conversation.close')}
+                </Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal
           visible={showMembers}
           transparent
           animationType="fade"
@@ -1371,6 +1408,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+  },
+  safetyWrapper: {
+    width: '100%',
+    gap: 8,
   },
   membersCard: {
     width: '100%',

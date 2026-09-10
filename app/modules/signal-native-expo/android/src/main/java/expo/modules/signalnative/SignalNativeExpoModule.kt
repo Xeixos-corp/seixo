@@ -118,6 +118,14 @@ class SignalNativeExpoModule : Module() {
       )
     }
 
+    Function("safetyNumber") { remoteUserId: String, remoteIdentityKeyBase64: String ->
+      requireDevice().safetyNumber(remoteUserId, remoteIdentityKeyBase64)
+    }
+
+    Function("forgetPeerIdentity") { remoteUserId: String, remoteDeviceId: Int ->
+      requireDevice().forgetPeerIdentity(remoteUserId, remoteDeviceId.toUInt())
+    }
+
     Function("establishSession") { remoteUserId: String, remoteDeviceId: Int, bundle: Map<String, Any?> ->
       translatingSignalErrors {
         requireDevice().establishSession(remoteUserId, remoteDeviceId.toUInt(), mapToBundle(bundle))

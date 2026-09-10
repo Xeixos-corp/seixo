@@ -88,6 +88,24 @@ export function prunePrekeys(keepSignedIds: number[], keepKyberIds: number[]): v
   SignalNativeExpoModule.prunePrekeys(keepSignedIds, keepKyberIds);
 }
 
+/**
+ * The 60-digit code both sides compare to confirm nobody is impersonating
+ * either of them. Identical on both phones, and different for every pair.
+ */
+export function safetyNumber(remoteUserId: string, remoteIdentityKeyBase64: string): string {
+  requireInitialized();
+  return SignalNativeExpoModule.safetyNumber(remoteUserId, remoteIdentityKeyBase64);
+}
+
+/**
+ * Forgets a peer's identity so their next message is accepted afresh. The way
+ * back from "their key changed", which used to block a conversation forever.
+ */
+export function forgetPeerIdentity(remoteUserId: string, remoteDeviceId: number): void {
+  requireInitialized();
+  SignalNativeExpoModule.forgetPeerIdentity(remoteUserId, remoteDeviceId);
+}
+
 export function establishSession(
   remoteUserId: string,
   remoteDeviceId: number,

@@ -18,6 +18,8 @@ declare class SignalNativeExpoModule extends NativeModule<{}> {
   generateExtraOneTimePrekeys(ids: number[]): OneTimePrekeyPublic[];
   rotateSignedPrekeys(signedPrekeyId: number, kyberPrekeyId: number): RotatedPrekeys;
   prunePrekeys(keepSignedIds: number[], keepKyberIds: number[]): void;
+  safetyNumber(remoteUserId: string, remoteIdentityKeyBase64: string): string;
+  forgetPeerIdentity(remoteUserId: string, remoteDeviceId: number): void;
   establishSession(remoteUserId: string, remoteDeviceId: number, bundle: PreKeyBundleData): void;
   encrypt(remoteUserId: string, remoteDeviceId: number, plaintext: string): EncryptedEnvelope;
   decrypt(remoteUserId: string, remoteDeviceId: number, envelope: EncryptedEnvelope): string;

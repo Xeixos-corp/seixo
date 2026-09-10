@@ -23,6 +23,7 @@ use libsignal_protocol::{
     PublicKey, SignalMessage, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore, Timestamp,
     kem, message_decrypt, message_encrypt, process_prekey_bundle,
 };
+use libsignal_protocol::Fingerprint;
 use rand::TryRngCore as _;
 
 mod store;
@@ -250,6 +251,67 @@ impl SignalDevice {
                 kyber_prekey_public_base64: b64_encode(kyber_record.public_key()?.serialize()),
                 kyber_prekey_signature_base64: b64_encode(kyber_record.signature()?),
             })
+        })
+    }
+
+    /// The safety number for a conversation: a value both sides can compare
+    /// out loud, or by QR, to confirm nobody is impersonating either of them.
+    ///
+    /// Derived from the two identity keys and the two user ids, so it is the
+    /// same on both phones and different for every pair. It cannot be forged
+    /// without the private key it is derived from, which is what makes
+    /// comparing it worth anything: a server that swapped a key would produce
+    /// a different number, and the two people would see the mismatch.
+    ///
+    /// 5200 iterations and version 2 match Signal's own parameters, so the
+    /// format is the familiar sixty digits in twelve groups of five.
+    pub fn safety_number(
+        &self,
+        remote_user_id: String,
+        remote_identity_key_base64: String,
+    ) -> Result<String, SignalNativeError> {
+        let remote_key = IdentityKey::decode(&b64_decode(&remote_identity_key_base64)?)?;
+        let fingerprint = Fingerprint::new(
+            2,
+            5200,
+            self.address.name().as_bytes(),
+            self.identity_key_pair.identity_key(),
+            remote_user_id.as_bytes(),
+            &remote_key,
+        )
+        .map_err(|e| SignalNativeError::Protocol(e.to_string()))?;
+
+        fingerprint
+            .display_string()
+            .map_err(|e| SignalNativeError::Protocol(e.to_string()))
+    }
+
+    /// Forgets what is known about a peer's identity, so the next message
+    /// from them is accepted as a first contact would be.
+    ///
+    /// The escape hatch for a peer who reinstalled: until now their changed
+    /// key blocked the conversation permanently, with no way out short of
+    /// wiping the local store and losing every other conversation with it.
+    ///
+    /// The session goes too. Keeping it would leave ratchet state derived
+    /// from a key this device has just agreed to stop trusting, which is
+    /// worse than starting over.
+    ///
+    /// Deliberately not called "trust": it does not accept any particular
+    /// key, it only stops refusing. Whoever writes next establishes the new
+    /// identity, and the user is expected to have compared safety numbers
+    /// first -- the app says so before offering this.
+    pub fn forget_peer_identity(
+        &self,
+        remote_user_id: String,
+        remote_device_id: u32,
+    ) -> Result<(), SignalNativeError> {
+        blocking_runtime().block_on(async {
+            let address = make_address(&remote_user_id, remote_device_id)?;
+            let mut store = self.store.lock().expect("store mutex poisoned");
+            store.identity_store.forget_identity(&address)?;
+            store.session_store.forget_session(&address)?;
+            Ok(())
         })
     }
 
@@ -636,6 +698,51 @@ mod tests {
         // A real prune keeps what it is told to keep.
         bob.rotate_signed_prekeys(2, 2).unwrap();
         bob.prune_prekeys(vec![2], vec![2]).unwrap();
+    }
+
+    /// The bug this fixes: a peer who reinstalls becomes permanently
+    /// unreachable, and there is no way back short of wiping the local store
+    /// and losing every other conversation with it. This happened for real on
+    /// 2026-09-05 -- messages arrived that could never be read.
+    #[test]
+    fn a_peer_who_reinstalls_can_be_trusted_again_after_verifying() {
+        let key = test_master_key();
+        let alice =
+            SignalDevice::new("alice".to_string(), 1, key.clone(), temp_storage_dir("v-alice"))
+                .unwrap();
+        let bob = SignalDevice::new("bob".to_string(), 1, key.clone(), temp_storage_dir("v-bob"))
+            .unwrap();
+
+        alice
+            .establish_session("bob".to_string(), 1, bob.generate_prekey_bundle(1, 1, 1).unwrap())
+            .unwrap();
+        let hello = alice.encrypt("bob".to_string(), 1, "before".to_string()).unwrap();
+        assert_eq!(bob.decrypt("alice".to_string(), 1, hello).unwrap(), "before");
+
+        // Bob reinstalls: same name, brand new identity key.
+        let bob2 = SignalDevice::new("bob".to_string(), 1, key, temp_storage_dir("v-bob2")).unwrap();
+        let new_bundle = bob2.generate_prekey_bundle(1, 1, 1).unwrap();
+
+        // Alice refuses, which is the protection working.
+        assert!(alice.establish_session("bob".to_string(), 1, new_bundle).is_err());
+
+        // She compares safety numbers with Bob out of band. Both sides must
+        // compute the same value, or comparing them would prove nothing.
+        let alice_key = alice.identity_public_key_base64();
+        let bob_key = bob2.identity_public_key_base64();
+        let seen_by_alice = alice.safety_number("bob".to_string(), bob_key).unwrap();
+        let seen_by_bob = bob2.safety_number("alice".to_string(), alice_key).unwrap();
+        assert_eq!(seen_by_alice, seen_by_bob);
+        assert_eq!(seen_by_alice.chars().filter(|c| c.is_ascii_digit()).count(), 60);
+
+        // Satisfied it is really Bob, she forgets the old key -- and can talk
+        // to him again.
+        alice.forget_peer_identity("bob".to_string(), 1).unwrap();
+        alice
+            .establish_session("bob".to_string(), 1, bob2.generate_prekey_bundle(2, 2, 2).unwrap())
+            .unwrap();
+        let again = alice.encrypt("bob".to_string(), 1, "after".to_string()).unwrap();
+        assert_eq!(bob2.decrypt("alice".to_string(), 1, again).unwrap(), "after");
     }
 
     /// Proves the real libsignal-protocol integration end to end: Alice

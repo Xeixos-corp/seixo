@@ -118,7 +118,8 @@
     "deleteGroupConfirm": "Eliminar",
     "groupNamePlaceholder": "Nombre del grupo",
     "groupNameSave": "Guardar",
-    "groupNameFailed": "El nombre no llegó a los demás miembros."
+    "groupNameFailed": "El nombre no llegó a los demás miembros.",
+    "verifyButton": "Verificar"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -176,5 +177,11 @@
     "title": "Seixo",
     "body": "Tienes un mensaje nuevo.",
     "groupBody": "Te añadieron a un grupo."
+  },
+  "safetyNumber": {
+    "title": "Código de seguridad",
+    "explanation": "Compara este código con la otra persona — en persona, por llamada, o de cualquier forma que no sea esta app. Si coincide en ambos teléfonos, nadie está en medio leyéndoos.",
+    "resetWarning": "La clave de seguridad de esta persona cambió. Ocurre cuando reinstala la app — pero también es lo que verías si alguien la estuviera suplantando. Continúa solo si has confirmado el código de arriba con ella por otro medio.",
+    "resetButton": "Confirmado — volver a confiar"
   }
 }

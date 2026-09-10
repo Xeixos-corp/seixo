@@ -151,11 +151,7 @@ wired up further. What changed: this now surfaces to the UI as a specific,
 readable warning (`ERR_UNTRUSTED_IDENTITY` — see
 `SignalNativeExpoModule.kt`/`.swift`, `crypto/index.ts::isUntrustedIdentityError`,
 and the banners in `ConversationScreen.tsx`/`ConversationListScreen.tsx`)
-instead of a swallowed `console.error` with no UI signal at all. Still
-missing: any way to *deliberately* re-trust a peer after manually verifying
-their new key out of band (no safety-number/fingerprint comparison UI
-exists yet) — right now a changed identity permanently blocks that
-conversation until the on-disk identity store is wiped.
+instead of a swallowed `console.error` with no UI signal at all. **Both gaps closed on 2026-09-10** — see "Verifying a contact" below.
 
 ## Disappearing messages
 
@@ -1420,3 +1416,37 @@ than invisible. It does not prevent the attack.
 **Joining shows no history**, and the app says so rather than presenting an
 empty group. Earlier messages were encrypted to keys the new member does not
 have; no amount of interface work changes that.
+
+
+### Verifying a contact, and recovering from a changed key (2026-09-10)
+
+Two gaps that this document had listed as open, and which had already cost
+real messages: on 2026-09-05 a peer's identity key changed and the
+conversation became permanently unreadable, with no route back short of
+wiping the local store and losing every other conversation with it.
+
+**Safety numbers.** A conversation now shows a 60-digit code derived from both
+identity keys and both user ids, using Signal's own parameters. It is
+identical on both phones and different for every pair, and it cannot be
+produced without the private key behind it. Comparing it out of band -- in
+person, by call, anything that is not this app -- is what turns
+trust-on-first-use into verified trust: a server that substituted a key would
+produce a different number, and the two people would see the mismatch. There
+is a Rust test asserting both sides compute the same value, because a code
+that differed by side would prove nothing while looking reassuring.
+
+**Re-trusting after verification.** `forget_peer_identity` drops the stored
+identity *and* the session for one peer, so their next message is accepted as
+a first contact would be. Deliberately named for what it does: it forgets, it
+does not trust. It accepts no particular key -- it only stops refusing, and
+whoever writes next establishes the new identity.
+
+Two decisions about how this is offered. The button appears only when a
+conversation is actually blocked by a changed key, never as a standing option:
+a permanent "trust anything" control is a reflex rather than a decision. And
+it sits below the safety number rather than beside the warning, with wording
+that says a changed key is exactly what impersonation would also look like --
+so the number is on screen before the button can be pressed.
+
+What it still cannot do is force anyone to actually compare. A user who taps
+through is back to trust-on-first-use, and no interface fixes that.

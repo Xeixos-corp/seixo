@@ -212,3 +212,23 @@ export async function replaceSignedPrekey(
   });
   if (error) throw new Error(error.message);
 }
+
+/**
+ * A peer's published identity key, for computing the safety number.
+ *
+ * Read from the server, which is exactly why comparing the resulting number
+ * out of band matters: if the server ever substituted a key, the number would
+ * differ from the one the other person sees, and the mismatch is the whole
+ * point of checking.
+ */
+export async function fetchPeerIdentityKey(peerUserId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('identities')
+    .select('identity_public_key')
+    .eq('user_id', peerUserId)
+    .single();
+  if (error || !data) {
+    throw new Error(`Could not read identity for ${peerUserId}: ${error?.message ?? 'not found'}`);
+  }
+  return data.identity_public_key as string;
+}

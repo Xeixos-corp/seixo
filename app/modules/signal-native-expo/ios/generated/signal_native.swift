@@ -519,6 +519,25 @@ public protocol SignalDeviceProtocol : AnyObject {
     func establishSession(remoteUserId: String, remoteDeviceId: UInt32, bundle: PreKeyBundleData) throws 
     
     /**
+     * Forgets what is known about a peer's identity, so the next message
+     * from them is accepted as a first contact would be.
+     *
+     * The escape hatch for a peer who reinstalled: until now their changed
+     * key blocked the conversation permanently, with no way out short of
+     * wiping the local store and losing every other conversation with it.
+     *
+     * The session goes too. Keeping it would leave ratchet state derived
+     * from a key this device has just agreed to stop trusting, which is
+     * worse than starting over.
+     *
+     * Deliberately not called "trust": it does not accept any particular
+     * key, it only stops refusing. Whoever writes next establishes the new
+     * identity, and the user is expected to have compared safety numbers
+     * first -- the app says so before offering this.
+     */
+    func forgetPeerIdentity(remoteUserId: String, remoteDeviceId: UInt32) throws 
+    
+    /**
      * Generates and stores `ids.len()` additional one-time EC prekeys,
      * independent of the signed/Kyber prekey (unlike `generate_prekey_bundle`,
      * this never touches them, so it's safe to call repeatedly without
@@ -574,6 +593,21 @@ public protocol SignalDeviceProtocol : AnyObject {
      * Does not touch the identity key or any one-time prekey.
      */
     func rotateSignedPrekeys(signedPrekeyId: UInt32, kyberPrekeyId: UInt32) throws  -> RotatedPrekeys
+    
+    /**
+     * The safety number for a conversation: a value both sides can compare
+     * out loud, or by QR, to confirm nobody is impersonating either of them.
+     *
+     * Derived from the two identity keys and the two user ids, so it is the
+     * same on both phones and different for every pair. It cannot be forged
+     * without the private key it is derived from, which is what makes
+     * comparing it worth anything: a server that swapped a key would produce
+     * a different number, and the two people would see the mismatch.
+     *
+     * 5200 iterations and version 2 match Signal's own parameters, so the
+     * format is the familiar sixty digits in twelve groups of five.
+     */
+    func safetyNumber(remoteUserId: String, remoteIdentityKeyBase64: String) throws  -> String
     
 }
 
@@ -688,6 +722,31 @@ open func establishSession(remoteUserId: String, remoteDeviceId: UInt32, bundle:
 }
     
     /**
+     * Forgets what is known about a peer's identity, so the next message
+     * from them is accepted as a first contact would be.
+     *
+     * The escape hatch for a peer who reinstalled: until now their changed
+     * key blocked the conversation permanently, with no way out short of
+     * wiping the local store and losing every other conversation with it.
+     *
+     * The session goes too. Keeping it would leave ratchet state derived
+     * from a key this device has just agreed to stop trusting, which is
+     * worse than starting over.
+     *
+     * Deliberately not called "trust": it does not accept any particular
+     * key, it only stops refusing. Whoever writes next establishes the new
+     * identity, and the user is expected to have compared safety numbers
+     * first -- the app says so before offering this.
+     */
+open func forgetPeerIdentity(remoteUserId: String, remoteDeviceId: UInt32)throws  {try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_method_signaldevice_forget_peer_identity(self.uniffiClonePointer(),
+        FfiConverterString.lower(remoteUserId),
+        FfiConverterUInt32.lower(remoteDeviceId),$0
+    )
+}
+}
+    
+    /**
      * Generates and stores `ids.len()` additional one-time EC prekeys,
      * independent of the signed/Kyber prekey (unlike `generate_prekey_bundle`,
      * this never touches them, so it's safe to call repeatedly without
@@ -772,6 +831,28 @@ open func rotateSignedPrekeys(signedPrekeyId: UInt32, kyberPrekeyId: UInt32)thro
     uniffi_signal_native_fn_method_signaldevice_rotate_signed_prekeys(self.uniffiClonePointer(),
         FfiConverterUInt32.lower(signedPrekeyId),
         FfiConverterUInt32.lower(kyberPrekeyId),$0
+    )
+})
+}
+    
+    /**
+     * The safety number for a conversation: a value both sides can compare
+     * out loud, or by QR, to confirm nobody is impersonating either of them.
+     *
+     * Derived from the two identity keys and the two user ids, so it is the
+     * same on both phones and different for every pair. It cannot be forged
+     * without the private key it is derived from, which is what makes
+     * comparing it worth anything: a server that swapped a key would produce
+     * a different number, and the two people would see the mismatch.
+     *
+     * 5200 iterations and version 2 match Signal's own parameters, so the
+     * format is the familiar sixty digits in twelve groups of five.
+     */
+open func safetyNumber(remoteUserId: String, remoteIdentityKeyBase64: String)throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_method_signaldevice_safety_number(self.uniffiClonePointer(),
+        FfiConverterString.lower(remoteUserId),
+        FfiConverterString.lower(remoteIdentityKeyBase64),$0
     )
 })
 }
@@ -1408,6 +1489,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_signal_native_checksum_method_signaldevice_establish_session() != 51602) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_signal_native_checksum_method_signaldevice_forget_peer_identity() != 31570) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_signal_native_checksum_method_signaldevice_generate_extra_one_time_prekeys() != 26691) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -1421,6 +1505,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_signal_native_checksum_method_signaldevice_rotate_signed_prekeys() != 42226) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_method_signaldevice_safety_number() != 53227) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_signal_native_checksum_constructor_signaldevice_new() != 2486) {

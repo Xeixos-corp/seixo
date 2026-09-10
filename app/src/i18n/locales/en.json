@@ -118,7 +118,8 @@
     "deleteGroupConfirm": "Delete",
     "groupNamePlaceholder": "Group name",
     "groupNameSave": "Save",
-    "groupNameFailed": "The name didn't reach the other members."
+    "groupNameFailed": "The name didn't reach the other members.",
+    "verifyButton": "Verify"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
@@ -176,5 +177,11 @@
     "title": "Seixo",
     "body": "You have a new message.",
     "groupBody": "You were added to a group."
+  },
+  "safetyNumber": {
+    "title": "Safety number",
+    "explanation": "Compare this code with the other person — in person, by call, or any way other than this app. If it matches on both phones, nobody is in the middle reading you.",
+    "resetWarning": "This person's security key changed. That happens when they reinstall the app — but it is also what you would see if someone were impersonating them. Only continue if you have confirmed the code above with them by other means.",
+    "resetButton": "I confirmed — trust again"
   }
 }

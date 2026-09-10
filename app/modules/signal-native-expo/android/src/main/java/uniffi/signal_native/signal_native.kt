@@ -732,6 +732,10 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -763,6 +767,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_signal_native_fn_method_signaldevice_establish_session(`ptr`: Pointer,`remoteUserId`: RustBuffer.ByValue,`remoteDeviceId`: Int,`bundle`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_signal_native_fn_method_signaldevice_forget_peer_identity(`ptr`: Pointer,`remoteUserId`: RustBuffer.ByValue,`remoteDeviceId`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_signal_native_fn_method_signaldevice_generate_extra_one_time_prekeys(`ptr`: Pointer,`ids`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_signal_native_fn_method_signaldevice_generate_prekey_bundle(`ptr`: Pointer,`oneTimePrekeyId`: Int,`signedPrekeyId`: Int,`kyberPrekeyId`: Int,uniffi_out_err: UniffiRustCallStatus, 
@@ -772,6 +778,8 @@ internal interface UniffiLib : Library {
     fun uniffi_signal_native_fn_method_signaldevice_prune_prekeys(`ptr`: Pointer,`keepSignedIds`: RustBuffer.ByValue,`keepKyberIds`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_signal_native_fn_method_signaldevice_rotate_signed_prekeys(`ptr`: Pointer,`signedPrekeyId`: Int,`kyberPrekeyId`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_signal_native_fn_method_signaldevice_safety_number(`ptr`: Pointer,`remoteUserId`: RustBuffer.ByValue,`remoteIdentityKeyBase64`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_signal_native_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -891,6 +899,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_establish_session(
     ): Short
+    fun uniffi_signal_native_checksum_method_signaldevice_forget_peer_identity(
+    ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_generate_extra_one_time_prekeys(
     ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_generate_prekey_bundle(
@@ -900,6 +910,8 @@ internal interface UniffiLib : Library {
     fun uniffi_signal_native_checksum_method_signaldevice_prune_prekeys(
     ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_rotate_signed_prekeys(
+    ): Short
+    fun uniffi_signal_native_checksum_method_signaldevice_safety_number(
     ): Short
     fun uniffi_signal_native_checksum_constructor_signaldevice_new(
     ): Short
@@ -929,6 +941,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_signal_native_checksum_method_signaldevice_establish_session() != 51602.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_signal_native_checksum_method_signaldevice_forget_peer_identity() != 31570.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_signal_native_checksum_method_signaldevice_generate_extra_one_time_prekeys() != 26691.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -942,6 +957,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_signal_native_checksum_method_signaldevice_rotate_signed_prekeys() != 42226.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_method_signaldevice_safety_number() != 53227.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_signal_native_checksum_constructor_signaldevice_new() != 2486.toShort()) {
@@ -1307,6 +1325,25 @@ public interface SignalDeviceInterface {
     fun `establishSession`(`remoteUserId`: kotlin.String, `remoteDeviceId`: kotlin.UInt, `bundle`: PreKeyBundleData)
     
     /**
+     * Forgets what is known about a peer's identity, so the next message
+     * from them is accepted as a first contact would be.
+     *
+     * The escape hatch for a peer who reinstalled: until now their changed
+     * key blocked the conversation permanently, with no way out short of
+     * wiping the local store and losing every other conversation with it.
+     *
+     * The session goes too. Keeping it would leave ratchet state derived
+     * from a key this device has just agreed to stop trusting, which is
+     * worse than starting over.
+     *
+     * Deliberately not called "trust": it does not accept any particular
+     * key, it only stops refusing. Whoever writes next establishes the new
+     * identity, and the user is expected to have compared safety numbers
+     * first -- the app says so before offering this.
+     */
+    fun `forgetPeerIdentity`(`remoteUserId`: kotlin.String, `remoteDeviceId`: kotlin.UInt)
+    
+    /**
      * Generates and stores `ids.len()` additional one-time EC prekeys,
      * independent of the signed/Kyber prekey (unlike `generate_prekey_bundle`,
      * this never touches them, so it's safe to call repeatedly without
@@ -1362,6 +1399,21 @@ public interface SignalDeviceInterface {
      * Does not touch the identity key or any one-time prekey.
      */
     fun `rotateSignedPrekeys`(`signedPrekeyId`: kotlin.UInt, `kyberPrekeyId`: kotlin.UInt): RotatedPrekeys
+    
+    /**
+     * The safety number for a conversation: a value both sides can compare
+     * out loud, or by QR, to confirm nobody is impersonating either of them.
+     *
+     * Derived from the two identity keys and the two user ids, so it is the
+     * same on both phones and different for every pair. It cannot be forged
+     * without the private key it is derived from, which is what makes
+     * comparing it worth anything: a server that swapped a key would produce
+     * a different number, and the two people would see the mismatch.
+     *
+     * 5200 iterations and version 2 match Signal's own parameters, so the
+     * format is the familiar sixty digits in twelve groups of five.
+     */
+    fun `safetyNumber`(`remoteUserId`: kotlin.String, `remoteIdentityKeyBase64`: kotlin.String): kotlin.String
     
     companion object
 }
@@ -1514,6 +1566,35 @@ open class SignalDevice: Disposable, AutoCloseable, SignalDeviceInterface {
 
     
     /**
+     * Forgets what is known about a peer's identity, so the next message
+     * from them is accepted as a first contact would be.
+     *
+     * The escape hatch for a peer who reinstalled: until now their changed
+     * key blocked the conversation permanently, with no way out short of
+     * wiping the local store and losing every other conversation with it.
+     *
+     * The session goes too. Keeping it would leave ratchet state derived
+     * from a key this device has just agreed to stop trusting, which is
+     * worse than starting over.
+     *
+     * Deliberately not called "trust": it does not accept any particular
+     * key, it only stops refusing. Whoever writes next establishes the new
+     * identity, and the user is expected to have compared safety numbers
+     * first -- the app says so before offering this.
+     */
+    @Throws(SignalNativeException::class)override fun `forgetPeerIdentity`(`remoteUserId`: kotlin.String, `remoteDeviceId`: kotlin.UInt)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_method_signaldevice_forget_peer_identity(
+        it, FfiConverterString.lower(`remoteUserId`),FfiConverterUInt.lower(`remoteDeviceId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
      * Generates and stores `ids.len()` additional one-time EC prekeys,
      * independent of the signed/Kyber prekey (unlike `generate_prekey_bundle`,
      * this never touches them, so it's safe to call repeatedly without
@@ -1616,6 +1697,32 @@ open class SignalDevice: Disposable, AutoCloseable, SignalDeviceInterface {
     uniffiRustCallWithError(SignalNativeException) { _status ->
     UniffiLib.INSTANCE.uniffi_signal_native_fn_method_signaldevice_rotate_signed_prekeys(
         it, FfiConverterUInt.lower(`signedPrekeyId`),FfiConverterUInt.lower(`kyberPrekeyId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The safety number for a conversation: a value both sides can compare
+     * out loud, or by QR, to confirm nobody is impersonating either of them.
+     *
+     * Derived from the two identity keys and the two user ids, so it is the
+     * same on both phones and different for every pair. It cannot be forged
+     * without the private key it is derived from, which is what makes
+     * comparing it worth anything: a server that swapped a key would produce
+     * a different number, and the two people would see the mismatch.
+     *
+     * 5200 iterations and version 2 match Signal's own parameters, so the
+     * format is the familiar sixty digits in twelve groups of five.
+     */
+    @Throws(SignalNativeException::class)override fun `safetyNumber`(`remoteUserId`: kotlin.String, `remoteIdentityKeyBase64`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_method_signaldevice_safety_number(
+        it, FfiConverterString.lower(`remoteUserId`),FfiConverterString.lower(`remoteIdentityKeyBase64`),_status)
 }
     }
     )
