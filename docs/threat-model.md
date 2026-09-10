@@ -1320,8 +1320,10 @@ something this document had wrong.
 and registration id; the prekeys; the push token and the notification strings
 that go with it; the date -- not time -- of last use; and the block list,
 which deliberately never expires because a block is a standing safety
-preference rather than conversation. No email and no phone number: accounts
-are anonymous.
+preference rather than conversation. No phone number. **No email either --
+until the account makes a recovery backup**, which attaches a derived
+address; see "Recovery backups" below for exactly what that address is and
+what it does and does not reveal.
 
 **Per conversation, while it is alive:** which channels exist, their kind and
 owner, who belongs to each, and for every message its channel, exact
@@ -1458,3 +1460,79 @@ so the number is on screen before the button can be pressed.
 
 What it still cannot do is force anyone to actually compare. A user who taps
 through is back to trust-on-first-use, and no interface fixes that.
+
+
+### Recovery backups, and what they cost (2026-09-10)
+
+Losing a phone used to mean losing the account. There was no export and no
+migration, so a replacement device meant a new identity, a new id, and every
+contact adding you again and re-verifying. This adds a way back, and it is
+worth being precise about what was given up to get it.
+
+**What the backup contains.** The identity key pair and the account's user
+id. Not messages, not sessions, not prekey private halves. Keeping the
+identity is the whole point -- a contact who compared safety numbers with you
+last month does not have to do it again -- and excluding session state is not
+an omission but a requirement: two devices advancing the same Double Ratchet
+chain reuse message keys and destroy messages silently. That failure has
+already been paid for twice in this project, and a backup is not the place to
+risk it a third time. Everything but the identity is rebuilt from scratch,
+which the protocol already does correctly on first contact.
+
+**Where it lives.** In a file the user puts wherever they choose, handed over
+through the system share sheet. Deliberately *not* on our server. A copy held
+for every user would be the only thing in this app that never expires --
+messages, channels and IP addresses all delete themselves -- and it would be
+the single most valuable thing to steal, with unlimited time to attack it
+offline. Keeping it out of the server means the risk lives where the user can
+see and choose it: keep it in iCloud and you are trusting iCloud; keep it
+only on the phone and losing the phone loses the backup.
+
+**How it is protected.** A 12-word BIP-39 phrase, 128 bits from the system
+CSPRNG, seals the file with AES-256-GCM under an HKDF-SHA256-derived key.
+HKDF rather than a slow password hash is a deliberate choice tied to the
+phrase being *generated* rather than chosen: there is no dictionary to run
+against 128 random bits, so stretching buys nothing. If a user-chosen
+passphrase is ever allowed, that must become Argon2id first -- the code says
+so at the point where it would have to change. The format magic is passed as
+AEAD associated data rather than merely prefixed, so an edited header fails
+to open rather than opening as something else. Wrong phrase, truncated file
+and tampered bytes all fail identically, so nothing tells an attacker which
+guess was closest.
+
+**The new cost, stated plainly: the account gains an email address.** Getting
+back into the *same* account needs a credential that outlives the old device.
+Rather than store a token that expires, the phrase derives an address and
+password deterministically, so nothing has to be kept anywhere. The address
+is a hash of the phrase on `@seixo.invalid`, a domain reserved by RFC 2606
+that can never resolve, so no mail can be sent to it even by accident. It
+reveals nothing about the person -- it is a hash of a secret the server never
+sees -- but it is honest to record that `auth.users` now holds a permanent,
+non-expiring per-account identifier for anyone who has made a backup, where
+before it held none. The password carries the phrase's full entropy, so
+guessing it is guessing the phrase.
+
+**What a backup cannot do.** It cannot bring back messages: they were never
+in it, and the ones sealed to the old device's prekeys are unreadable by
+anyone, forever, because the private halves went with the phone. It cannot be
+recovered without the phrase -- there is no reset, no support path, and no
+copy on our side. And it cannot be used to restore onto a device that already
+has an identity: that is refused rather than merged, because replacing an
+identity while the sessions built on it stay in place fails later and far
+away from the cause.
+
+**Known weak points, not yet addressed.** The screen offers to copy the
+phrase to the clipboard, which is a convenience with a real cost: other apps
+can read the clipboard, and on iOS it may sync to other devices via
+Handoff. It is offered because the alternative -- users photographing the
+screen instead -- is worse, but it is the weakest link on that screen and
+should probably grow a warning or a timed clear. And a 12-word phrase carries
+only 4 checksum bits, so roughly one mistyped word in sixteen still passes
+validation; the AEAD is what makes those fail safely, as a refusal to open
+rather than as wrong plaintext.
+
+**Verified, not assumed.** Twelve Rust tests cover this, including that a
+restored identity produces the same safety number a contact had already
+checked, that only the right phrase opens a blob, that a single flipped byte
+is refused, and that the derived credentials come back identical from the
+same phrase typed with different spacing and capitals.
