@@ -13,6 +13,8 @@ export async function upsertPushToken(
   token: string,
   notificationTitle: string,
   notificationBody: string,
+  /** Shown when someone adds this user to a group, rather than for a message. */
+  notificationGroupBody: string,
 ): Promise<void> {
   // Claim the token for this identity first. A push token belongs to the
   // *device*, not to an identity -- so creating a new identity on a phone
@@ -33,6 +35,7 @@ export async function upsertPushToken(
       token,
       notification_title: notificationTitle,
       notification_body: notificationBody,
+      notification_group_body: notificationGroupBody,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },

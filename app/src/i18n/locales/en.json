@@ -160,6 +160,7 @@
   },
   "notifications": {
     "title": "Seixo",
-    "body": "You have a new message."
+    "body": "You have a new message.",
+    "groupBody": "You were added to a group."
   }
 }

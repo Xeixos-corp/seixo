@@ -160,6 +160,7 @@
   },
   "notifications": {
     "title": "Seixo",
-    "body": "Tens uma mensagem nova."
+    "body": "Tens uma mensagem nova.",
+    "groupBody": "Foste adicionado a um grupo."
   }
 }

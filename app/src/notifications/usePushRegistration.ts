@@ -130,6 +130,7 @@ export function usePushRegistration(): void {
         // also keeps the text off the lock screen of a phone someone else is
         // holding.
         t('notifications.body'),
+        t('notifications.groupBody'),
       );
       registeredForUserId = userId;
     }
