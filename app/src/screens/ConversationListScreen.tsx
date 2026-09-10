@@ -256,17 +256,37 @@ export function ConversationListScreen({ navigation }: Props) {
           )}
         </Pressable>
       </View>
-      <Pressable onPress={() => setShowMyId(true)} hitSlop={8} style={styles.myIdButton}>
-        <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '600' }}>
-          {t('conversationList.myIdButton')}
-        </Text>
-      </Pressable>
+      {/* Side by side and equally weighted: these are two ways of starting
+          something, not a main action and a footnote. Stacked as plain text
+          links they read as leftovers under the input rather than as things
+          you can press. */}
+      <View style={styles.actionRow}>
+        <Pressable
+          onPress={() => setShowMyId(true)}
+          style={({ pressed }) => [
+            styles.actionButton,
+            { borderColor: colors.border, backgroundColor: pressed ? colors.surfaceAlt : colors.surface },
+          ]}
+        >
+          <Text style={[styles.actionButtonText, { color: colors.accent }]}>
+            {t('conversationList.myIdButton')}
+          </Text>
+        </Pressable>
 
-      <Pressable onPress={handleCreateGroup} disabled={creatingGroup} hitSlop={8}>
-        <Text style={[styles.myIdButton, { color: colors.accent }, creatingGroup && styles.busy]}>
-          {creatingGroup ? t('conversationList.creatingGroup') : t('conversationList.newGroupButton')}
-        </Text>
-      </Pressable>
+        <Pressable
+          onPress={handleCreateGroup}
+          disabled={creatingGroup}
+          style={({ pressed }) => [
+            styles.actionButton,
+            { borderColor: colors.border, backgroundColor: pressed ? colors.surfaceAlt : colors.surface },
+            creatingGroup && styles.busy,
+          ]}
+        >
+          <Text style={[styles.actionButtonText, { color: colors.accent }]}>
+            {creatingGroup ? t('conversationList.creatingGroup') : t('conversationList.newGroupButton')}
+          </Text>
+        </Pressable>
+      </View>
 
       {errorMessage ? (
         <Text style={[styles.errorText, { color: colors.danger }]}>{errorMessage}</Text>
@@ -418,10 +438,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
-  myIdButton: {
-    alignSelf: 'flex-start',
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 14,
+  },
+  actionButton: {
+    // Equal halves, so neither reads as the more important one.
+    flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   modalCloseRow: {
     alignItems: 'center',
