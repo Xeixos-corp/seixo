@@ -2,6 +2,7 @@ import { decryptMessage, isUntrustedIdentityError } from '../crypto';
 import { useMessagesStore } from '../store/messagesStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
+import { useConversationsStore } from '../store/conversationsStore';
 import { decodePayload } from './payload';
 import { decodeEnvelope } from '../crypto/messageCodec';
 import { unpackGroupMessage, isGroupMessage } from './groupEnvelope';
@@ -123,7 +124,7 @@ export function ingestFetchedMessage(
 
   try {
     const raw = decryptMessage(sender, REMOTE_DEVICE_ID, envelope);
-    const { text, replyToId, editsMessageId, reactsToMessageId, audioBase64, audioDurationMs, localTtlSeconds } =
+    const { text, replyToId, editsMessageId, reactsToMessageId, audioBase64, audioDurationMs, localTtlSeconds, groupName } =
       decodePayload(raw);
 
     // The row's expires_at is only how long the *server* held it. When the
@@ -133,6 +134,15 @@ export function ingestFetchedMessage(
       ? new Date(Date.parse(fetched.createdAt) + localTtlSeconds * 1000).toISOString()
       : fetched.expiresAt;
     const store = useMessagesStore.getState();
+
+    if (groupName !== undefined) {
+      // Applied as the local name, the same field a nickname uses -- so a
+      // name the owner chose and a name you gave a contact yourself are the
+      // same thing to the rest of the app, and neither ever leaves the phone.
+      useConversationsStore.getState().setConversationNickname(channelId, groupName);
+      rememberControlMessage(channelId, fetched);
+      return;
+    }
 
     if (reactsToMessageId) {
       // A reaction is an annotation, not a message: it is never added to the

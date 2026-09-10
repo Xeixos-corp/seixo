@@ -40,7 +40,8 @@
     "searchPlaceholder": "Buscar conversaciones o mensajes",
     "searchNoResults": "No se encontró nada para “{{query}}”.",
     "newGroupButton": "Nuevo grupo",
-    "creatingGroup": "Creando…"
+    "creatingGroup": "Creando…",
+    "unnamedGroup": "Grupo sin nombre"
   },
   "conversation": {
     "ttl": {
@@ -114,7 +115,10 @@
     "deleteGroupButton": "Eliminar grupo",
     "deleteGroupTitle": "¿Eliminar el grupo?",
     "deleteGroupBody": "El grupo y sus mensajes desaparecen del servidor para todos. Los mensajes que cada persona ya recibió quedan en su teléfono hasta que el temporizador los borre — esto no puede alcanzarlos.",
-    "deleteGroupConfirm": "Eliminar"
+    "deleteGroupConfirm": "Eliminar",
+    "groupNamePlaceholder": "Nombre del grupo",
+    "groupNameSave": "Guardar",
+    "groupNameFailed": "El nombre no llegó a los demás miembros."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

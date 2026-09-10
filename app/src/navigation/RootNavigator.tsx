@@ -58,7 +58,10 @@ export function RootNavigator() {
         <Stack.Screen
           name="ConversationList"
           component={ConversationListScreen}
-          options={{ title: t('navigation.conversationList') }}
+          // No header title: the screen draws its own, larger one. Having
+          // both wrote "Conversas" twice and left the three header buttons
+          // squeezed against it.
+          options={{ title: '' }}
         />
         <Stack.Screen name="Conversation" component={ConversationScreen} options={{ title: t('navigation.conversation') }} />
         <Stack.Screen

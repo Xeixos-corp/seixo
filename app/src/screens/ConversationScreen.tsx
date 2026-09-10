@@ -167,7 +167,9 @@ export function ConversationScreen({ route, navigation }: Props) {
   // Returns a string, so this selector compares by value and stays stable.
   const conversationName = useConversationsStore((state) => {
     const conversation = state.conversations.find((c) => c.channelId === channelId);
-    return conversation ? conversationDisplayName(conversation) : `${peerUserId.slice(0, 8)}…`;
+    return conversation
+      ? conversationDisplayName(conversation, t('conversationList.unnamedGroup'))
+      : `${peerUserId.slice(0, 8)}…`;
   });
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
   const addBlockedPeer = useBlockedPeersStore((state) => state.addBlockedPeer);
@@ -262,6 +264,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [newMemberId, setNewMemberId] = useState('');
+  const [groupNameDraft, setGroupNameDraft] = useState('');
   const [recording, setRecording] = useState(false);
   // Seconds elapsed, ticked while recording. Without it there is no way to
   // tell a recording that started from one that didn't, nor how close it is
@@ -528,6 +531,29 @@ export function ConversationScreen({ route, navigation }: Props) {
     void refreshMembers();
   }, [refreshMembers]);
 
+  const setConversationNickname = useConversationsStore((state) => state.setConversationNickname);
+
+  /**
+   * Names the group for everyone.
+   *
+   * Sent as an encrypted control message, silently, so it neither appears in
+   * the conversation nor makes anyone's phone buzz. Applied locally first, so
+   * the owner sees the result immediately rather than waiting on a round trip.
+   */
+  const handleRenameGroup = useCallback(
+    async (name: string) => {
+      const trimmed = name.trim();
+      setConversationNickname(channelId, trimmed);
+      try {
+        await transmit(encodePayload({ text: '', groupName: trimmed }), { silent: true });
+      } catch (error) {
+        console.error('[ConversationScreen] failed to announce group name', error);
+        setSendError(t('conversation.groupNameFailed'));
+      }
+    },
+    [channelId, setConversationNickname, transmit, t],
+  );
+
   const handleDeleteGroup = useCallback(() => {
     Alert.alert(t('conversation.deleteGroupTitle'), t('conversation.deleteGroupBody'), [
       { text: t('conversation.cancel'), style: 'cancel' },
@@ -556,6 +582,12 @@ export function ConversationScreen({ route, navigation }: Props) {
       await addGroupMember(channelId, peerId);
       setNewMemberId('');
       await refreshMembers();
+      // Re-announce the name to the group. The original announcement went out
+      // before this person was a member, so there was no copy encrypted for
+      // them -- without this, everyone who joined later would see the group
+      // unnamed while everyone else saw its name.
+      const currentName = conversation?.nickname?.trim();
+      if (currentName) await handleRenameGroup(currentName);
     } catch (error) {
       setSendError(error instanceof Error ? error.message : String(error));
     }
@@ -1186,6 +1218,26 @@ export function ConversationScreen({ route, navigation }: Props) {
                   ) : null}
                 </View>
               ))}
+
+              {isOwner ? (
+                <View style={styles.addMemberRow}>
+                  <TextInput
+                    style={[styles.addMemberInput, { color: colors.textPrimary, borderColor: colors.border }]}
+                    placeholder={t('conversation.groupNamePlaceholder')}
+                    placeholderTextColor={colors.textSecondary}
+                    value={groupNameDraft}
+                    onChangeText={setGroupNameDraft}
+                  />
+                  <Pressable
+                    onPress={() => void handleRenameGroup(groupNameDraft)}
+                    style={[styles.sendButton, { backgroundColor: colors.accent }]}
+                  >
+                    <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
+                      {t('conversation.groupNameSave')}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
               {isOwner ? (
                 <View style={styles.addMemberRow}>

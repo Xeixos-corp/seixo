@@ -85,6 +85,15 @@ type Encoded = {
    * Never read. Costs bandwidth and storage, buys back a piece of metadata.
    */
   p?: string;
+  /**
+   * A group's name, set by its owner.
+   *
+   * Sent as an encrypted control message rather than stored in a column, so
+   * the server never learns that a group is called "Family" -- which would be
+   * a lasting, plainly readable fact about the people in it, unlike the
+   * messages, which expire.
+   */
+  n?: string;
 };
 
 export type MessagePayload = {
@@ -98,6 +107,8 @@ export type MessagePayload = {
   audioDurationMs?: number;
   /** Lifetime on the devices, in seconds, when it differs from the row's. */
   localTtlSeconds?: number;
+  /** A group name being announced to the members. */
+  groupName?: string;
 };
 
 /**
@@ -113,7 +124,8 @@ export function encodePayload(payload: MessagePayload): string {
     !payload.editsMessageId &&
     !payload.reactsToMessageId &&
     !payload.audioBase64 &&
-    !payload.localTtlSeconds
+    !payload.localTtlSeconds &&
+    payload.groupName === undefined
   ) {
     // Unchanged wire format for the overwhelmingly common case.
     return payload.text;
@@ -124,6 +136,7 @@ export function encodePayload(payload: MessagePayload): string {
   if (payload.reactsToMessageId) encoded.x = payload.reactsToMessageId;
   if (payload.audioDurationMs) encoded.d = payload.audioDurationMs;
   if (payload.localTtlSeconds) encoded.l = payload.localTtlSeconds;
+  if (payload.groupName !== undefined) encoded.n = payload.groupName;
 
   if (!payload.audioBase64) return JSON.stringify(encoded);
 
@@ -155,6 +168,7 @@ export function decodePayload(raw: string): MessagePayload {
       audioBase64: typeof parsed.a === 'string' ? parsed.a : undefined,
       audioDurationMs: typeof parsed.d === 'number' ? parsed.d : undefined,
       localTtlSeconds: typeof parsed.l === 'number' ? parsed.l : undefined,
+      groupName: typeof parsed.n === 'string' ? parsed.n : undefined,
     };
   } catch {
     // Genuinely just a message that starts with a brace.

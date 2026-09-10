@@ -112,7 +112,8 @@ export function ConversationListScreen({ navigation }: Props) {
     if (!needle) return visibleConversations;
 
     return visibleConversations.filter((conversation) => {
-      if (normalizeForSearch(conversationDisplayName(conversation)).includes(needle)) return true;
+      if (normalizeForSearch(conversationDisplayName(conversation, t('conversationList.unnamedGroup'))).includes(needle))
+        return true;
       if (normalizeForSearch(conversation.peerUserId).includes(needle)) return true;
       return (messagesByChannel[conversation.channelId] ?? []).some((message) =>
         normalizeForSearch(message.plaintext).includes(needle),
@@ -159,7 +160,10 @@ export function ConversationListScreen({ navigation }: Props) {
   // deleting needed somewhere to live, and a hidden second gesture would be
   // undiscoverable.
   const openRowActions = (conversation: Conversation) => {
-    Alert.alert(t('conversationList.rowActionsTitle'), conversationDisplayName(conversation), [
+    Alert.alert(
+      t('conversationList.rowActionsTitle'),
+      conversationDisplayName(conversation, t('conversationList.unnamedGroup')),
+      [
       { text: t('conversationList.rowActionsRename'), onPress: () => openRename(conversation) },
       {
         text: t('conversationList.rowActionsDelete'),
@@ -326,7 +330,7 @@ export function ConversationListScreen({ navigation }: Props) {
                   ]}
                   numberOfLines={1}
                 >
-                  {conversationDisplayName(item)}
+                  {conversationDisplayName(item, t('conversationList.unnamedGroup'))}
                 </Text>
                 {unread > 0 ? (
                   <View

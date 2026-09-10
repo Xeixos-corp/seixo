@@ -66,13 +66,20 @@ export function unreadCount(
  * nothing -- the list used to render it raw, which made two contacts
  * genuinely hard to tell apart.
  */
-export function conversationDisplayName(conversation: Conversation): string {
+export function conversationDisplayName(
+  conversation: Conversation,
+  /**
+   * What to call an unnamed group, already translated. Passed in because this
+   * is a plain function with no access to i18n -- and the previous version,
+   * which returned the member count on its own, displayed a group as the bare
+   * number "3".
+   */
+  unnamedGroupLabel?: string,
+): string {
   const nickname = conversation.nickname?.trim();
   if (nickname) return nickname;
-  // A group with no name yet is described by its size rather than by a
-  // meaningless id -- "Grupo (4)" tells you more than "a1b2c3d4…" does.
   if (conversation.isGroup) {
-    return `${conversation.memberIds?.length ?? 0}`;
+    return unnamedGroupLabel ?? '—';
   }
   return `${conversation.peerUserId.slice(0, 8)}…`;
 }
