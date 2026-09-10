@@ -173,6 +173,40 @@ impl FileIdentityKeyStore {
         }
     }
 
+    /// Writes a store containing an identity that already exists elsewhere,
+    /// for restoring a recovery backup onto a new device.
+    ///
+    /// Refuses if a store is already present. Overwriting one would replace a
+    /// working identity with a different one while the session files beside
+    /// it still describe the old -- ratchets keyed to an identity that is no
+    /// longer there, which fails later and far away from the cause. The
+    /// caller wipes first, deliberately, or not at all.
+    ///
+    /// `known_keys` starts empty on purpose: which peers this identity had
+    /// already verified is not in the backup, so every contact is met again
+    /// on first use, exactly as it was the first time.
+    fn create_with(
+        dir: &str,
+        key: [u8; 32],
+        identity_key_pair: IdentityKeyPair,
+        registration_id: u32,
+    ) -> Result<Self, SignalNativeError> {
+        let file = EncryptedFile::new(dir, "identity.enc", key);
+        if file.load::<IdentityFileData>()?.is_some() {
+            return Err(SignalNativeError::Storage(
+                "an identity already exists on this device; wipe it before restoring".into(),
+            ));
+        }
+        let store = Self {
+            file,
+            identity_key_pair,
+            registration_id,
+            known_keys: HashMap::new(),
+        };
+        store.persist()?;
+        Ok(store)
+    }
+
     /// Forgets the stored identity key for one peer.
     ///
     /// Without this, a peer whose identity key changes is blocked forever:
@@ -192,6 +226,10 @@ impl FileIdentityKeyStore {
 
     pub fn identity_key_pair(&self) -> IdentityKeyPair {
         self.identity_key_pair
+    }
+
+    pub fn registration_id(&self) -> u32 {
+        self.registration_id
     }
 
     fn persist(&self) -> Result<(), SignalNativeError> {
@@ -566,5 +604,23 @@ impl PersistentSignalProtocolStore {
             session_store: FileSessionStore::open(storage_dir, key)?,
             sender_key_store: InMemSenderKeyStore::new(),
         })
+    }
+
+    /// Creates the on-disk store for an identity restored from a backup.
+    ///
+    /// Only the identity is planted. Sessions, prekeys and known peer keys
+    /// are left absent so they are rebuilt from scratch -- see backup.rs for
+    /// why restoring ratchet state is the one thing this must never do.
+    pub fn create_with_identity(
+        storage_dir: &str,
+        master_key: &[u8],
+        identity_key_pair: IdentityKeyPair,
+        registration_id: u32,
+    ) -> Result<(), SignalNativeError> {
+        let key: [u8; 32] = master_key
+            .try_into()
+            .map_err(|_| SignalNativeError::InvalidMasterKeyLength(master_key.len()))?;
+        FileIdentityKeyStore::create_with(storage_dir, key, identity_key_pair, registration_id)?;
+        Ok(())
     }
 }

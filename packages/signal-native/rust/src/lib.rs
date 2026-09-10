@@ -26,6 +26,7 @@ use libsignal_protocol::{
 use libsignal_protocol::Fingerprint;
 use rand::TryRngCore as _;
 
+mod backup;
 mod store;
 use store::PersistentSignalProtocolStore;
 
@@ -151,6 +152,38 @@ pub struct EncryptedEnvelope {
     pub ciphertext_base64: String,
 }
 
+/// The private identity material a recovery backup carries. See
+/// `SignalDevice::export_identity_secret` for the handling rules.
+#[derive(uniffi::Record)]
+pub struct IdentitySecret {
+    pub identity_key_pair_base64: String,
+    pub registration_id: u32,
+}
+
+/// Plants a restored identity on a device that does not have one yet, so the
+/// next `SignalDevice::new` picks it up instead of generating a fresh one.
+///
+/// A free function rather than a constructor because it must run *before* any
+/// device exists -- and it refuses if a store is already present, so a
+/// mistaken restore cannot overwrite a working identity.
+#[uniffi::export]
+pub fn restore_identity(
+    master_key: Vec<u8>,
+    storage_dir: String,
+    secret: IdentitySecret,
+) -> Result<(), SignalNativeError> {
+    let bytes = BASE64
+        .decode(secret.identity_key_pair_base64.trim())
+        .map_err(|e| SignalNativeError::Base64(e.to_string()))?;
+    let identity_key_pair = IdentityKeyPair::try_from(bytes.as_slice())?;
+    PersistentSignalProtocolStore::create_with_identity(
+        &storage_dir,
+        &master_key,
+        identity_key_pair,
+        secret.registration_id,
+    )
+}
+
 /// One device's worth of Signal Protocol state: its identity keypair plus
 /// the session/prekey stores. Backed by `store::PersistentSignalProtocolStore`
 /// — encrypted-at-rest on disk under `storage_dir`, keyed by `master_key`
@@ -185,6 +218,24 @@ impl SignalDevice {
 
     pub fn identity_public_key_base64(&self) -> String {
         b64_encode(self.identity_key_pair.identity_key().serialize())
+    }
+
+    /// The private half of this device's identity, for a recovery backup.
+    ///
+    /// This is the most dangerous value the crate produces: whoever holds it
+    /// can be this user to every contact they have. It exists only to be
+    /// sealed immediately by `encrypt_backup`, and must never be logged,
+    /// written unencrypted, or sent anywhere.
+    ///
+    /// The identity alone is enough, and is all that is offered. Sessions and
+    /// prekeys are excluded by design (see backup.rs); the point of keeping
+    /// the identity is that safety numbers a contact has already verified
+    /// stay the same across the move, so nobody has to re-verify.
+    pub fn export_identity_secret(&self) -> IdentitySecret {
+        IdentitySecret {
+            identity_key_pair_base64: b64_encode(&self.identity_key_pair.serialize()),
+            registration_id: self.store.lock().unwrap().identity_store.registration_id(),
+        }
     }
 
     /// Generates one fresh one-time prekey, one signed prekey, and one Kyber
@@ -936,5 +987,163 @@ mod tests {
             .encrypt("bob".to_string(), 1, "and after mine".to_string())
             .unwrap();
         assert_eq!(bob.decrypt("alice".to_string(), 1, second).unwrap(), "and after mine");
+    }
+
+    /// The whole point of keeping the identity key rather than starting over:
+    /// a contact who verified you before the move must not have to verify you
+    /// again after it.
+    ///
+    /// Bob backs up, loses the phone, restores onto a new one, and re-reaches
+    /// Alice. Alice's stored identity key for Bob is unchanged, so the
+    /// message opens instead of being refused as an identity change -- and
+    /// the safety number the two of them read out loud is still the same one.
+    #[test]
+    fn a_restored_identity_keeps_the_safety_number_a_contact_already_verified() {
+        let key = test_master_key();
+        let alice =
+            SignalDevice::new("alice".into(), 1, key.clone(), temp_storage_dir("bak-alice"))
+                .unwrap();
+
+        let secret;
+        let before;
+        {
+            let bob =
+                SignalDevice::new("bob".into(), 1, key.clone(), temp_storage_dir("bak-bob"))
+                    .unwrap();
+            before = alice
+                .safety_number("bob".into(), bob.identity_public_key_base64())
+                .unwrap();
+            secret = bob.export_identity_secret();
+        }
+
+        // A new phone: empty storage, and the identity planted from the
+        // backup before any device is opened on it.
+        let new_dir = temp_storage_dir("bak-bob-new");
+        restore_identity(key.clone(), new_dir.clone(), secret).unwrap();
+        let restored = SignalDevice::new("bob".into(), 1, key, new_dir).unwrap();
+
+        let after = alice
+            .safety_number("bob".into(), restored.identity_public_key_base64())
+            .unwrap();
+        assert_eq!(
+            before, after,
+            "restoring must not change the safety number a contact already checked"
+        );
+
+        // And a real session still forms in both directions.
+        let bundle = restored.generate_prekey_bundle(1, 1, 1).unwrap();
+        alice.establish_session("bob".into(), 1, bundle).unwrap();
+        let envelope = alice.encrypt("bob".into(), 1, "still you".into()).unwrap();
+        assert_eq!(
+            restored.decrypt("alice".into(), 1, envelope).unwrap(),
+            "still you"
+        );
+    }
+
+    /// A restore must never land on top of a working identity. Overwriting
+    /// one would leave the session files beside it keyed to an identity that
+    /// is no longer there -- a failure that surfaces much later than its
+    /// cause.
+    #[test]
+    fn restoring_refuses_to_overwrite_an_identity_already_on_the_device() {
+        let key = test_master_key();
+        let dir = temp_storage_dir("bak-occupied");
+        let existing = SignalDevice::new("bob".into(), 1, key.clone(), dir.clone()).unwrap();
+        let existing_key = existing.identity_public_key_base64();
+
+        let other_dir = temp_storage_dir("bak-other");
+        let other = SignalDevice::new("carol".into(), 1, key.clone(), other_dir).unwrap();
+
+        let result = restore_identity(key.clone(), dir.clone(), other.export_identity_secret());
+        assert!(result.is_err(), "restoring over a live identity must fail");
+
+        // And the identity that was there is untouched.
+        let reopened = SignalDevice::new("bob".into(), 1, key, dir).unwrap();
+        assert_eq!(reopened.identity_public_key_base64(), existing_key);
+    }
+
+    /// A backup is worth nothing if the wrong phrase opens it, and worth
+    /// nothing if the right phrase does not.
+    #[test]
+    fn only_the_right_phrase_opens_a_backup() {
+        let phrase = backup::generate_recovery_phrase().unwrap();
+        let other = backup::generate_recovery_phrase().unwrap();
+        assert_ne!(phrase, other);
+        assert_eq!(phrase.split_whitespace().count(), 12);
+
+        let sealed = backup::encrypt_backup(phrase.clone(), "the secret".into()).unwrap();
+        assert!(
+            !sealed.contains("the secret"),
+            "the plaintext must not survive in the blob"
+        );
+
+        assert_eq!(
+            backup::decrypt_backup(phrase.clone(), sealed.clone()).unwrap(),
+            "the secret"
+        );
+        assert!(backup::decrypt_backup(other, sealed.clone()).is_err());
+
+        // Written down off a screen: different spacing and capitals are the
+        // same phrase, so a correct transcription is never rejected.
+        let retyped = format!("  {}  ", phrase.to_uppercase());
+        assert_eq!(
+            backup::decrypt_backup(retyped, sealed).unwrap(),
+            "the secret"
+        );
+    }
+
+    /// A single altered byte must fail to open rather than open as something
+    /// else, and a typo must be caught as a typo.
+    #[test]
+    fn a_damaged_backup_and_a_mistyped_phrase_are_both_refused() {
+        let phrase = backup::generate_recovery_phrase().unwrap();
+        let sealed = backup::encrypt_backup(phrase.clone(), "the secret".into()).unwrap();
+
+        let mut bytes = BASE64.decode(&sealed).unwrap();
+        let last = bytes.len() - 1;
+        bytes[last] ^= 0x01;
+        assert!(backup::decrypt_backup(phrase.clone(), BASE64.encode(bytes)).is_err());
+
+        assert!(backup::is_valid_recovery_phrase(phrase));
+
+        // The checksum earns its place here, on fixed vectors rather than a
+        // random phrase with a word swapped: 12 words carry only 4 checksum
+        // bits, so a single mistyped word still passes about one time in
+        // sixteen. The checksum catches most typos, not all of them -- the
+        // AEAD is what makes the remainder fail safely, as a refusal to open
+        // rather than as wrong plaintext.
+        let all_abandon = "abandon ".repeat(12);
+        let valid_vector = format!("{}about", "abandon ".repeat(11));
+        assert!(!backup::is_valid_recovery_phrase(all_abandon.clone()));
+        assert!(backup::is_valid_recovery_phrase(valid_vector.clone()));
+        assert!(backup::decrypt_backup(all_abandon, sealed.clone()).is_err());
+        assert!(backup::decrypt_backup(valid_vector, sealed).is_err());
+    }
+
+    /// The account half of a recovery. These credentials are never stored, so
+    /// the only thing making them work a year later is that the derivation is
+    /// a pure function of the phrase.
+    #[test]
+    fn account_credentials_come_back_the_same_from_the_same_phrase() {
+        let phrase = backup::generate_recovery_phrase().unwrap();
+        let first = backup::derive_backup_credentials(phrase.clone()).unwrap();
+        // As it would be typed on the new phone: different case and spacing.
+        let second =
+            backup::derive_backup_credentials(format!(" {} ", phrase.to_uppercase())).unwrap();
+        assert_eq!(first.email, second.email);
+        assert_eq!(first.password, second.password);
+
+        // Unreachable by construction, so no mail can ever be sent to it.
+        assert!(first.email.ends_with("@seixo.invalid"));
+        // And it must not be the phrase, or the file key, in disguise.
+        assert!(!first.email.contains(&phrase));
+        assert_ne!(first.email, first.password);
+
+        let other = backup::derive_backup_credentials(
+            backup::generate_recovery_phrase().unwrap(),
+        )
+        .unwrap();
+        assert_ne!(first.email, other.email);
+        assert_ne!(first.password, other.password);
     }
 }

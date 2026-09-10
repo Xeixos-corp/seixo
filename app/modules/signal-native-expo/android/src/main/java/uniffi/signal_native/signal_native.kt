@@ -736,6 +736,20 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -767,6 +781,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_signal_native_fn_method_signaldevice_establish_session(`ptr`: Pointer,`remoteUserId`: RustBuffer.ByValue,`remoteDeviceId`: Int,`bundle`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_signal_native_fn_method_signaldevice_export_identity_secret(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_signal_native_fn_method_signaldevice_forget_peer_identity(`ptr`: Pointer,`remoteUserId`: RustBuffer.ByValue,`remoteDeviceId`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_signal_native_fn_method_signaldevice_generate_extra_one_time_prekeys(`ptr`: Pointer,`ids`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -781,6 +797,18 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_signal_native_fn_method_signaldevice_safety_number(`ptr`: Pointer,`remoteUserId`: RustBuffer.ByValue,`remoteIdentityKeyBase64`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_signal_native_fn_func_decrypt_backup(`phrase`: RustBuffer.ByValue,`blob`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_signal_native_fn_func_derive_backup_credentials(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_signal_native_fn_func_encrypt_backup(`phrase`: RustBuffer.ByValue,`plaintext`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_signal_native_fn_func_generate_recovery_phrase(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_signal_native_fn_func_is_valid_recovery_phrase(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    fun uniffi_signal_native_fn_func_restore_identity(`masterKey`: RustBuffer.ByValue,`storageDir`: RustBuffer.ByValue,`secret`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun ffi_signal_native_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_signal_native_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -893,11 +921,25 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_signal_native_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_signal_native_checksum_func_decrypt_backup(
+    ): Short
+    fun uniffi_signal_native_checksum_func_derive_backup_credentials(
+    ): Short
+    fun uniffi_signal_native_checksum_func_encrypt_backup(
+    ): Short
+    fun uniffi_signal_native_checksum_func_generate_recovery_phrase(
+    ): Short
+    fun uniffi_signal_native_checksum_func_is_valid_recovery_phrase(
+    ): Short
+    fun uniffi_signal_native_checksum_func_restore_identity(
+    ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_decrypt(
     ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_encrypt(
     ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_establish_session(
+    ): Short
+    fun uniffi_signal_native_checksum_method_signaldevice_export_identity_secret(
     ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_forget_peer_identity(
     ): Short
@@ -932,6 +974,24 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
+    if (lib.uniffi_signal_native_checksum_func_decrypt_backup() != 2765.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_func_derive_backup_credentials() != 15084.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_func_encrypt_backup() != 37953.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_func_generate_recovery_phrase() != 48871.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_func_is_valid_recovery_phrase() != 25580.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_func_restore_identity() != 60680.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_signal_native_checksum_method_signaldevice_decrypt() != 1868.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -939,6 +999,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_signal_native_checksum_method_signaldevice_establish_session() != 51602.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_method_signaldevice_export_identity_secret() != 2857.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_signal_native_checksum_method_signaldevice_forget_peer_identity() != 31570.toShort()) {
@@ -1055,6 +1118,29 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
 
     override fun write(value: UInt, buf: ByteBuffer) {
         buf.putInt(value.toInt())
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
+    override fun lift(value: Byte): Boolean {
+        return value.toInt() != 0
+    }
+
+    override fun read(buf: ByteBuffer): Boolean {
+        return lift(buf.get())
+    }
+
+    override fun lower(value: Boolean): Byte {
+        return if (value) 1.toByte() else 0.toByte()
+    }
+
+    override fun allocationSize(value: Boolean) = 1UL
+
+    override fun write(value: Boolean, buf: ByteBuffer) {
+        buf.put(lower(value))
     }
 }
 
@@ -1325,6 +1411,21 @@ public interface SignalDeviceInterface {
     fun `establishSession`(`remoteUserId`: kotlin.String, `remoteDeviceId`: kotlin.UInt, `bundle`: PreKeyBundleData)
     
     /**
+     * The private half of this device's identity, for a recovery backup.
+     *
+     * This is the most dangerous value the crate produces: whoever holds it
+     * can be this user to every contact they have. It exists only to be
+     * sealed immediately by `encrypt_backup`, and must never be logged,
+     * written unencrypted, or sent anywhere.
+     *
+     * The identity alone is enough, and is all that is offered. Sessions and
+     * prekeys are excluded by design (see backup.rs); the point of keeping
+     * the identity is that safety numbers a contact has already verified
+     * stay the same across the move, so nobody has to re-verify.
+     */
+    fun `exportIdentitySecret`(): IdentitySecret
+    
+    /**
      * Forgets what is known about a peer's identity, so the next message
      * from them is accepted as a first contact would be.
      *
@@ -1566,6 +1667,31 @@ open class SignalDevice: Disposable, AutoCloseable, SignalDeviceInterface {
 
     
     /**
+     * The private half of this device's identity, for a recovery backup.
+     *
+     * This is the most dangerous value the crate produces: whoever holds it
+     * can be this user to every contact they have. It exists only to be
+     * sealed immediately by `encrypt_backup`, and must never be logged,
+     * written unencrypted, or sent anywhere.
+     *
+     * The identity alone is enough, and is all that is offered. Sessions and
+     * prekeys are excluded by design (see backup.rs); the point of keeping
+     * the identity is that safety numbers a contact has already verified
+     * stay the same across the move, so nobody has to re-verify.
+     */override fun `exportIdentitySecret`(): IdentitySecret {
+            return FfiConverterTypeIdentitySecret.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_method_signaldevice_export_identity_secret(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Forgets what is known about a peer's identity, so the next message
      * from them is accepted as a first contact would be.
      *
@@ -1767,6 +1893,52 @@ public object FfiConverterTypeSignalDevice: FfiConverter<SignalDevice, Pointer> 
 
 
 
+/**
+ * The account credentials a recovery phrase implies.
+ *
+ * Restoring an identity is only half of coming back: the account itself has
+ * to be re-entered, or contacts would be writing to a user id nobody can
+ * read. Rather than store a token that expires, the phrase *derives* a
+ * credential pair deterministically, so the same words always reopen the
+ * same account and nothing has to be kept anywhere.
+ *
+ * The address is deliberately unreachable (see `ACCOUNT_EMAIL_DOMAIN`) and
+ * reveals nothing: it is a hash of a secret the server never sees. The
+ * password carries the phrase's full 128 bits, so guessing it is guessing
+ * the phrase.
+ */
+data class BackupCredentials (
+    var `email`: kotlin.String, 
+    var `password`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBackupCredentials: FfiConverterRustBuffer<BackupCredentials> {
+    override fun read(buf: ByteBuffer): BackupCredentials {
+        return BackupCredentials(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: BackupCredentials) = (
+            FfiConverterString.allocationSize(value.`email`) +
+            FfiConverterString.allocationSize(value.`password`)
+    )
+
+    override fun write(value: BackupCredentials, buf: ByteBuffer) {
+            FfiConverterString.write(value.`email`, buf)
+            FfiConverterString.write(value.`password`, buf)
+    }
+}
+
+
+
 data class EncryptedEnvelope (
     /**
      * libsignal_protocol::CiphertextMessageType as a raw byte (2 = Whisper/
@@ -1798,6 +1970,42 @@ public object FfiConverterTypeEncryptedEnvelope: FfiConverterRustBuffer<Encrypte
     override fun write(value: EncryptedEnvelope, buf: ByteBuffer) {
             FfiConverterUByte.write(value.`messageType`, buf)
             FfiConverterString.write(value.`ciphertextBase64`, buf)
+    }
+}
+
+
+
+/**
+ * The private identity material a recovery backup carries. See
+ * `SignalDevice::export_identity_secret` for the handling rules.
+ */
+data class IdentitySecret (
+    var `identityKeyPairBase64`: kotlin.String, 
+    var `registrationId`: kotlin.UInt
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeIdentitySecret: FfiConverterRustBuffer<IdentitySecret> {
+    override fun read(buf: ByteBuffer): IdentitySecret {
+        return IdentitySecret(
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: IdentitySecret) = (
+            FfiConverterString.allocationSize(value.`identityKeyPairBase64`) +
+            FfiConverterUInt.allocationSize(value.`registrationId`)
+    )
+
+    override fun write(value: IdentitySecret, buf: ByteBuffer) {
+            FfiConverterString.write(value.`identityKeyPairBase64`, buf)
+            FfiConverterUInt.write(value.`registrationId`, buf)
     }
 }
 
@@ -2113,4 +2321,101 @@ public object FfiConverterSequenceTypeOneTimePrekeyPublic: FfiConverterRustBuffe
         }
     }
 }
+        /**
+         * Opens a blob produced by `encrypt_backup`.
+         *
+         * Wrong phrase, truncated file and tampered bytes all fail the same way on
+         * purpose: telling them apart would tell whoever holds the file which of
+         * their guesses was closest.
+         */
+    @Throws(SignalNativeException::class) fun `decryptBackup`(`phrase`: kotlin.String, `blob`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_func_decrypt_backup(
+        FfiConverterString.lower(`phrase`),FfiConverterString.lower(`blob`),_status)
+}
+    )
+    }
+    
+
+        /**
+         * Derives the account credentials for a phrase. Same phrase, same account,
+         * on any device and at any time -- no state, nothing stored.
+         */
+    @Throws(SignalNativeException::class) fun `deriveBackupCredentials`(`phrase`: kotlin.String): BackupCredentials {
+            return FfiConverterTypeBackupCredentials.lift(
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_func_derive_backup_credentials(
+        FfiConverterString.lower(`phrase`),_status)
+}
+    )
+    }
+    
+
+        /**
+         * Seals `plaintext` under a key derived from `phrase`.
+         *
+         * The caller decides what goes in; this module only guarantees that whatever
+         * went in comes back byte for byte, or not at all.
+         */
+    @Throws(SignalNativeException::class) fun `encryptBackup`(`phrase`: kotlin.String, `plaintext`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_func_encrypt_backup(
+        FfiConverterString.lower(`phrase`),FfiConverterString.lower(`plaintext`),_status)
+}
+    )
+    }
+    
+
+        /**
+         * A fresh 12-word recovery phrase, 128 bits from the system CSPRNG.
+         *
+         * BIP-39 rather than a homemade wordlist for one practical reason: it
+         * carries a checksum, so a phrase mistyped or misread off paper is rejected
+         * as invalid instead of silently deriving the wrong key and reporting a
+         * perfectly good backup as corrupt.
+         */
+    @Throws(SignalNativeException::class) fun `generateRecoveryPhrase`(): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_func_generate_recovery_phrase(
+        _status)
+}
+    )
+    }
+    
+
+        /**
+         * True if `phrase` is a well-formed recovery phrase (wordlist + checksum).
+         *
+         * Lets the UI reject a typo while the user still has the paper in hand,
+         * rather than after they have wiped the old device.
+         */ fun `isValidRecoveryPhrase`(`phrase`: kotlin.String): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_func_is_valid_recovery_phrase(
+        FfiConverterString.lower(`phrase`),_status)
+}
+    )
+    }
+    
+
+        /**
+         * Plants a restored identity on a device that does not have one yet, so the
+         * next `SignalDevice::new` picks it up instead of generating a fresh one.
+         *
+         * A free function rather than a constructor because it must run *before* any
+         * device exists -- and it refuses if a store is already present, so a
+         * mistaken restore cannot overwrite a working identity.
+         */
+    @Throws(SignalNativeException::class) fun `restoreIdentity`(`masterKey`: kotlin.ByteArray, `storageDir`: kotlin.String, `secret`: IdentitySecret)
+        = 
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_func_restore_identity(
+        FfiConverterByteArray.lower(`masterKey`),FfiConverterString.lower(`storageDir`),FfiConverterTypeIdentitySecret.lower(`secret`),_status)
+}
+    
+    
+
 

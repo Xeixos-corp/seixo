@@ -431,6 +431,30 @@ fileprivate struct FfiConverterUInt32: FfiConverterPrimitive {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterBool : FfiConverter {
+    typealias FfiType = Int8
+    typealias SwiftType = Bool
+
+    public static func lift(_ value: Int8) throws -> Bool {
+        return value != 0
+    }
+
+    public static func lower(_ value: Bool) -> Int8 {
+        return value ? 1 : 0
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Bool {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Bool, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterString: FfiConverter {
     typealias SwiftType = String
     typealias FfiType = RustBuffer
@@ -517,6 +541,21 @@ public protocol SignalDeviceProtocol : AnyObject {
      * initial Double Ratchet session state for talking to them.
      */
     func establishSession(remoteUserId: String, remoteDeviceId: UInt32, bundle: PreKeyBundleData) throws 
+    
+    /**
+     * The private half of this device's identity, for a recovery backup.
+     *
+     * This is the most dangerous value the crate produces: whoever holds it
+     * can be this user to every contact they have. It exists only to be
+     * sealed immediately by `encrypt_backup`, and must never be logged,
+     * written unencrypted, or sent anywhere.
+     *
+     * The identity alone is enough, and is all that is offered. Sessions and
+     * prekeys are excluded by design (see backup.rs); the point of keeping
+     * the identity is that safety numbers a contact has already verified
+     * stay the same across the move, so nobody has to re-verify.
+     */
+    func exportIdentitySecret()  -> IdentitySecret
     
     /**
      * Forgets what is known about a peer's identity, so the next message
@@ -722,6 +761,26 @@ open func establishSession(remoteUserId: String, remoteDeviceId: UInt32, bundle:
 }
     
     /**
+     * The private half of this device's identity, for a recovery backup.
+     *
+     * This is the most dangerous value the crate produces: whoever holds it
+     * can be this user to every contact they have. It exists only to be
+     * sealed immediately by `encrypt_backup`, and must never be logged,
+     * written unencrypted, or sent anywhere.
+     *
+     * The identity alone is enough, and is all that is offered. Sessions and
+     * prekeys are excluded by design (see backup.rs); the point of keeping
+     * the identity is that safety numbers a contact has already verified
+     * stay the same across the move, so nobody has to re-verify.
+     */
+open func exportIdentitySecret() -> IdentitySecret {
+    return try!  FfiConverterTypeIdentitySecret.lift(try! rustCall() {
+    uniffi_signal_native_fn_method_signaldevice_export_identity_secret(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
      * Forgets what is known about a peer's identity, so the next message
      * from them is accepted as a first contact would be.
      *
@@ -912,6 +971,86 @@ public func FfiConverterTypeSignalDevice_lower(_ value: SignalDevice) -> UnsafeM
 }
 
 
+/**
+ * The account credentials a recovery phrase implies.
+ *
+ * Restoring an identity is only half of coming back: the account itself has
+ * to be re-entered, or contacts would be writing to a user id nobody can
+ * read. Rather than store a token that expires, the phrase *derives* a
+ * credential pair deterministically, so the same words always reopen the
+ * same account and nothing has to be kept anywhere.
+ *
+ * The address is deliberately unreachable (see `ACCOUNT_EMAIL_DOMAIN`) and
+ * reveals nothing: it is a hash of a secret the server never sees. The
+ * password carries the phrase's full 128 bits, so guessing it is guessing
+ * the phrase.
+ */
+public struct BackupCredentials {
+    public var email: String
+    public var password: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(email: String, password: String) {
+        self.email = email
+        self.password = password
+    }
+}
+
+
+
+extension BackupCredentials: Equatable, Hashable {
+    public static func ==(lhs: BackupCredentials, rhs: BackupCredentials) -> Bool {
+        if lhs.email != rhs.email {
+            return false
+        }
+        if lhs.password != rhs.password {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(email)
+        hasher.combine(password)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBackupCredentials: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BackupCredentials {
+        return
+            try BackupCredentials(
+                email: FfiConverterString.read(from: &buf), 
+                password: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: BackupCredentials, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.email, into: &buf)
+        FfiConverterString.write(value.password, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBackupCredentials_lift(_ buf: RustBuffer) throws -> BackupCredentials {
+    return try FfiConverterTypeBackupCredentials.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBackupCredentials_lower(_ value: BackupCredentials) -> RustBuffer {
+    return FfiConverterTypeBackupCredentials.lower(value)
+}
+
+
 public struct EncryptedEnvelope {
     /**
      * libsignal_protocol::CiphertextMessageType as a raw byte (2 = Whisper/
@@ -983,6 +1122,76 @@ public func FfiConverterTypeEncryptedEnvelope_lift(_ buf: RustBuffer) throws -> 
 #endif
 public func FfiConverterTypeEncryptedEnvelope_lower(_ value: EncryptedEnvelope) -> RustBuffer {
     return FfiConverterTypeEncryptedEnvelope.lower(value)
+}
+
+
+/**
+ * The private identity material a recovery backup carries. See
+ * `SignalDevice::export_identity_secret` for the handling rules.
+ */
+public struct IdentitySecret {
+    public var identityKeyPairBase64: String
+    public var registrationId: UInt32
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(identityKeyPairBase64: String, registrationId: UInt32) {
+        self.identityKeyPairBase64 = identityKeyPairBase64
+        self.registrationId = registrationId
+    }
+}
+
+
+
+extension IdentitySecret: Equatable, Hashable {
+    public static func ==(lhs: IdentitySecret, rhs: IdentitySecret) -> Bool {
+        if lhs.identityKeyPairBase64 != rhs.identityKeyPairBase64 {
+            return false
+        }
+        if lhs.registrationId != rhs.registrationId {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(identityKeyPairBase64)
+        hasher.combine(registrationId)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeIdentitySecret: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> IdentitySecret {
+        return
+            try IdentitySecret(
+                identityKeyPairBase64: FfiConverterString.read(from: &buf), 
+                registrationId: FfiConverterUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: IdentitySecret, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.identityKeyPairBase64, into: &buf)
+        FfiConverterUInt32.write(value.registrationId, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIdentitySecret_lift(_ buf: RustBuffer) throws -> IdentitySecret {
+    return try FfiConverterTypeIdentitySecret.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIdentitySecret_lower(_ value: IdentitySecret) -> RustBuffer {
+    return FfiConverterTypeIdentitySecret.lower(value)
 }
 
 
@@ -1464,6 +1673,89 @@ fileprivate struct FfiConverterSequenceTypeOneTimePrekeyPublic: FfiConverterRust
         return seq
     }
 }
+/**
+ * Opens a blob produced by `encrypt_backup`.
+ *
+ * Wrong phrase, truncated file and tampered bytes all fail the same way on
+ * purpose: telling them apart would tell whoever holds the file which of
+ * their guesses was closest.
+ */
+public func decryptBackup(phrase: String, blob: String)throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_func_decrypt_backup(
+        FfiConverterString.lower(phrase),
+        FfiConverterString.lower(blob),$0
+    )
+})
+}
+/**
+ * Derives the account credentials for a phrase. Same phrase, same account,
+ * on any device and at any time -- no state, nothing stored.
+ */
+public func deriveBackupCredentials(phrase: String)throws  -> BackupCredentials {
+    return try  FfiConverterTypeBackupCredentials.lift(try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_func_derive_backup_credentials(
+        FfiConverterString.lower(phrase),$0
+    )
+})
+}
+/**
+ * Seals `plaintext` under a key derived from `phrase`.
+ *
+ * The caller decides what goes in; this module only guarantees that whatever
+ * went in comes back byte for byte, or not at all.
+ */
+public func encryptBackup(phrase: String, plaintext: String)throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_func_encrypt_backup(
+        FfiConverterString.lower(phrase),
+        FfiConverterString.lower(plaintext),$0
+    )
+})
+}
+/**
+ * A fresh 12-word recovery phrase, 128 bits from the system CSPRNG.
+ *
+ * BIP-39 rather than a homemade wordlist for one practical reason: it
+ * carries a checksum, so a phrase mistyped or misread off paper is rejected
+ * as invalid instead of silently deriving the wrong key and reporting a
+ * perfectly good backup as corrupt.
+ */
+public func generateRecoveryPhrase()throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_func_generate_recovery_phrase($0
+    )
+})
+}
+/**
+ * True if `phrase` is a well-formed recovery phrase (wordlist + checksum).
+ *
+ * Lets the UI reject a typo while the user still has the paper in hand,
+ * rather than after they have wiped the old device.
+ */
+public func isValidRecoveryPhrase(phrase: String) -> Bool {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+    uniffi_signal_native_fn_func_is_valid_recovery_phrase(
+        FfiConverterString.lower(phrase),$0
+    )
+})
+}
+/**
+ * Plants a restored identity on a device that does not have one yet, so the
+ * next `SignalDevice::new` picks it up instead of generating a fresh one.
+ *
+ * A free function rather than a constructor because it must run *before* any
+ * device exists -- and it refuses if a store is already present, so a
+ * mistaken restore cannot overwrite a working identity.
+ */
+public func restoreIdentity(masterKey: Data, storageDir: String, secret: IdentitySecret)throws  {try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_func_restore_identity(
+        FfiConverterData.lower(masterKey),
+        FfiConverterString.lower(storageDir),
+        FfiConverterTypeIdentitySecret.lower(secret),$0
+    )
+}
+}
 
 private enum InitializationResult {
     case ok
@@ -1480,6 +1772,24 @@ private var initializationResult: InitializationResult = {
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
+    if (uniffi_signal_native_checksum_func_decrypt_backup() != 2765) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_func_derive_backup_credentials() != 15084) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_func_encrypt_backup() != 37953) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_func_generate_recovery_phrase() != 48871) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_func_is_valid_recovery_phrase() != 25580) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_func_restore_identity() != 60680) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_signal_native_checksum_method_signaldevice_decrypt() != 1868) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -1487,6 +1797,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_signal_native_checksum_method_signaldevice_establish_session() != 51602) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_method_signaldevice_export_identity_secret() != 2857) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_signal_native_checksum_method_signaldevice_forget_peer_identity() != 31570) {

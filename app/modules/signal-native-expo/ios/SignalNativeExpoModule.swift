@@ -73,6 +73,58 @@ public class SignalNativeExpoModule: Module {
       }
     }
 
+    // --- Recovery backups (packages/signal-native/rust/src/backup.rs) ---
+    // Note what does NOT cross this boundary: exportIdentitySecret's result
+    // goes straight into encryptBackup below and is never handed to JS on its
+    // own. Whoever holds that value can be this user to every contact.
+
+    Function("createRecoveryBackup") { (phrase: String, contents: String) -> String in
+      let secret = try self.requireDevice().exportIdentitySecret()
+      var payload = try JSONSerialization.jsonObject(with: Data(contents.utf8)) as? [String: Any] ?? [:]
+      payload["identityKeyPairBase64"] = secret.identityKeyPairBase64
+      payload["registrationId"] = secret.registrationId
+      let json = try JSONSerialization.data(withJSONObject: payload)
+      return try encryptBackup(phrase: phrase, plaintext: String(decoding: json, as: UTF8.self))
+    }
+
+    Function("readRecoveryBackup") { (phrase: String, blob: String) -> String in
+      try decryptBackup(phrase: phrase, blob: blob)
+    }
+
+    // Plants a restored identity so the next createDevice() adopts it. Rust
+    // refuses if a store is already present, so this cannot quietly replace a
+    // working identity with a different one.
+    Function("restoreIdentityFromBackup") { (identityKeyPairBase64: String, registrationId: Int, masterKeyBase64: String) in
+      guard let masterKey = Data(base64Encoded: masterKeyBase64) else {
+        throw SignalNativeExpoError.invalidBundle
+      }
+      let storageDir = try SignalNativeExpoModule.resolveStorageDir()
+      try restoreIdentity(
+        masterKey: masterKey,
+        storageDir: storageDir,
+        secret: IdentitySecret(
+          identityKeyPairBase64: identityKeyPairBase64,
+          registrationId: UInt32(registrationId)
+        )
+      )
+      self.device = nil
+    }
+
+    Function("generateRecoveryPhrase") { () -> String in
+      try generateRecoveryPhrase()
+    }
+
+    Function("isValidRecoveryPhrase") { (phrase: String) -> Bool in
+      isValidRecoveryPhrase(phrase: phrase)
+    }
+
+    // The account half of a recovery: a credential pair derived from the
+    // phrase, so re-entering the same account needs nothing stored anywhere.
+    Function("deriveBackupCredentials") { (phrase: String) -> [String: Any] in
+      let credentials = try deriveBackupCredentials(phrase: phrase)
+      return ["email": credentials.email, "password": credentials.password]
+    }
+
     Function("generatePrekeyBundle") { (oneTimePrekeyId: Int, signedPrekeyId: Int, kyberPrekeyId: Int) -> [String: Any] in
       let bundle = try self.requireDevice().generatePrekeyBundle(
         oneTimePrekeyId: UInt32(oneTimePrekeyId),

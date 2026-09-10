@@ -9,7 +9,15 @@ import uniffi.signal_native.EncryptedEnvelope
 import uniffi.signal_native.OneTimePrekeyPublic
 import uniffi.signal_native.PreKeyBundleData
 import uniffi.signal_native.SignalDevice
+import org.json.JSONObject
+import uniffi.signal_native.IdentitySecret
 import uniffi.signal_native.SignalNativeException
+import uniffi.signal_native.decryptBackup
+import uniffi.signal_native.deriveBackupCredentials
+import uniffi.signal_native.encryptBackup
+import uniffi.signal_native.generateRecoveryPhrase
+import uniffi.signal_native.isValidRecoveryPhrase
+import uniffi.signal_native.restoreIdentity
 
 // Surfaced to JS as `error.code === "ERR_UNTRUSTED_IDENTITY"` (Expo Modules'
 // CodedException convention) so the UI can show a specific "this contact's
@@ -80,6 +88,53 @@ class SignalNativeExpoModule : Module() {
 
     Function("identityPublicKeyBase64") {
       requireDevice().identityPublicKeyBase64()
+    }
+
+    // --- Recovery backups (packages/signal-native/rust/src/backup.rs) ---
+    // Mirrors ios/SignalNativeExpoModule.swift. Note what does NOT cross this
+    // boundary: exportIdentitySecret's result goes straight into
+    // encryptBackup and is never handed to JS on its own. Whoever holds that
+    // value can be this user to every contact.
+
+    Function("createRecoveryBackup") { phrase: String, contents: String ->
+      val secret = requireDevice().exportIdentitySecret()
+      val payload = JSONObject(contents)
+      payload.put("identityKeyPairBase64", secret.identityKeyPairBase64)
+      payload.put("registrationId", secret.registrationId.toLong())
+      encryptBackup(phrase, payload.toString())
+    }
+
+    Function("readRecoveryBackup") { phrase: String, blob: String ->
+      decryptBackup(phrase, blob)
+    }
+
+    // Plants a restored identity so the next createDevice() adopts it. Rust
+    // refuses if a store is already present, so this cannot quietly replace a
+    // working identity with a different one.
+    Function("restoreIdentityFromBackup") { identityKeyPairBase64: String, registrationId: Int, masterKeyBase64: String ->
+      val masterKey = Base64.decode(masterKeyBase64, Base64.NO_WRAP)
+      restoreIdentity(
+        masterKey,
+        resolveStorageDir(),
+        IdentitySecret(identityKeyPairBase64, registrationId.toUInt()),
+      )
+      device = null
+      Unit
+    }
+
+    Function("generateRecoveryPhrase") {
+      generateRecoveryPhrase()
+    }
+
+    Function("isValidRecoveryPhrase") { phrase: String ->
+      isValidRecoveryPhrase(phrase)
+    }
+
+    // The account half of a recovery: a credential pair derived from the
+    // phrase, so re-entering the same account needs nothing stored anywhere.
+    Function("deriveBackupCredentials") { phrase: String ->
+      val credentials = deriveBackupCredentials(phrase)
+      mapOf("email" to credentials.email, "password" to credentials.password)
     }
 
     Function("generatePrekeyBundle") { oneTimePrekeyId: Int, signedPrekeyId: Int, kyberPrekeyId: Int ->
