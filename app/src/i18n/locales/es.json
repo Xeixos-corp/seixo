@@ -205,7 +205,8 @@
     "fileTitle": "2. Guarda el fichero",
     "fileHint": "Tú eliges dónde queda: en Ficheros, en iCloud, por AirDrop al ordenador. El fichero es inútil para quien no tenga las 12 palabras.",
     "shareButton": "Guardar fichero",
-    "footnote": "Nada de esto queda en nuestro servidor. No guardamos copias de nadie y no podemos recuperar la tuya si la pierdes."
+    "footnote": "Nada de esto queda en nuestro servidor. No guardamos copias de nadie y no podemos recuperar la tuya si la pierdes.",
+    "expiryWarning": "La cuenta sigue borrándose sola tras 6 meses sin abrirla, y la copia deja de servir. Basta con abrir la app de vez en cuando para evitarlo."
   },
   "restore": {
     "intro": "Para volver a la misma cuenta necesitas las dos partes: el fichero y las 12 palabras.",
@@ -216,6 +217,7 @@
     "phrasePlaceholder": "las doce palabras, separadas por espacios",
     "phraseInvalid": "Estas palabras no forman una frase válida. Comprueba si alguna está mal escrita.",
     "button": "Recuperar cuenta",
-    "footnote": "Los mensajes antiguos no vuelven: nunca estuvieron en la copia. Las conversaciones empiezan de nuevo, con el mismo ID y el mismo número de seguridad."
+    "footnote": "Los mensajes antiguos no vuelven: nunca estuvieron en la copia. Las conversaciones empiezan de nuevo, con el mismo ID y el mismo número de seguridad.",
+    "accountGone": "Las palabras son correctas y el fichero se abrió, pero esta cuenta ya no existe. Probablemente se borró tras 6 meses sin usarse. Puedes crear una identidad nueva, pero el ID antiguo no vuelve."
   }
 }

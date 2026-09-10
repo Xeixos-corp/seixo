@@ -205,7 +205,8 @@
     "fileTitle": "2. Guarda o ficheiro",
     "fileHint": "Escolhe tu onde fica: em Ficheiros, no iCloud, por AirDrop para o computador. O ficheiro é inútil para quem não tiver as 12 palavras.",
     "shareButton": "Guardar ficheiro",
-    "footnote": "Nada disto fica no nosso servidor. Não guardamos cópias de ninguém e não conseguimos recuperar a tua se a perderes."
+    "footnote": "Nada disto fica no nosso servidor. Não guardamos cópias de ninguém e não conseguimos recuperar a tua se a perderes.",
+    "expiryWarning": "A conta continua a apagar-se sozinha ao fim de 6 meses sem a abrires, e a cópia deixa de servir. Basta abrires a app de vez em quando para isso não acontecer."
   },
   "restore": {
     "intro": "Para voltares à mesma conta precisas das duas partes: o ficheiro e as 12 palavras.",
@@ -216,6 +217,7 @@
     "phrasePlaceholder": "as doze palavras, separadas por espaços",
     "phraseInvalid": "Estas palavras não formam uma frase válida. Verifica se alguma está mal escrita.",
     "button": "Recuperar conta",
-    "footnote": "As mensagens antigas não voltam — nunca estiveram na cópia. As conversas recomeçam, com o mesmo ID e a mesma chave de segurança."
+    "footnote": "As mensagens antigas não voltam — nunca estiveram na cópia. As conversas recomeçam, com o mesmo ID e a mesma chave de segurança.",
+    "accountGone": "As palavras estão certas e o ficheiro abriu, mas esta conta já não existe. Foi provavelmente apagada por passar 6 meses sem ser usada. Podes criar uma identidade nova, mas o ID antigo não volta."
   }
 }

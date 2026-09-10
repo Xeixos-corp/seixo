@@ -52,6 +52,23 @@ export type CreatedBackup = {
 };
 
 /**
+ * Thrown when the phrase and file were both good but the account behind them
+ * is gone -- almost always the six-month abandoned-account purge
+ * (supabase/migrations/0016_purge_abandoned_accounts.sql).
+ *
+ * The deduction is safe because of the order things happen in: the file is
+ * opened with the phrase *before* the sign-in is attempted, so reaching a
+ * failed sign-in means the phrase was right. There is nothing left for it to
+ * be except an account that no longer exists.
+ */
+export class AccountGoneError extends Error {
+  constructor() {
+    super('The account this backup belongs to no longer exists.');
+    this.name = 'AccountGoneError';
+  }
+}
+
+/**
  * Thrown when the account could not be given the credentials a restore will
  * need. Distinguished from every other failure because the fix is a server
  * setting, not something the user did.
@@ -171,7 +188,10 @@ export async function restoreBackup(phrase: string, fileUri: string): Promise<st
     email: credentials.email,
     password: credentials.password,
   });
-  if (error) throw error;
+  // The file already opened, so the phrase is right (see AccountGoneError).
+  // Reporting "invalid login credentials" here would send someone hunting for
+  // a typo that isn't there.
+  if (error) throw new AccountGoneError();
 
   const userId = signedIn.user?.id;
   // The file and the account must describe the same person. If they do not,

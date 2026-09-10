@@ -139,6 +139,13 @@ export function BackupScreen() {
         )}
 
         <Text style={[styles.footnote, { color: colors.textSecondary }]}>{t('backup.footnote')}</Text>
+        {/* A backup is insurance against losing the phone, not against not
+            using the app -- the abandoned-account purge takes the account
+            either way. Saying so here beats letting someone find out on the
+            day they need it. */}
+        <Text style={[styles.footnote, { color: colors.textSecondary }]}>
+          {t('backup.expiryWarning')}
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );

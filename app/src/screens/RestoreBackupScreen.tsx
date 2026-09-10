@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppTheme } from '../theme/ThemeProvider';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { pickBackupFile, restoreBackup } from '../backup/recoveryBackup';
+import { pickBackupFile, restoreBackup, AccountGoneError } from '../backup/recoveryBackup';
 import { isValidRecoveryPhrase } from '../crypto';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RestoreBackup'>;
@@ -54,7 +54,13 @@ export function RestoreBackupScreen({ navigation }: Props) {
       await restoreBackup(phrase, fileUri);
       navigation.reset({ index: 0, routes: [{ name: 'ConversationList' }] });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      setErrorMessage(
+        error instanceof AccountGoneError
+          ? t('restore.accountGone')
+          : error instanceof Error
+            ? error.message
+            : String(error),
+      );
       setBusy(false);
     }
   };

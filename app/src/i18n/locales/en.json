@@ -205,7 +205,8 @@
     "fileTitle": "2. Save the file",
     "fileHint": "You choose where it goes: Files, iCloud, AirDrop to your computer. The file is useless to anyone without the 12 words.",
     "shareButton": "Save file",
-    "footnote": "None of this is kept on our server. We hold no copies and cannot recover yours if you lose it."
+    "footnote": "None of this is kept on our server. We hold no copies and cannot recover yours if you lose it.",
+    "expiryWarning": "The account still deletes itself after 6 months without being opened, and the backup stops working with it. Opening the app now and then is enough to prevent that."
   },
   "restore": {
     "intro": "Getting back into the same account takes both parts: the file and the 12 words.",
@@ -216,6 +217,7 @@
     "phrasePlaceholder": "the twelve words, separated by spaces",
     "phraseInvalid": "These words are not a valid phrase. Check whether one is misspelled.",
     "button": "Restore account",
-    "footnote": "Old messages do not come back — they were never in the backup. Conversations start again, with the same ID and the same safety number."
+    "footnote": "Old messages do not come back — they were never in the backup. Conversations start again, with the same ID and the same safety number.",
+    "accountGone": "The words are right and the file opened, but this account no longer exists. It was most likely deleted after 6 months without use. You can create a new identity, but the old ID does not come back."
   }
 }
