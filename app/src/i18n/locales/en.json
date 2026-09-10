@@ -119,7 +119,10 @@
     "groupNamePlaceholder": "Group name",
     "groupNameSave": "Save",
     "groupNameFailed": "The name didn't reach the other members.",
-    "verifyButton": "Verify"
+    "verifyButton": "Verify",
+    "oneOffTtlTitle": "Delete this message after",
+    "oneOffTtlHint": "Applies to the next message only. The conversation keeps its own timer.",
+    "oneOffTtlActive": "This message disappears in {{label}}"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

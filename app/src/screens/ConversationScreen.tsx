@@ -273,6 +273,13 @@ export function ConversationScreen({ route, navigation }: Props) {
   const [showMembers, setShowMembers] = useState(false);
   const [newMemberId, setNewMemberId] = useState('');
   const [groupNameDraft, setGroupNameDraft] = useState('');
+  /**
+   * A shorter timer for the next message only, chosen without changing the
+   * conversation's own. For an address, a code, a password -- the things
+   * people want gone quickly without renegotiating the whole conversation
+   * and then remembering to set it back.
+   */
+  const [oneOffTtlSeconds, setOneOffTtlSeconds] = useState<number | null>(null);
   const [recording, setRecording] = useState(false);
   // Seconds elapsed, ticked while recording. Without it there is no way to
   // tell a recording that started from one that didn't, nor how close it is
@@ -802,10 +809,18 @@ export function ConversationScreen({ route, navigation }: Props) {
    * there, still readable, and can be retried.
    */
   const deliver = useCallback(
-    async (localId: string, text: string, replyTo: string | undefined) => {
+    async (localId: string, text: string, replyTo: string | undefined, messageTtl: number) => {
       try {
         const { id, createdAt, expiresAt } = await transmit(
-          encodePayload({ text, replyToId: replyTo }),
+          // The lifetime rides inside the encryption whenever it differs from
+          // the conversation's, so the recipient's copy expires with the
+          // sender's rather than outliving it.
+          encodePayload({
+            text,
+            replyToId: replyTo,
+            localTtlSeconds: messageTtl === ttlSeconds ? undefined : messageTtl,
+          }),
+          { serverTtlSeconds: messageTtl },
         );
         replaceMessage(channelId, localId, {
           id,
@@ -827,7 +842,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         console.error('[ConversationScreen] failed to send message', error);
       }
     },
-    [channelId, transmit, replaceMessage, setMessageStatus, scheduleExpiry, t],
+    [channelId, transmit, ttlSeconds, replaceMessage, setMessageStatus, scheduleExpiry, t],
   );
 
   const handleSend = async () => {
@@ -860,26 +875,28 @@ export function ConversationScreen({ route, navigation }: Props) {
     // Prefixed so it can never be mistaken for one.
     const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const replyTo = replyToId ?? undefined;
+    const messageTtl = oneOffTtlSeconds ?? ttlSeconds;
 
     addMessage(channelId, {
       id: localId,
       createdAt: new Date().toISOString(),
       // A guess until the server rules. It only affects the countdown shown
       // for the second or two before the real value arrives.
-      expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+      expiresAt: new Date(Date.now() + messageTtl * 1000).toISOString(),
       plaintext: text,
       isMine: true,
       replyToId: replyTo,
       status: 'sending',
     });
     setInputText('');
+    setOneOffTtlSeconds(null);
     setReplyToId(null);
     setSending(false);
     // Belt and braces alongside keeping the field editable: whatever else
     // steals the focus, the keyboard should be where the user left it.
     inputRef.current?.focus();
 
-    await deliver(localId, text, replyTo);
+    await deliver(localId, text, replyTo, messageTtl);
   };
 
   // Always confirms, and always shows the full address. A link in a message
@@ -908,9 +925,9 @@ export function ConversationScreen({ route, navigation }: Props) {
   const handleRetry = useCallback(
     (message: DecryptedMessage) => {
       setMessageStatus(channelId, message.id, 'sending');
-      void deliver(message.id, message.plaintext, message.replyToId);
+      void deliver(message.id, message.plaintext, message.replyToId, ttlSeconds);
     },
-    [channelId, deliver, setMessageStatus],
+    [channelId, deliver, ttlSeconds, setMessageStatus],
   );
 
   return (
@@ -1125,6 +1142,27 @@ export function ConversationScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
+        {oneOffTtlSeconds !== null ? (
+          <View style={[styles.replyBar, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+            <View style={[styles.replyBarAccent, { backgroundColor: colors.danger }]} />
+            <View style={styles.replyBarTextWrapper}>
+              <Text style={[styles.replyBarLabel, { color: colors.danger }]}>
+                {t('conversation.oneOffTtlActive', {
+                  label: t(
+                    `conversation.ttl.${TTL_OPTIONS.find((o) => o.seconds === oneOffTtlSeconds)?.key ?? '30s'}`,
+                  ),
+                })}
+              </Text>
+              <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 13 }}>
+                {t('conversation.oneOffTtlHint')}
+              </Text>
+            </View>
+            <Pressable onPress={() => setOneOffTtlSeconds(null)} hitSlop={12}>
+              <Text style={{ color: colors.textSecondary, fontSize: 18 }}>×</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {replyToId ? (
           <View style={[styles.replyBar, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
             <View style={[styles.replyBarAccent, { backgroundColor: colors.accent }]} />
@@ -1188,6 +1226,26 @@ export function ConversationScreen({ route, navigation }: Props) {
           <Pressable
             disabled={sending || !inputText.trim()}
             onPress={handleSend}
+            // Long-press to give this one message a shorter life than the
+            // conversation's. Tucked away on purpose: it is for the
+            // occasional address or password, and a permanent row of extra
+            // buttons above the keyboard would cost every message to serve a
+            // few.
+            onLongPress={() => {
+              const shorter = TTL_OPTIONS.filter((option) => option.seconds < ttlSeconds);
+              // Nothing to offer when the conversation is already at the
+              // shortest timer: an alert with only a cancel button reads like
+              // a bug.
+              if (shorter.length === 0) return;
+              Alert.alert(t('conversation.oneOffTtlTitle'), t('conversation.oneOffTtlHint'), [
+                ...shorter.map((option) => ({
+                  text: t(`conversation.ttl.${option.key}`),
+                  onPress: () => setOneOffTtlSeconds(option.seconds),
+                })),
+                { text: t('conversation.cancel'), style: 'cancel' as const },
+              ]);
+            }}
+            delayLongPress={350}
             style={({ pressed }) => [
               styles.sendButton,
               { backgroundColor: pressed ? colors.accentPressed : colors.accent },

@@ -119,7 +119,10 @@
     "groupNamePlaceholder": "Nombre del grupo",
     "groupNameSave": "Guardar",
     "groupNameFailed": "El nombre no llegó a los demás miembros.",
-    "verifyButton": "Verificar"
+    "verifyButton": "Verificar",
+    "oneOffTtlTitle": "Borrar este mensaje en",
+    "oneOffTtlHint": "Vale solo para el próximo mensaje. La conversación mantiene su temporizador.",
+    "oneOffTtlActive": "Este mensaje se borra en {{label}}"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
