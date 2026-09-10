@@ -11,6 +11,8 @@ import { ConversationScreen } from '../screens/ConversationScreen';
 import { BlockedPeersScreen } from '../screens/BlockedPeersScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ScanQrScreen } from '../screens/ScanQrScreen';
+import { BackupScreen } from '../screens/BackupScreen';
+import { RestoreBackupScreen } from '../screens/RestoreBackupScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -19,6 +21,8 @@ export type RootStackParamList = {
   BlockedPeers: undefined;
   Settings: undefined;
   ScanQr: undefined;
+  Backup: undefined;
+  RestoreBackup: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -71,6 +75,12 @@ export function RootNavigator() {
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('navigation.settings') }} />
         <Stack.Screen name="ScanQr" component={ScanQrScreen} options={{ title: t('navigation.scanQr') }} />
+        <Stack.Screen name="Backup" component={BackupScreen} options={{ title: t('navigation.backup') }} />
+        <Stack.Screen
+          name="RestoreBackup"
+          component={RestoreBackupScreen}
+          options={{ title: t('navigation.restoreBackup') }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

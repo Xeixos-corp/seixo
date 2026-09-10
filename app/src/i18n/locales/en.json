@@ -4,13 +4,16 @@
     "conversation": "Conversation",
     "blockedPeers": "Blocked contacts",
     "settings": "Settings",
-    "scanQr": "Scan QR code"
+    "scanQr": "Scan QR code",
+    "backup": "Backup",
+    "restoreBackup": "Restore account"
   },
   "onboarding": {
     "title": "Private messaging",
     "subtitle": "End-to-end encrypted. No phone number. Minimal, temporary metadata.",
     "createIdentity": "Create identity",
-    "retry": "Try again"
+    "retry": "Try again",
+    "restoreBackup": "I already have a backup"
   },
   "conversationList": {
     "peerIdPlaceholder": "the other person's user_id",
@@ -148,7 +151,10 @@
       "system": "Automatic",
       "light": "Light",
       "dark": "Dark"
-    }
+    },
+    "backupSection": "Backup",
+    "backupButton": "Create a backup",
+    "backupHint": "Saves your identity to an encrypted file, so you can get back into the same account on another phone. Messages are not included."
   },
   "screenshotWarning": {
     "title": "Screenshot",
@@ -186,5 +192,30 @@
     "explanation": "Compare this code with the other person — in person, by call, or any way other than this app. If it matches on both phones, nobody is in the middle reading you.",
     "resetWarning": "This person's security key changed. That happens when they reinstall the app — but it is also what you would see if someone were impersonating them. Only continue if you have confirmed the code above with them by other means.",
     "resetButton": "I confirmed — trust again"
+  },
+  "backup": {
+    "intro": "The backup holds who you are: your ID and your key. On a new phone your contacts keep talking to you without having to verify you again. Messages are not included — they still disappear on the timer you chose.",
+    "createButton": "Create a backup",
+    "credentialsError": "The account did not accept its recovery credentials, so this backup would not let you back in. Nothing was saved.",
+    "phraseTitle": "1. Write these 12 words on paper",
+    "phraseWarning": "Without these words the file cannot be opened, and there is no way to recover them. Do not keep them in the same place as the file.",
+    "copyPhrase": "Copy words",
+    "phraseCopiedTitle": "Copied",
+    "phraseCopiedMessage": "The words are on the clipboard. Paste them somewhere safe, then clear the clipboard.",
+    "fileTitle": "2. Save the file",
+    "fileHint": "You choose where it goes: Files, iCloud, AirDrop to your computer. The file is useless to anyone without the 12 words.",
+    "shareButton": "Save file",
+    "footnote": "None of this is kept on our server. We hold no copies and cannot recover yours if you lose it."
+  },
+  "restore": {
+    "intro": "Getting back into the same account takes both parts: the file and the 12 words.",
+    "step1": "1. Choose the file",
+    "chooseFile": "Choose file",
+    "fileChosen": "File chosen — tap to change",
+    "step2": "2. Type the 12 words",
+    "phrasePlaceholder": "the twelve words, separated by spaces",
+    "phraseInvalid": "These words are not a valid phrase. Check whether one is misspelled.",
+    "button": "Restore account",
+    "footnote": "Old messages do not come back — they were never in the backup. Conversations start again, with the same ID and the same safety number."
   }
 }

@@ -19,10 +19,24 @@ import type {
   OneTimePrekeyPublic,
   PreKeyBundleData,
   RotatedPrekeys,
+  BackupCredentials,
 } from '../../modules/signal-native-expo/src/SignalNativeExpo.types';
+
+/**
+ * What a backup blob holds once opened. The identity fields are added
+ * natively; everything else is what the app chose to carry -- see
+ * backup/recoveryBackup.ts for why that list is as short as it is.
+ */
+export type RecoveryBackupContents = {
+  version: number;
+  userId: string;
+  createdAt: string;
+  identityKeyPairBase64: string;
+  registrationId: number;
+};
 import { getOrCreateMasterKeyBase64 } from './masterKey';
 
-export type { EncryptedEnvelope, OneTimePrekeyPublic, PreKeyBundleData };
+export type { EncryptedEnvelope, OneTimePrekeyPublic, PreKeyBundleData, BackupCredentials };
 
 let deviceInitialized = false;
 
@@ -148,6 +162,61 @@ export function resetSignalDevice(): void {
 export function wipeLocalSignalStore(): void {
   SignalNativeExpoModule.wipeLocalStore();
   deviceInitialized = false;
+}
+
+/**
+ * Seals this device's identity, plus whatever `contents` the caller wants
+ * carried, under a key derived from `phrase`.
+ *
+ * The identity's private half is read and sealed inside the native module and
+ * never reaches JS -- see SignalNativeExpoModule.ts. Whoever holds it can be
+ * this user to every contact, so the fewer places it exists, the better.
+ */
+export function createRecoveryBackup(phrase: string, contents: Record<string, unknown>): string {
+  requireInitialized();
+  return SignalNativeExpoModule.createRecoveryBackup(phrase, JSON.stringify(contents));
+}
+
+/** Opens a backup blob. Throws on a wrong phrase or a damaged file alike. */
+export function readRecoveryBackup(phrase: string, blob: string): RecoveryBackupContents {
+  return JSON.parse(SignalNativeExpoModule.readRecoveryBackup(phrase, blob));
+}
+
+/**
+ * Plants a restored identity so the next `initSignalDevice` adopts it instead
+ * of generating a fresh one.
+ *
+ * Must run on a device with no identity: the native side refuses otherwise,
+ * so a mistaken restore cannot replace a working identity and leave the
+ * session files beside it pointing at one that no longer exists.
+ */
+export async function restoreIdentityFromBackup(
+  identityKeyPairBase64: string,
+  registrationId: number,
+): Promise<void> {
+  const masterKeyBase64 = await getOrCreateMasterKeyBase64();
+  SignalNativeExpoModule.restoreIdentityFromBackup(
+    identityKeyPairBase64,
+    registrationId,
+    masterKeyBase64,
+  );
+  // The native side dropped its device handle; this side must agree, or the
+  // next initSignalDevice() would think it had already run.
+  deviceInitialized = false;
+}
+
+export function generateRecoveryPhrase(): string {
+  return SignalNativeExpoModule.generateRecoveryPhrase();
+}
+
+/** Wordlist + checksum, so a typo is caught while the paper is still in hand. */
+export function isValidRecoveryPhrase(phrase: string): boolean {
+  return SignalNativeExpoModule.isValidRecoveryPhrase(phrase);
+}
+
+/** The account credentials a phrase implies -- derived, never stored. */
+export function deriveBackupCredentials(phrase: string): BackupCredentials {
+  return SignalNativeExpoModule.deriveBackupCredentials(phrase);
 }
 
 /**

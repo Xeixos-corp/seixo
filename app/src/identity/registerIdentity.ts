@@ -21,6 +21,7 @@ import {
   fetchMyChannelsDetailed,
 } from '../transport/channels';
 import { fetchBlockedPeerIds } from '../transport/blocking';
+import { supabase } from '../transport/supabaseClient';
 import { markAccountActive } from './lastActive';
 import { setCurrentUserId } from './currentUser';
 import { rotatePrekeysIfDue } from './rotatePrekeys';
@@ -80,6 +81,23 @@ export function registerIdentity(): Promise<RegisteredIdentity> {
     });
   }
   return registerPromise;
+}
+
+/**
+ * Resumes an identity this device already has, and does nothing at all if it
+ * has none.
+ *
+ * The distinction matters at launch. registerIdentity() *creates* an account
+ * when there is no session, so calling it on every launch meant a fresh
+ * install had signed up before the first screen appeared -- which left
+ * someone restoring a backup already holding a different, brand new identity,
+ * with no way to get to the one they came back for. Creating an account is
+ * now something the user does on purpose, from the onboarding screen.
+ */
+export async function resumeIdentityIfRegistered(): Promise<RegisteredIdentity | null> {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session?.user) return null;
+  return registerIdentity();
 }
 
 /**

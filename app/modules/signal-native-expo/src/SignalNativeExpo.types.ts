@@ -37,3 +37,14 @@ export type RotatedPrekeys = {
   kyberPrekeyPublicBase64: string;
   kyberPrekeySignatureBase64: string;
 };
+
+/**
+ * The account credentials a recovery phrase implies, derived rather than
+ * stored — see packages/signal-native/rust/src/backup.rs. The address is on
+ * a reserved domain that can never receive mail; it names an account, it does
+ * not reach a person.
+ */
+export type BackupCredentials = {
+  email: string;
+  password: string;
+};

@@ -4,7 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import './src/i18n';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { registerIdentity } from './src/identity/registerIdentity';
+import { resumeIdentityIfRegistered } from './src/identity/registerIdentity';
 import { useScreenshotProtection } from './src/hooks/useScreenshotProtection';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { useMessageSync } from './src/messaging/useMessageSync';
@@ -54,8 +54,13 @@ export default function App() {
     // Fire-and-forget: OnboardingScreen awaits the same memoized promise to
     // show loading/error state, this just gets it started as early as
     // possible so returning users don't wait on the onboarding screen.
-    registerIdentity().catch((error) => {
-      console.error('[App] registerIdentity failed', error);
+    //
+    // Resume, not register: this must not create an account for someone who
+    // has not asked for one. A fresh install that signed up here would leave
+    // anyone restoring a backup already holding a different identity, and no
+    // route back to theirs. Creating is the onboarding button's job.
+    resumeIdentityIfRegistered().catch((error) => {
+      console.error('[App] resumeIdentityIfRegistered failed', error);
     });
   }, []);
 

@@ -110,11 +110,31 @@ export function OnboardingScreen({ navigation }: Props) {
           </Text>
         )}
       </Pressable>
+
+      {/* Second, and quieter: most people arriving here are new. Someone
+          restoring knows they are restoring, and looks for it. */}
+      <Pressable
+        disabled={status === 'loading'}
+        onPress={() => navigation.navigate('RestoreBackup')}
+        style={styles.restoreLink}
+      >
+        <Text style={[styles.restoreLinkText, { color: colors.textSecondary }]}>
+          {t('onboarding.restoreBackup')}
+        </Text>
+      </Pressable>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  restoreLink: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  restoreLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     justifyContent: 'space-between',

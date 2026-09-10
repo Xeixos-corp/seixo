@@ -4,13 +4,16 @@
     "conversation": "Conversa",
     "blockedPeers": "Contactos bloqueados",
     "settings": "Definições",
-    "scanQr": "Ler código QR"
+    "scanQr": "Ler código QR",
+    "backup": "Cópia de segurança",
+    "restoreBackup": "Recuperar conta"
   },
   "onboarding": {
     "title": "Mensagens privadas",
     "subtitle": "Cifra ponta-a-ponta. Sem número de telefone. Metadados mínimos e temporários.",
     "createIdentity": "Criar identidade",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "restoreBackup": "Já tenho uma cópia de segurança"
   },
   "conversationList": {
     "peerIdPlaceholder": "user_id da outra pessoa",
@@ -148,7 +151,10 @@
       "system": "Automático",
       "light": "Claro",
       "dark": "Escuro"
-    }
+    },
+    "backupSection": "Cópia de segurança",
+    "backupButton": "Criar cópia de segurança",
+    "backupHint": "Guarda a tua identidade num ficheiro cifrado, para voltares a entrar na mesma conta noutro telemóvel. As mensagens não vão na cópia."
   },
   "screenshotWarning": {
     "title": "Captura de ecrã",
@@ -186,5 +192,30 @@
     "explanation": "Compara este código com a outra pessoa — ao vivo, por chamada, ou por outro meio que não esta app. Se for igual nos dois telemóveis, ninguém está no meio a ler-vos.",
     "resetWarning": "A chave de segurança desta pessoa mudou. Isso acontece quando reinstala a app — mas também é o que se veria se alguém estivesse a fazer-se passar por ela. Só continues se tiveres confirmado o código acima com ela por outro meio.",
     "resetButton": "Confirmei — voltar a confiar"
+  },
+  "backup": {
+    "intro": "A cópia guarda quem tu és: o teu ID e a tua chave. Assim, num telemóvel novo, os teus contactos continuam a falar contigo sem ter de te verificar outra vez. As mensagens não vão na cópia — continuam a apagar-se no tempo que escolheste.",
+    "createButton": "Criar cópia de segurança",
+    "credentialsError": "A conta não aceitou as credenciais de recuperação, por isso esta cópia não serviria para voltar a entrar. Nada foi guardado.",
+    "phraseTitle": "1. Escreve estas 12 palavras num papel",
+    "phraseWarning": "Sem estas palavras o ficheiro não abre, e não há forma de as recuperar. Não as guardes no mesmo sítio que o ficheiro.",
+    "copyPhrase": "Copiar palavras",
+    "phraseCopiedTitle": "Copiado",
+    "phraseCopiedMessage": "As palavras estão na área de transferência. Cola-as num sítio seguro e limpa a área de transferência depois.",
+    "fileTitle": "2. Guarda o ficheiro",
+    "fileHint": "Escolhe tu onde fica: em Ficheiros, no iCloud, por AirDrop para o computador. O ficheiro é inútil para quem não tiver as 12 palavras.",
+    "shareButton": "Guardar ficheiro",
+    "footnote": "Nada disto fica no nosso servidor. Não guardamos cópias de ninguém e não conseguimos recuperar a tua se a perderes."
+  },
+  "restore": {
+    "intro": "Para voltares à mesma conta precisas das duas partes: o ficheiro e as 12 palavras.",
+    "step1": "1. Escolhe o ficheiro",
+    "chooseFile": "Escolher ficheiro",
+    "fileChosen": "Ficheiro escolhido — tocar para mudar",
+    "step2": "2. Escreve as 12 palavras",
+    "phrasePlaceholder": "as doze palavras, separadas por espaços",
+    "phraseInvalid": "Estas palavras não formam uma frase válida. Verifica se alguma está mal escrita.",
+    "button": "Recuperar conta",
+    "footnote": "As mensagens antigas não voltam — nunca estiveram na cópia. As conversas recomeçam, com o mesmo ID e a mesma chave de segurança."
   }
 }

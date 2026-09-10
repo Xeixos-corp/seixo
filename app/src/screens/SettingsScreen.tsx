@@ -115,6 +115,26 @@ export function SettingsScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+          {t('settings.backupSection')}
+        </Text>
+        <Pressable
+          onPress={() => navigation.navigate('Backup')}
+          style={({ pressed }) => [
+            styles.linkRow,
+            { borderColor: colors.border, backgroundColor: colors.surfaceAlt, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+            {t('settings.backupButton')}
+          </Text>
+        </Pressable>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          {t('settings.backupHint')}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.supportSection')}</Text>
         {SUPPORT_CONTACT_EMAIL ? (
           <Pressable onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}`)}>
@@ -166,6 +186,12 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
     gap: 8,
+  },
+  linkRow: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
   themeRow: {
     flexDirection: 'row',

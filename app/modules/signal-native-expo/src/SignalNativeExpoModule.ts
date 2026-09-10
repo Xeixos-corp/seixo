@@ -4,6 +4,7 @@ import type {
   OneTimePrekeyPublic,
   PreKeyBundleData,
   RotatedPrekeys,
+  BackupCredentials,
 } from './SignalNativeExpo.types';
 
 declare class SignalNativeExpoModule extends NativeModule<{}> {
@@ -23,6 +24,21 @@ declare class SignalNativeExpoModule extends NativeModule<{}> {
   establishSession(remoteUserId: string, remoteDeviceId: number, bundle: PreKeyBundleData): void;
   encrypt(remoteUserId: string, remoteDeviceId: number, plaintext: string): EncryptedEnvelope;
   decrypt(remoteUserId: string, remoteDeviceId: number, envelope: EncryptedEnvelope): string;
+
+  // --- Recovery backups (packages/signal-native/rust/src/backup.rs) ---
+  // Note the shape: the identity's private half never crosses into JS. It is
+  // read and sealed inside createRecoveryBackup, so the most dangerous value
+  // in the app exists only in native memory.
+  createRecoveryBackup(phrase: string, contentsJson: string): string;
+  readRecoveryBackup(phrase: string, blob: string): string;
+  restoreIdentityFromBackup(
+    identityKeyPairBase64: string,
+    registrationId: number,
+    masterKeyBase64: string,
+  ): void;
+  generateRecoveryPhrase(): string;
+  isValidRecoveryPhrase(phrase: string): boolean;
+  deriveBackupCredentials(phrase: string): BackupCredentials;
 }
 
 export default requireNativeModule<SignalNativeExpoModule>('SignalNativeExpo');
