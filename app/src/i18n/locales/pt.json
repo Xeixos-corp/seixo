@@ -110,7 +110,11 @@
     "groupOwnerNote": "Só quem criou o grupo pode adicionar ou remover pessoas.",
     "groupNoHistoryNote": "Quem entrar agora não vê as mensagens anteriores — foram cifradas com chaves que essa pessoa não tem.",
     "close": "Fechar",
-    "emptyGroupNotice": "Este grupo ainda não tem ninguém. Toca em Membros para adicionar pessoas — só depois é possível enviar mensagens."
+    "emptyGroupNotice": "Este grupo ainda não tem ninguém. Toca em Membros para adicionar pessoas — só depois é possível enviar mensagens.",
+    "deleteGroupButton": "Eliminar grupo",
+    "deleteGroupTitle": "Eliminar o grupo?",
+    "deleteGroupBody": "O grupo e as mensagens desaparecem do servidor para toda a gente. As mensagens que cada pessoa já recebeu ficam no telemóvel dela até o temporizador as apagar — isto não as pode ir buscar.",
+    "deleteGroupConfirm": "Eliminar"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

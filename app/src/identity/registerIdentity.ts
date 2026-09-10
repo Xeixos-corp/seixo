@@ -195,6 +195,20 @@ async function finishRegistration(userId: string): Promise<void> {
       if (!peerUserId) return;
       addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS });
     });
+
+    // And drop what the server no longer has. A group deleted by its owner,
+    // or a channel purged for sitting empty past its messages' expiry, would
+    // otherwise linger as a conversation that can never receive anything
+    // again.
+    //
+    // Only ever runs when the fetch above succeeded: a network failure throws
+    // and lands in the catch, so a bad connection can never be read as "the
+    // server has nothing" and wipe every conversation on the device.
+    const live = new Set(serverChannels.map((channel) => channel.channelId));
+    const { conversations, removeConversation } = useConversationsStore.getState();
+    conversations
+      .filter((conversation) => !live.has(conversation.channelId))
+      .forEach((conversation) => removeConversation(conversation.channelId));
   } catch (error) {
     console.error('[registerIdentity] failed to reconcile channels', error);
   }

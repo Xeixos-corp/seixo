@@ -244,3 +244,16 @@ export async function fetchMyChannelsDetailed(selfUserId: string): Promise<Serve
     memberIds: byChannel.get(row.id as string) ?? [],
   }));
 }
+
+/**
+ * Ends a group for everyone. Owner only, enforced server-side.
+ *
+ * Deleting the channel cascades to its members and messages, so nothing of it
+ * survives on the server. It does not reach into anyone's phone: messages
+ * already delivered are decrypted and stored on each member's device until
+ * their own timer expires them.
+ */
+export async function deleteGroupChannel(channelId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_group_channel', { channel_id: channelId });
+  if (error) throw new Error(error.message);
+}

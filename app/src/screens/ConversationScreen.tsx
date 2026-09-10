@@ -37,6 +37,7 @@ import {
   addGroupMember,
   removeGroupMember,
   fetchChannelMembers,
+  deleteGroupChannel,
 } from '../transport/channels';
 import { AudioModule, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 import {
@@ -506,6 +507,8 @@ export function ConversationScreen({ route, navigation }: Props) {
   }, [recording, stopRecording]);
 
   const setGroupMembers = useConversationsStore((state) => state.setGroupMembers);
+  const removeConversation = useConversationsStore((state) => state.removeConversation);
+  const clearChannel = useMessagesStore((state) => state.clearChannel);
   const isOwner = isGroup && conversation?.ownerId === getCurrentUserId();
 
   // Refreshed from the server rather than trusted from local state: the owner
@@ -524,6 +527,27 @@ export function ConversationScreen({ route, navigation }: Props) {
   useEffect(() => {
     void refreshMembers();
   }, [refreshMembers]);
+
+  const handleDeleteGroup = useCallback(() => {
+    Alert.alert(t('conversation.deleteGroupTitle'), t('conversation.deleteGroupBody'), [
+      { text: t('conversation.cancel'), style: 'cancel' },
+      {
+        text: t('conversation.deleteGroupConfirm'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteGroupChannel(channelId);
+            clearChannel(channelId);
+            removeConversation(channelId);
+            setShowMembers(false);
+            navigation.navigate('ConversationList');
+          } catch (error) {
+            setSendError(error instanceof Error ? error.message : String(error));
+          }
+        },
+      },
+    ]);
+  }, [channelId, clearChannel, removeConversation, navigation, t]);
 
   const handleAddMember = useCallback(async () => {
     const peerId = newMemberId.trim();
@@ -1193,6 +1217,14 @@ export function ConversationScreen({ route, navigation }: Props) {
                 {t('conversation.groupNoHistoryNote')}
               </Text>
 
+              {isOwner ? (
+                <Pressable onPress={handleDeleteGroup} style={styles.deleteGroupButton}>
+                  <Text style={{ color: colors.danger, fontWeight: '600' }}>
+                    {t('conversation.deleteGroupButton')}
+                  </Text>
+                </Pressable>
+              ) : null}
+
               <Pressable onPress={() => setShowMembers(false)} style={styles.membersClose}>
                 <Text style={{ color: colors.accent, fontWeight: '600' }}>
                   {t('conversation.close')}
@@ -1323,6 +1355,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     marginTop: 6,
+  },
+  deleteGroupButton: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
   },
   membersClose: {
     alignSelf: 'flex-end',

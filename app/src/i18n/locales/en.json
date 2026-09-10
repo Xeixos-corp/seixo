@@ -110,7 +110,11 @@
     "groupOwnerNote": "Only whoever created the group can add or remove people.",
     "groupNoHistoryNote": "Anyone joining now cannot see earlier messages — they were encrypted with keys that person does not have.",
     "close": "Close",
-    "emptyGroupNotice": "This group has nobody in it yet. Tap Members to add people — messages can only be sent after that."
+    "emptyGroupNotice": "This group has nobody in it yet. Tap Members to add people — messages can only be sent after that.",
+    "deleteGroupButton": "Delete group",
+    "deleteGroupTitle": "Delete the group?",
+    "deleteGroupBody": "The group and its messages disappear from the server for everyone. Messages each person already received stay on their phone until their timer removes them — this cannot reach those.",
+    "deleteGroupConfirm": "Delete"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
