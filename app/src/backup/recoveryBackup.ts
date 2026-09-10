@@ -103,17 +103,26 @@ export async function createBackup(): Promise<CreatedBackup> {
   // address is on a reserved domain that cannot receive mail, and both halves
   // come from the phrase, so nothing about the user is revealed and nothing
   // needs storing.
-  const { data: updated, error } = await supabase.auth.updateUser({
-    email: credentials.email,
-    password: credentials.password,
-  });
+  //
+  // Through an Edge Function rather than supabase.auth.updateUser, because
+  // the address has to be marked confirmed in the same step -- no
+  // confirmation mail can ever reach @seixo.invalid, and an unconfirmed
+  // address does not sign in. See supabase/functions/link-recovery-credentials.
+  const { data: linked, error } = await supabase.functions.invoke(
+    'link-recovery-credentials',
+    { body: { email: credentials.email, password: credentials.password } },
+  );
   if (error) {
     throw new BackupCredentialsError(error.message);
   }
-  // A project that requires email confirmation would leave the address
-  // pending instead of applying it, and the restore would then fail on a
-  // phone that no longer has the identity. Better to refuse now, loudly.
-  if (updated?.user?.email !== credentials.email) {
+  // Verified, not assumed: the file is written only once the account has
+  // actually accepted the credentials a restore will present. Anything less
+  // produces something that looks like a safety net and is not one.
+  const result = linked as { email?: string; confirmed?: boolean; error?: string } | null;
+  if (result?.error) {
+    throw new BackupCredentialsError(result.error);
+  }
+  if (result?.email !== credentials.email || !result?.confirmed) {
     throw new BackupCredentialsError(
       'The account did not accept its recovery credentials, so this backup would not restore.',
     );

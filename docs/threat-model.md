@@ -1512,6 +1512,31 @@ non-expiring per-account identifier for anyone who has made a backup, where
 before it held none. The password carries the phrase's full entropy, so
 guessing it is guessing the phrase.
 
+**How that address gets confirmed, and why it is not a dashboard toggle.**
+Checking the project's own auth configuration (the public
+`/auth/v1/settings` endpoint, which needs only the publishable key) showed
+`mailer_autoconfirm: false` -- email confirmation is on. An address on
+`@seixo.invalid` can never receive the confirmation mail, and an unconfirmed
+address does not sign in, so the feature as first written would have produced
+backups that never restored. It failed safe rather than silently: the client
+verifies the credentials were accepted before writing the file, and refused.
+
+The obvious fix was to turn confirmation off for the whole project. Rejected:
+that disables a protection everywhere to solve a problem in one place, and
+leaves a setting whose reason nobody will remember in a year. Instead
+`supabase/functions/link-recovery-credentials` attaches the pair with the
+Admin API's `email_confirm`, so only these generated addresses are
+auto-confirmed and the project setting stays as it is.
+
+The cost of that choice, stated rather than buried: the derived password now
+passes through our own Edge Function on its way to being hashed, which is one
+more place that touches it. Going through `updateUser` would have sent it
+straight to the auth service. The function therefore contains no logging at
+all, and says so at the top -- Edge Function logs are retained, and this is
+the one moment that secret exists outside the device. The function also
+refuses any address that is not 32 hex characters on the reserved domain, so
+it cannot be repurposed to attach a real email to an account.
+
 **What a backup cannot do.** It cannot bring back messages: they were never
 in it, and the ones sealed to the old device's prekeys are unreadable by
 anyone, forever, because the private halves went with the phone. It cannot be
