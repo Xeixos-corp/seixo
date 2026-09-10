@@ -128,6 +128,29 @@ export async function createBackup(): Promise<CreatedBackup> {
     );
   }
 
+  // Setting a password revokes the sessions that existed before it, so the
+  // session this device is holding is now dead. Signing in again is not
+  // housekeeping -- without it the app keeps working only until its access
+  // token expires, and then logs the user out of an account they never chose
+  // to leave. That is exactly what happened on the first real device test:
+  // the backup succeeded at 16:18 and every call to the auth service after
+  // it returned `session_not_found`.
+  //
+  // Doing it here also makes this the strongest verification available. It
+  // performs the authentication step a restore will perform, on the device
+  // that still holds the identity, before any file is written -- so
+  // credentials that would not sign in are found now rather than on a phone
+  // that has nothing left to try again from.
+  const { data: reauth, error: reauthError } = await supabase.auth.signInWithPassword({
+    email: credentials.email,
+    password: credentials.password,
+  });
+  if (reauthError || reauth.user?.id !== userId) {
+    throw new BackupCredentialsError(
+      'The recovery credentials did not sign in, so this backup would not restore.',
+    );
+  }
+
   // Kept short on purpose. Every field here is a field that outlives the
   // disappearing timers, in a file we no longer control once it leaves.
   const blob = sealBackup(phrase, {

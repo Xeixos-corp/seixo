@@ -125,7 +125,8 @@
     "verifyButton": "Verificar",
     "oneOffTtlTitle": "Borrar este mensaje en",
     "oneOffTtlHint": "Vale solo para el próximo mensaje. La conversación mantiene su temporizador.",
-    "oneOffTtlActive": "Este mensaje se borra en {{label}}"
+    "oneOffTtlActive": "Este mensaje se borra en {{label}}",
+    "groupNameSent": "Nombre enviado a los miembros."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

@@ -70,12 +70,20 @@ public class AudioSessionExpoModule: Module {
     /// phone in a pocket while someone wears AirPods.
     AsyncFunction("startEarpieceRouting") { [weak self] in
       let session = AVAudioSession.sharedInstance()
-      try session.setCategory(
-        .playAndRecord,
-        mode: .default,
-        options: [.allowBluetoothA2DP, .defaultToSpeaker]
-      )
+      // No `.defaultToSpeaker` here, and that omission is the whole point.
+      // That option redefines the category's default route as the speaker,
+      // which makes `overrideOutputAudioPort(.none)` below mean "back to the
+      // speaker" instead of "back to the receiver" -- so the earpiece was
+      // never reachable and playback stayed on the loudspeaker with the phone
+      // at the ear. Without it, `.playAndRecord` defaults to the receiver and
+      // `.none` means what the observer needs it to mean.
+      try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothA2DP])
       try session.setActive(true)
+
+      // Which means the speaker now has to be asked for explicitly, or a
+      // message started with the phone in hand would play out of the earpiece
+      // at conversation volume.
+      try? session.overrideOutputAudioPort(.speaker)
 
       DispatchQueue.main.async {
         UIDevice.current.isProximityMonitoringEnabled = true

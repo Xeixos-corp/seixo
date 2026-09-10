@@ -271,6 +271,11 @@ export function ConversationScreen({ route, navigation }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showSafetyNumber, setShowSafetyNumber] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  // Feedback for actions taken inside the members sheet. It needs its own
+  // state because the sheet covers the conversation, where sendError is drawn.
+  const [membersNotice, setMembersNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(
+    null,
+  );
   const [newMemberId, setNewMemberId] = useState('');
   const [groupNameDraft, setGroupNameDraft] = useState('');
   /**
@@ -385,13 +390,26 @@ export function ConversationScreen({ route, navigation }: Props) {
     async (payload: string, options: { silent?: boolean; serverTtlSeconds?: number } = {}) => {
       if (isGroup) {
         const selfUserId = getCurrentUserId();
-        if (!selfUserId || !groupMemberIds?.length) {
-          throw new Error('Group membership not loaded yet');
+        if (!selfUserId) throw new Error('Group membership not loaded yet');
+        // Ask the server rather than give up. The local list can be empty or
+        // stale -- a group opened straight from a notification, say -- and
+        // refusing to send in that case made group actions do nothing at all,
+        // with the reason rendered on a screen hidden behind the members
+        // sheet. Fetching costs one request and only happens when the list is
+        // missing.
+        let members = groupMemberIds;
+        if (!members?.length) {
+          members = await fetchChannelMembers(channelId);
+          // Read off the store rather than the hook binding: that one is
+          // declared below this callback, and hoisting a dependency just to
+          // satisfy the order is how this file has broken three times.
+          useConversationsStore.getState().setGroupMembers(channelId, members);
         }
+        if (!members.length) throw new Error('Group membership not loaded yet');
         return sendGroupMessage(
           channelId,
           selfUserId,
-          groupMemberIds,
+          members,
           payload,
           ttlSeconds,
           options,
@@ -560,11 +578,17 @@ export function ConversationScreen({ route, navigation }: Props) {
     async (name: string) => {
       const trimmed = name.trim();
       setConversationNickname(channelId, trimmed);
+      setMembersNotice(null);
       try {
         await transmit(encodePayload({ text: '', groupName: trimmed }), { silent: true });
+        setMembersNotice({ kind: 'ok', text: t('conversation.groupNameSent') });
       } catch (error) {
         console.error('[ConversationScreen] failed to announce group name', error);
-        setSendError(t('conversation.groupNameFailed'));
+        // Reported inside the sheet, not behind it. sendError draws on the
+        // conversation itself, which the members modal covers -- so a rename
+        // that failed looked exactly like one that silently did nothing, and
+        // that is how this shipped.
+        setMembersNotice({ kind: 'error', text: t('conversation.groupNameFailed') });
       }
     },
     [channelId, setConversationNickname, transmit, t],
@@ -1313,6 +1337,18 @@ export function ConversationScreen({ route, navigation }: Props) {
                   ) : null}
                 </View>
               ))}
+
+              {membersNotice ? (
+                <Text
+                  style={{
+                    color: membersNotice.kind === 'error' ? colors.danger : colors.textSecondary,
+                    fontSize: 13,
+                    marginTop: 4,
+                  }}
+                >
+                  {membersNotice.text}
+                </Text>
+              ) : null}
 
               {isOwner ? (
                 <View style={styles.addMemberRow}>

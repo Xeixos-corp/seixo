@@ -125,7 +125,8 @@
     "verifyButton": "Verify",
     "oneOffTtlTitle": "Delete this message after",
     "oneOffTtlHint": "Applies to the next message only. The conversation keeps its own timer.",
-    "oneOffTtlActive": "This message disappears in {{label}}"
+    "oneOffTtlActive": "This message disappears in {{label}}",
+    "groupNameSent": "Name sent to the members."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

@@ -125,7 +125,8 @@
     "verifyButton": "Verificar",
     "oneOffTtlTitle": "Apagar esta mensagem em",
     "oneOffTtlHint": "Vale só para a próxima mensagem. A conversa mantém o temporizador dela.",
-    "oneOffTtlActive": "Esta mensagem apaga em {{label}}"
+    "oneOffTtlActive": "Esta mensagem apaga em {{label}}",
+    "groupNameSent": "Nome enviado aos membros."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
