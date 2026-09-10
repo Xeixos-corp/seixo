@@ -169,6 +169,14 @@ independent places:
   once-a-minute purge) is never decrypted at all — no point spending a
   one-time Double Ratchet message key on something about to disappear.
 
+The conversation's timer is a ceiling, not a fixed rule: a long press on the
+send button arms a shorter one for the next message only. The chosen lifetime
+travels with that message in both directions -- the server is asked to drop
+the row at that point, and the payload carries `l` so the recipient's device
+schedules its own removal on the same clock instead of the conversation's.
+It can only ever shorten, never extend, so a recipient cannot be given a
+message that outlives what the conversation agreed to.
+
 This is not the same guarantee as Signal's "timer starts when read" model —
 here the timer starts at send time for everyone, which is simpler but means
 a message sent with a long timer stays available longer than Signal's
