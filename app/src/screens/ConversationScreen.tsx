@@ -496,11 +496,18 @@ export function ConversationScreen({ route, navigation }: Props) {
     }
     try {
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      // The part expo-audio cannot do: allowing the hands-free profile, which
-      // is what makes the microphone on Bluetooth headphones usable at all.
-      await configureForRecording();
       const recorder = new AudioModule.AudioRecorder(iosRecorderOptions());
       recorderRef.current = recorder;
+      // The part expo-audio cannot do: allowing the hands-free profile, which
+      // is what makes the microphone on Bluetooth headphones usable at all.
+      //
+      // The order is the fix. expo-audio's recorder resets the audio session
+      // with no options *when it is created* (AudioRecorder.swift), which
+      // throws away the Bluetooth option -- so configuring first, as this
+      // used to, was undone a moment later and the AirPods microphone was
+      // never reachable. Configure after creating, before preparing: the
+      // input is chosen when the recorder prepares.
+      await configureForRecording();
       await recorder.prepareToRecordAsync();
       recorder.record();
       recordingStartedAt.current = Date.now();
