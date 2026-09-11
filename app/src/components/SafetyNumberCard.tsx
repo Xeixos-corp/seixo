@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { safetyNumber, forgetPeerIdentity } from '../crypto';
@@ -31,6 +32,7 @@ export function SafetyNumberCard({
   const { t } = useTranslation();
   const [number, setNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +49,12 @@ export function SafetyNumberCard({
       cancelled = true;
     };
   }, [peerUserId]);
+
+  const handleCopyId = async () => {
+    await Clipboard.setStringAsync(peerUserId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleReset = () => {
     try {
@@ -65,6 +73,23 @@ export function SafetyNumberCard({
       <Text style={[styles.explanation, { color: colors.textSecondary }]}>
         {t('safetyNumber.explanation')}
       </Text>
+
+      {/* The contact's full id. It used to sit under their name in the
+          conversation list and was removed there in 1.9.0, which left no
+          ordinary way to see it for a contact you had named. Here it sits
+          with the safety number, because checking who someone is means
+          comparing both. */}
+      <View style={[styles.idBox, { backgroundColor: colors.surfaceAlt }]}>
+        <Text style={[styles.idLabel, { color: colors.textSecondary }]}>{t('safetyNumber.idLabel')}</Text>
+        <Text style={[styles.idValue, { color: colors.textPrimary }]} selectable>
+          {peerUserId}
+        </Text>
+        <Pressable onPress={handleCopyId} hitSlop={8}>
+          <Text style={[styles.idCopy, { color: colors.accent }]}>
+            {copied ? t('safetyNumber.idCopied') : t('safetyNumber.copyId')}
+          </Text>
+        </Pressable>
+      </View>
 
       {error ? (
         <Text style={[styles.explanation, { color: colors.danger }]}>{error}</Text>
@@ -122,6 +147,23 @@ const styles = StyleSheet.create({
   },
   spinner: {
     paddingVertical: 12,
+  },
+  idBox: {
+    borderRadius: 10,
+    padding: 12,
+    gap: 4,
+  },
+  idLabel: {
+    fontSize: 12,
+  },
+  idValue: {
+    fontSize: 13,
+    fontVariant: ['tabular-nums'],
+  },
+  idCopy: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 2,
   },
   resetButton: {
     borderWidth: StyleSheet.hairlineWidth,

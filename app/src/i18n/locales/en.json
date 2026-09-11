@@ -201,7 +201,10 @@
     "title": "Safety number",
     "explanation": "Compare this code with the other person — in person, by call, or any way other than this app. If it matches on both phones, nobody is in the middle reading you.",
     "resetWarning": "This person's security key changed. That happens when they reinstall the app — but it is also what you would see if someone were impersonating them. Only continue if you have confirmed the code above with them by other means.",
-    "resetButton": "I confirmed — trust again"
+    "resetButton": "I confirmed — trust again",
+    "idLabel": "Contact ID",
+    "copyId": "Copy ID",
+    "idCopied": "Copied"
   },
   "backup": {
     "intro": "The backup holds who you are: your ID and your key. On a new phone your contacts keep talking to you without having to verify you again. Messages are not included — they still disappear on the timer you chose.",
