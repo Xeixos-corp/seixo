@@ -1561,3 +1561,63 @@ restored identity produces the same safety number a contact had already
 checked, that only the right phrase opens a blob, that a single flipped byte
 is refused, and that the derived credentials come back identical from the
 same phrase typed with different spacing and capitals.
+
+
+### Sharing into Seixo, and the unread badge (2026-09-11)
+
+Two iOS app extensions, added together because they need the same plumbing:
+an App Group per build variant, extension identifiers, and credentials.
+
+**Sharing a link or text into Seixo.** `expo-share-intent` 3.2.3, the last
+release for Expo SDK 52, adds a share extension limited to web links and plain
+text. The extension does not encrypt, send or see anything but the shared
+item: it writes that item into the App Group's storage and opens the app
+through `seixo://dataUrl=<key>`. The app reads it, clears the App Group copy
+immediately (`resetShareIntent`), and keeps its own copy in memory only
+(`store/pendingShareStore.ts`). So the shared item does touch disk -- in the
+App Group, for the moment between the extension handing it over and the app
+picking it up -- and it is honest to say so rather than claim it never does.
+
+Nothing is sent on the person's behalf. The conversation list, which is only
+reachable behind the app lock, the terms and an identity, opens "Share to...";
+choosing a conversation places the text in its input box, and it leaves only
+when they press send, encrypted like any other message. Leaving that screen in
+any way discards the pending item.
+
+**New surface: a URL scheme.** Any app or web page can now open `seixo://...`.
+The only thing the app does with such a URL is look up a shared item by key in
+its own App Group; a crafted URL can at most make it look for an item that is
+not there. That holds only while the scheme has this single use -- any deep
+link added later needs the same scrutiny, because this one is reachable by
+anyone.
+
+**The badge on the app icon.** A Notification Service Extension
+(`app/ios-extensions/NotificationService.swift`, target added by
+`expo-nse-plugin`) runs on the phone for each push, even with the app closed,
+and adds one to a counter in the App Group. While the app is open,
+`notifications/useAppBadge.ts` replaces that estimate with the real unread
+total -- the same logic the conversation list shows -- through a small local
+module, `shared-badge-expo`, which stores it for the extension to continue
+from.
+
+The server's part is a constant: every notification now carries
+`mutableContent: true` (migration 0022), which is what lets iOS hand it to the
+extension. It reveals nothing, being the same on every notification. The
+rejected alternative was for the server to send the number itself, which would
+need the app to report when each message is read -- a usage record this
+project has declined to keep since 0016.
+
+**Limits, stated plainly.** The extension counts notifications, not messages:
+being added to a group counts too, and a message that produces no notification
+(a silent one, or from someone blocked) does not. The count is corrected the
+next time the app opens. The App Group holds only that number and, briefly,
+a shared item.
+
+**Verification status.** Both build variants resolve with distinct schemes and
+App Groups, both extensions are registered with EAS for credentials, the new
+module autolinks, and introspecting the config shows the app's entitlements
+and Info.plist as intended (one App Group entry, no background modes added,
+all permission strings present). What cannot be checked on Windows: Expo
+refuses to generate the iOS project there, and Swift cannot be compiled, so
+the first real test of the Xcode targets and of both Swift files is the build.
+
