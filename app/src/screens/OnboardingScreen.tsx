@@ -63,7 +63,9 @@ export function OnboardingScreen({ navigation }: Props) {
     try {
       // Reuses the promise App.tsx already kicked off on launch, if any —
       // registerIdentity() is memoized and safe to call again.
-      await registerIdentity();
+      // The one place allowed to create an account: the person just asked for
+      // it. Everywhere else, registerIdentity() only loads an existing one.
+      await registerIdentity({ allowCreate: true });
       navigation.replace('ConversationList');
     } catch (error) {
       setStatus('error');

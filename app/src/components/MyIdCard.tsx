@@ -5,6 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { registerIdentity } from '../identity/registerIdentity';
+import { NoIdentityError } from '../transport/identities';
 
 /**
  * Shows the local user's own user_id — as scannable QR (for in-person
@@ -41,6 +42,11 @@ export function MyIdCard() {
         if (!cancelled) setUserId(id);
       })
       .catch((error) => {
+        // No identity is not a failure here: it is the moment right after the
+        // account was deleted, while this card may still be on screen. This
+        // card is what used to create an account in that moment, just to
+        // have an id to show.
+        if (error instanceof NoIdentityError) return;
         console.error('[MyIdCard] could not load identity', error);
         if (!cancelled) {
           setFailed(true);

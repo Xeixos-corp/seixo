@@ -5,6 +5,7 @@ import {
   identityPublicKeyBase64,
 } from '../crypto';
 import {
+  NoIdentityError,
   signInAnonymouslyIfNeeded,
   upsertMyIdentity,
   publishPrekeyBundle,
@@ -67,15 +68,40 @@ export type RegisteredIdentity = {
   identityPublicKeyBase64: string;
 };
 
-// Memoized so registerIdentity() is safe to call from multiple places
-// (App.tsx on launch, OnboardingScreen on button press) without generating
-// a second identity or re-publishing twice concurrently. A failure clears
-// the memo so the next call retries instead of replaying a stale rejection.
+// Memoized so registerIdentity() is safe to call from multiple places without
+// generating a second identity or re-publishing twice concurrently. A failure
+// clears the memo so the next call retries instead of replaying a stale
+// rejection.
 let registerPromise: Promise<RegisteredIdentity> | null = null;
 
-export function registerIdentity(): Promise<RegisteredIdentity> {
+/**
+ * Loads this device's identity, finishing its registration if needed.
+ *
+ * Never creates an account unless `allowCreate` is set -- and the only caller
+ * that sets it is the onboarding screen's "Create identity" button. Without an
+ * identity, every other caller gets a NoIdentityError instead.
+ *
+ * The default used to be the opposite, and accounts kept being created that
+ * nobody asked for: at launch (fixed in 1.7.0), from the notification prompt
+ * (fixed in 1.8.0), and after deleting an account. That last one was found on
+ * 2026-09-11 in the auth logs, with a signup 180 ms after the deletion: the
+ * conversation list, still mounted under Settings, emptied when the account's
+ * data was cleared, its empty state showed the "My ID" card, and the card asked
+ * for an identity with no session left. Fixing call sites one at a time kept
+ * missing one, so the default changed instead.
+ */
+export function registerIdentity(options: { allowCreate?: boolean } = {}): Promise<RegisteredIdentity> {
+  const allowCreate = options.allowCreate === true;
+  if (registerPromise && allowCreate) {
+    // A call already in flight that may not create could be about to fail only
+    // because there is no identity yet. That must not fail the one call that
+    // is allowed to create one.
+    return registerPromise.catch((error) =>
+      error instanceof NoIdentityError ? registerIdentity({ allowCreate: true }) : Promise.reject(error),
+    );
+  }
   if (!registerPromise) {
-    registerPromise = doRegister().catch((error) => {
+    registerPromise = doRegister(allowCreate).catch((error) => {
       registerPromise = null;
       throw error;
     });
@@ -87,8 +113,8 @@ export function registerIdentity(): Promise<RegisteredIdentity> {
  * Resumes an identity this device already has, and does nothing at all if it
  * has none.
  *
- * The distinction matters at launch. registerIdentity() *creates* an account
- * when there is no session, so calling it on every launch meant a fresh
+ * The distinction matters at launch. registerIdentity() used to create an
+ * account when there was no session, so calling it on every launch meant a fresh
  * install had signed up before the first screen appeared -- which left
  * someone restoring a backup already holding a different, brand new identity,
  * with no way to get to the one they came back for. Creating an account is
@@ -109,8 +135,8 @@ export function resetRegisteredIdentity(): void {
   registerPromise = null;
 }
 
-async function doRegister(): Promise<RegisteredIdentity> {
-  const userId = await signInAnonymouslyIfNeeded();
+async function doRegister(allowCreate: boolean): Promise<RegisteredIdentity> {
+  const userId = await signInAnonymouslyIfNeeded({ allowCreate });
   await initSignalDevice(userId, 1);
 
   // Publishing is a first-run action, not a per-launch one.

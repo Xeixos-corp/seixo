@@ -51,10 +51,27 @@ export async function insertOneTimePrekeys(
   if (error) throw error;
 }
 
-export async function signInAnonymouslyIfNeeded(): Promise<string> {
+/**
+ * Thrown when an identity is needed but this device has none, and creating one
+ * was not asked for. See registerIdentity() for why that is the default.
+ */
+export class NoIdentityError extends Error {
+  constructor() {
+    super('This device has no identity.');
+    this.name = 'NoIdentityError';
+  }
+}
+
+export async function signInAnonymouslyIfNeeded(options: { allowCreate: boolean }): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
   if (sessionData.session?.user) {
     return sessionData.session.user.id;
+  }
+
+  // Creating an account is something a person does on purpose, never a side
+  // effect of some screen wanting an id to show.
+  if (!options.allowCreate) {
+    throw new NoIdentityError();
   }
 
   const { data, error } = await supabase.auth.signInAnonymously();
