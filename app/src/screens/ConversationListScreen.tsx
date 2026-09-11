@@ -29,6 +29,7 @@ import { useMessagesStore } from '../store/messagesStore';
 import { isBlockedChannelError } from '../transport/blocking';
 import { isUntrustedIdentityError } from '../crypto';
 import { MyIdCard } from '../components/MyIdCard';
+import { ConversationRow } from '../components/ConversationRow';
 import { useRegisterPushToken } from '../notifications/usePushRegistration';
 import { usePendingShareStore } from '../store/pendingShareStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -324,45 +325,15 @@ export function ConversationListScreen({ navigation }: Props) {
       <FlatList
         data={matchingConversations}
         keyExtractor={(item) => item.channelId}
-        renderItem={({ item }) => {
-          const unread = unreadCount(item, messagesByChannel[item.channelId]);
-          return (
-            <Pressable
-              style={[styles.conversationRow, { borderColor: colors.border }]}
-              onPress={() => navigation.navigate('Conversation', item)}
-              onLongPress={() => openRowActions(item)}
-              delayLongPress={350}
-            >
-              <View style={styles.conversationRowTop}>
-                <Text
-                  style={[
-                    styles.conversationName,
-                    { color: colors.textPrimary },
-                    unread > 0 ? styles.conversationNameUnread : null,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {conversationDisplayName(item, t('conversationList.unnamedGroup'))}
-                </Text>
-                {unread > 0 ? (
-                  <View
-                    style={[styles.unreadBadge, { backgroundColor: colors.accent }]}
-                    accessibilityLabel={t('conversationList.unreadBadgeLabel', { count: unread })}
-                  >
-                    <Text style={[styles.unreadBadgeText, { color: colors.onAccent }]}>
-                      {unread > 99 ? '99+' : unread}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-              {item.nickname ? (
-                <Text style={[styles.conversationId, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {item.peerUserId}
-                </Text>
-              ) : null}
-            </Pressable>
-          );
-        }}
+        renderItem={({ item }) => (
+          <ConversationRow
+            conversation={item}
+            messages={messagesByChannel[item.channelId]}
+            unread={unreadCount(item, messagesByChannel[item.channelId])}
+            onPress={() => navigation.navigate('Conversation', item)}
+            onLongPress={() => openRowActions(item)}
+          />
+        )}
         ListEmptyComponent={
           searchQuery ? (
             <View style={styles.empty}>

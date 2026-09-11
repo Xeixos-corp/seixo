@@ -10,6 +10,7 @@ import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
 import { MyIdCard } from '../components/MyIdCard';
 import { useAppLockStore } from '../store/appLockStore';
 import { useThemeStore, type ThemePreference } from '../store/themeStore';
+import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
 import { isAppLockAvailable } from '../security/appLock';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -23,6 +24,8 @@ export function SettingsScreen({ navigation }: Props) {
   const setThemePreference = useThemeStore((state) => state.setPreference);
   const appLockEnabled = useAppLockStore((state) => state.enabled);
   const setAppLockEnabled = useAppLockStore((state) => state.setEnabled);
+  const showMessagePreviews = usePrivacyPreferencesStore((state) => state.showMessagePreviews);
+  const setShowMessagePreviews = usePrivacyPreferencesStore((state) => state.setShowMessagePreviews);
   // null while the check is in flight -- the toggle stays disabled until we
   // know, rather than letting the user turn on a lock the device can't honour.
   const [lockAvailable, setLockAvailable] = useState<boolean | null>(null);
@@ -111,6 +114,15 @@ export function SettingsScreen({ navigation }: Props) {
         </View>
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
           {lockAvailable === false ? t('settings.appLockUnavailable') : t('settings.appLockHint')}
+        </Text>
+        <View style={styles.settingRow}>
+          <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+            {t('settings.showPreviewsLabel')}
+          </Text>
+          <Switch value={showMessagePreviews} onValueChange={setShowMessagePreviews} />
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          {t('settings.showPreviewsHint')}
         </Text>
       </View>
 

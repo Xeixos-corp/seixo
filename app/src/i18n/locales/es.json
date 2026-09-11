@@ -45,7 +45,11 @@
     "searchNoResults": "No se encontró nada para “{{query}}”.",
     "newGroupButton": "Nuevo grupo",
     "creatingGroup": "Creando…",
-    "unnamedGroup": "Grupo sin nombre"
+    "unnamedGroup": "Grupo sin nombre",
+    "voicePreview": "Mensaje de voz · {{duration}}",
+    "youPrefix": "Tú: {{text}}",
+    "noMessages": "Sin mensajes",
+    "yesterday": "Ayer"
   },
   "conversation": {
     "ttl": {
@@ -157,7 +161,9 @@
     "backupSection": "Copia de seguridad",
     "backupButton": "Crear copia de seguridad",
     "backupHint": "Guarda tu identidad en un fichero cifrado, para volver a entrar en la misma cuenta en otro teléfono. Los mensajes no se incluyen.",
-    "termsOfUse": "Términos de uso"
+    "termsOfUse": "Términos de uso",
+    "showPreviewsLabel": "Mostrar el último mensaje",
+    "showPreviewsHint": "En la lista de conversaciones, debajo de cada nombre. Desactívalo si no quieres que quien mire tu pantalla lo vea."
   },
   "screenshotWarning": {
     "title": "Captura de pantalla",
