@@ -30,6 +30,7 @@ import { isBlockedChannelError } from '../transport/blocking';
 import { isUntrustedIdentityError } from '../crypto';
 import { MyIdCard } from '../components/MyIdCard';
 import { ConversationRow } from '../components/ConversationRow';
+import { lastVisibleMessage } from '../messaging/lastMessage';
 import { useRegisterPushToken } from '../notifications/usePushRegistration';
 import { usePendingShareStore } from '../store/pendingShareStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -122,16 +123,31 @@ export function ConversationListScreen({ navigation }: Props) {
   // privacy beyond what storing it already did.
   const matchingConversations = useMemo(() => {
     const needle = normalizeForSearch(searchQuery);
-    if (!needle) return visibleConversations;
+    const matching = !needle
+      ? visibleConversations
+      : visibleConversations.filter((conversation) => {
+          if (normalizeForSearch(conversationDisplayName(conversation, t('conversationList.unnamedGroup'))).includes(needle))
+            return true;
+          if (normalizeForSearch(conversation.peerUserId).includes(needle)) return true;
+          return (messagesByChannel[conversation.channelId] ?? []).some((message) =>
+            normalizeForSearch(message.plaintext).includes(needle),
+          );
+        });
 
-    return visibleConversations.filter((conversation) => {
-      if (normalizeForSearch(conversationDisplayName(conversation, t('conversationList.unnamedGroup'))).includes(needle))
-        return true;
-      if (normalizeForSearch(conversation.peerUserId).includes(needle)) return true;
-      return (messagesByChannel[conversation.channelId] ?? []).some((message) =>
-        normalizeForSearch(message.plaintext).includes(needle),
-      );
-    });
+    // Most recent first, by the last message still on this phone -- the same
+    // one the row previews, so the order and the times shown always agree.
+    //
+    // A conversation whose messages have all disappeared has nothing to sort
+    // by, and sinks below the active ones in its original order. The
+    // alternative was to remember when each conversation was last active, but
+    // that would keep a record of when you last spoke to each person after the
+    // messages themselves were gone -- the one thing this app is built not to
+    // leave behind. Array sort is stable, so ties keep their existing order.
+    const lastAt = (channelId: string) => {
+      const last = lastVisibleMessage(messagesByChannel[channelId]);
+      return last ? Date.parse(last.createdAt) : 0;
+    };
+    return [...matching].sort((a, b) => lastAt(b.channelId) - lastAt(a.channelId));
   }, [visibleConversations, messagesByChannel, searchQuery]);
 
   // Shown only once the list is long enough for finding something to be a

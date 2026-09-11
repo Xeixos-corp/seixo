@@ -7,6 +7,7 @@ import { avatarColorFor, initialsFor } from '../theme/avatarColors';
 import { conversationDisplayName, type Conversation } from '../store/conversationsStore';
 import type { DecryptedMessage } from '../store/messagesStore';
 import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
+import { lastVisibleMessage } from '../messaging/lastMessage';
 
 type Props = {
   conversation: Conversation;
@@ -17,20 +18,6 @@ type Props = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-/**
- * The most recent thing worth showing. Edits and reactions are instructions,
- * not messages, and must never surface as "the last message".
- */
-function lastVisibleMessage(messages: DecryptedMessage[] | undefined): DecryptedMessage | null {
-  if (!messages?.length) return null;
-  let latest: DecryptedMessage | null = null;
-  for (const message of messages) {
-    if (message.isControl) continue;
-    if (!latest || Date.parse(message.createdAt) > Date.parse(latest.createdAt)) latest = message;
-  }
-  return latest;
-}
 
 function formatDuration(ms: number | undefined): string {
   const total = Math.max(0, Math.round((ms ?? 0) / 1000));
