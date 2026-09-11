@@ -29,7 +29,8 @@ export default function App() {
   useScreenshotProtection();
   // Receives messages for every conversation, not just the one on screen.
   useMessageSync();
-  // Registers this device for push and keeps its token on the server.
+  // Handles taps on notifications. The permission prompt and the token wait
+  // for an identity -- see useRegisterPushToken for why.
   usePushRegistration();
 
   const [splashVisible, setSplashVisible] = useState(true);

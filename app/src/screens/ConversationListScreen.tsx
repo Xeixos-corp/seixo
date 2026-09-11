@@ -29,6 +29,7 @@ import { useMessagesStore } from '../store/messagesStore';
 import { isBlockedChannelError } from '../transport/blocking';
 import { isUntrustedIdentityError } from '../crypto';
 import { MyIdCard } from '../components/MyIdCard';
+import { useRegisterPushToken } from '../notifications/usePushRegistration';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConversationList'>;
@@ -50,6 +51,9 @@ function normalizeForSearch(value: string): string {
 export function ConversationListScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
+  // The first screen that is only reachable with an identity and after the
+  // terms, so the notification prompt can wait until here.
+  useRegisterPushToken();
   const conversations = useConversationsStore((state) => state.conversations);
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
   const visibleConversations = conversations.filter((c) => !isBlocked(c.peerUserId));

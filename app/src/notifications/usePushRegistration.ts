@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useTranslation } from 'react-i18next';
-import { registerIdentity } from '../identity/registerIdentity';
+import { resumeIdentityIfRegistered } from '../identity/registerIdentity';
 import { upsertPushToken } from './pushTokens';
 import { requestOpenNewestUnread } from './notificationRouting';
 import {
@@ -52,11 +52,18 @@ export function resetPushRegistration(): void {
   registeredForUserId = null;
 }
 
+/**
+ * Handles notifications being tapped, from the moment the app starts.
+ *
+ * Only the listeners live here, because a tap that launched the app from cold
+ * has to be caught before anything else mounts. Asking for permission and
+ * publishing the token do not: see useRegisterPushToken below for why they
+ * must wait.
+ */
 export function usePushRegistration(): void {
   const { t } = useTranslation();
 
   useEffect(() => {
-    let cancelled = false;
     let responseSubscription: { remove: () => void } | undefined;
 
     async function register() {
@@ -94,6 +101,53 @@ export function usePushRegistration(): void {
 
       const launchedBy = await Notifications.getLastNotificationResponseAsync();
       if (launchedBy) requestOpenNewestUnread();
+    }
+
+    register().catch((error) => {
+      // Never fatal: notifications are a convenience, and an app that
+      // refuses to start because a push token failed is a worse app.
+      console.warn('[push] registration failed', error);
+    });
+
+    return () => {
+      responseSubscription?.remove();
+    };
+    // Platform is constant; listed to make the iOS-only assumption explicit
+    // if this ever grows an Android branch.
+  }, [t]);
+}
+
+/**
+ * Asks for notification permission and publishes this device's token -- but
+ * only once there is an identity to publish it for.
+ *
+ * This used to run the moment the app started. That put the iOS prompt over
+ * the very first screen, before the terms, and a "yes" then called
+ * registerIdentity(), which *creates* an account when there is none. A fresh
+ * install therefore signed up before the person had accepted anything or had
+ * the chance to restore a backup instead -- and the restore then refused,
+ * because the device already had an identity.
+ *
+ * Called from the conversation list, which is only reachable with an identity
+ * and behind the terms, so the question arrives when notifications mean
+ * something and can never create an account on its own.
+ */
+export function useRegisterPushToken(): void {
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function register() {
+      const Notifications = loadModule();
+      if (!Notifications) return;
+
+      // Resume, never create. Checked before asking, so nobody is prompted
+      // for notifications on a device with nothing to notify them about.
+      const identity = await resumeIdentityIfRegistered();
+      if (!identity || cancelled) return;
+      const { userId } = identity;
+      if (registeredForUserId === userId) return;
 
       const existing = await Notifications.getPermissionsAsync();
       let status = existing.status;
@@ -103,11 +157,6 @@ export function usePushRegistration(): void {
         status = (await Notifications.requestPermissionsAsync()).status;
       }
       if (status !== 'granted' || cancelled) return;
-
-      // The identity is what ties a token to a user_id, and it also
-      // establishes the Supabase session the upsert needs.
-      const { userId } = await registerIdentity();
-      if (cancelled || registeredForUserId === userId) return;
 
       const projectId =
         Constants.expoConfig?.extra?.eas?.projectId ??
@@ -136,17 +185,12 @@ export function usePushRegistration(): void {
     }
 
     register().catch((error) => {
-      // Never fatal: notifications are a convenience, and an app that
-      // refuses to start because a push token failed is a worse app.
-      console.warn('[push] registration failed', error);
+      console.warn('[push] token registration failed', error);
     });
 
     return () => {
       cancelled = true;
-      responseSubscription?.remove();
     };
-    // Platform is constant; listed to make the iOS-only assumption explicit
-    // if this ever grows an Android branch.
   }, [t]);
 }
 
