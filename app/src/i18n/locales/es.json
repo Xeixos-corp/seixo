@@ -174,7 +174,8 @@
   "scanQr": {
     "hint": "Apunta la cámara al código QR de la otra persona.",
     "permissionDenied": "Se necesita acceso a la cámara para leer códigos QR.",
-    "requestPermission": "Permitir acceso a la cámara"
+    "requestPermission": "Permitir acceso a la cámara",
+    "permissionBlocked": "El acceso a la cámara está desactivado. Para leer códigos QR, actívalo en los Ajustes del iPhone, en Seixo."
   },
   "appLock": {
     "prompt": "Desbloquear Seixo",
@@ -233,5 +234,10 @@
     "readFull": "Leer los términos completos",
     "readPrivacy": "Leer la política de privacidad",
     "accept": "Aceptar y continuar"
+  },
+  "permissions": {
+    "openSettings": "Abrir Ajustes",
+    "microphoneBlockedTitle": "Micrófono desactivado",
+    "microphoneBlockedBody": "Denegaste el acceso al micrófono. Para grabar mensajes de voz, actívalo en los Ajustes del iPhone, en Seixo."
   }
 }

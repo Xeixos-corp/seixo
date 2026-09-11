@@ -40,7 +40,12 @@ import {
   fetchChannelMembers,
   deleteGroupChannel,
 } from '../transport/channels';
-import { AudioModule, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
+import {
+  AudioModule,
+  getRecordingPermissionsAsync,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+} from 'expo-audio';
 import {
   iosRecorderOptions,
   MAX_VOICE_DURATION_MS,
@@ -469,9 +474,24 @@ export function ConversationScreen({ route, navigation }: Props) {
   );
 
   const startRecording = useCallback(async () => {
-    const permission = await requestRecordingPermissionsAsync();
+    // Checked before asking, to tell "never asked" from "already refused".
+    // iOS shows its prompt once; after a refusal, asking again returns denied
+    // silently and the only way back is the Settings app.
+    const before = await getRecordingPermissionsAsync();
+    const permission = before.granted ? before : await requestRecordingPermissionsAsync();
     if (!permission.granted) {
-      setSendError(t('conversation.microphoneDenied'));
+      if (!before.canAskAgain) {
+        // Refused on an earlier occasion, so offer the way back. Deliberately
+        // not after a refusal given just now: answering a fresh "no" with a
+        // button to go and change it would be pressing the person to
+        // reconsider, which App Store guideline 5.1.1(iv) rules out.
+        Alert.alert(t('permissions.microphoneBlockedTitle'), t('permissions.microphoneBlockedBody'), [
+          { text: t('conversation.cancel'), style: 'cancel' },
+          { text: t('permissions.openSettings'), onPress: () => void Linking.openSettings() },
+        ]);
+      } else {
+        setSendError(t('conversation.microphoneDenied'));
+      }
       return;
     }
     try {

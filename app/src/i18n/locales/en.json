@@ -174,7 +174,8 @@
   "scanQr": {
     "hint": "Point the camera at the other person's QR code.",
     "permissionDenied": "Camera access is needed to scan QR codes.",
-    "requestPermission": "Allow camera access"
+    "requestPermission": "Allow camera access",
+    "permissionBlocked": "Camera access is off. To scan QR codes, turn it on in iPhone Settings, under Seixo."
   },
   "appLock": {
     "prompt": "Unlock Seixo",
@@ -233,5 +234,10 @@
     "readFull": "Read the full terms",
     "readPrivacy": "Read the privacy policy",
     "accept": "Accept and continue"
+  },
+  "permissions": {
+    "openSettings": "Open Settings",
+    "microphoneBlockedTitle": "Microphone off",
+    "microphoneBlockedBody": "You turned off microphone access. To record voice messages, turn it on in iPhone Settings, under Seixo."
   }
 }

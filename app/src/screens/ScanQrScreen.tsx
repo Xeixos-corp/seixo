@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useTranslation } from 'react-i18next';
@@ -68,7 +68,7 @@ export function ScanQrScreen({ navigation }: Props) {
     return (
       <SafeAreaView style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
         <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
-          {t('scanQr.permissionDenied')}
+          {permission.canAskAgain ? t('scanQr.permissionDenied') : t('scanQr.permissionBlocked')}
         </Text>
         {permission.canAskAgain ? (
           <Text
@@ -77,7 +77,17 @@ export function ScanQrScreen({ navigation }: Props) {
           >
             {t('scanQr.requestPermission')}
           </Text>
-        ) : null}
+        ) : (
+          // iOS asks once. After a refusal nothing the app can call brings the
+          // prompt back, so the only way forward is the Settings app -- and
+          // without this link the screen was a dead end.
+          <Text
+            style={[styles.permissionLink, { color: colors.accent }]}
+            onPress={() => void Linking.openSettings()}
+          >
+            {t('permissions.openSettings')}
+          </Text>
+        )}
       </SafeAreaView>
     );
   }
