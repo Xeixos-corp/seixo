@@ -155,7 +155,8 @@
     },
     "backupSection": "Backup",
     "backupButton": "Create a backup",
-    "backupHint": "Saves your identity to an encrypted file, so you can get back into the same account on another phone. Messages are not included."
+    "backupHint": "Saves your identity to an encrypted file, so you can get back into the same account on another phone. Messages are not included.",
+    "termsOfUse": "Terms of use"
   },
   "screenshotWarning": {
     "title": "Screenshot",
@@ -220,5 +221,17 @@
     "button": "Restore account",
     "footnote": "Old messages do not come back — they were never in the backup. Conversations start again, with the same ID and the same safety number.",
     "accountGone": "The words are right and the file opened, but this account no longer exists. It was most likely deleted after 6 months without use. You can create a new identity, but the old ID does not come back."
+  },
+  "terms": {
+    "title": "Before you start",
+    "intro": "Seixo is for private conversations between people who know each other. To use it, you agree to these rules:",
+    "rule1": "Zero tolerance for illegal content, child sexual abuse, harassment, threats, hate speech, spam and fraud.",
+    "rule2": "Nobody can read your messages, not even us. That is why you can block and report anyone, and we review reports.",
+    "rule3": "We may delete accounts that break these rules.",
+    "rule4": "You are responsible for what you send. Disappearing messages do not stop someone taking a screenshot.",
+    "rule5": "You must be at least 13, or the minimum age required in your country.",
+    "readFull": "Read the full terms",
+    "readPrivacy": "Read the privacy policy",
+    "accept": "Accept and continue"
   }
 }

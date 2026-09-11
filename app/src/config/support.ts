@@ -13,3 +13,10 @@ export const SUPPORT_CONTACT_EMAIL: string | null = 'seixo.app@proton.me';
 // repo via GitHub Pages — kept separate so the app's own source stays
 // private without needing a paid GitHub plan for Pages.
 export const PRIVACY_POLICY_URL = 'https://xeixos-corp.github.io/Seixo-Legal/';
+
+// Terms of use, published beside the privacy policy (Xeixos-corp/Seixo-Legal)
+// with the source at docs/terms-of-use.md. TermsGate asks for acceptance once
+// per version: raise TERMS_VERSION when the terms change significantly and
+// every device asks again.
+export const TERMS_URL = 'https://xeixos-corp.github.io/Seixo-Legal/terms.html';
+export const TERMS_VERSION = 1;

@@ -155,7 +155,8 @@
     },
     "backupSection": "Cópia de segurança",
     "backupButton": "Criar cópia de segurança",
-    "backupHint": "Guarda a tua identidade num ficheiro cifrado, para voltares a entrar na mesma conta noutro telemóvel. As mensagens não vão na cópia."
+    "backupHint": "Guarda a tua identidade num ficheiro cifrado, para voltares a entrar na mesma conta noutro telemóvel. As mensagens não vão na cópia.",
+    "termsOfUse": "Termos de utilização"
   },
   "screenshotWarning": {
     "title": "Captura de ecrã",
@@ -220,5 +221,17 @@
     "button": "Recuperar conta",
     "footnote": "As mensagens antigas não voltam — nunca estiveram na cópia. As conversas recomeçam, com o mesmo ID e a mesma chave de segurança.",
     "accountGone": "As palavras estão certas e o ficheiro abriu, mas esta conta já não existe. Foi provavelmente apagada por passar 6 meses sem ser usada. Podes criar uma identidade nova, mas o ID antigo não volta."
+  },
+  "terms": {
+    "title": "Antes de começares",
+    "intro": "A Seixo é para conversas privadas entre pessoas que se conhecem. Para a usares, aceitas estas regras:",
+    "rule1": "Tolerância zero para conteúdo ilegal, abuso sexual de menores, assédio, ameaças, discurso de ódio, spam e fraude.",
+    "rule2": "Ninguém consegue ler as tuas mensagens, nem nós. Por isso podes bloquear e denunciar qualquer pessoa, e analisamos as denúncias.",
+    "rule3": "Podemos eliminar contas que violem estas regras.",
+    "rule4": "És responsável pelo que envias. Mensagens temporárias não impedem que alguém faça uma captura de ecrã.",
+    "rule5": "Tens de ter pelo menos 13 anos, ou a idade mínima exigida no teu país.",
+    "readFull": "Ler os termos completos",
+    "readPrivacy": "Ler a política de privacidade",
+    "accept": "Aceito e continuar"
   }
 }

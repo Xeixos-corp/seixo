@@ -9,6 +9,7 @@ import { useScreenshotProtection } from './src/hooks/useScreenshotProtection';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { useMessageSync } from './src/messaging/useMessageSync';
 import { AppLockGate } from './src/components/AppLockGate';
+import { TermsGate } from './src/components/TermsGate';
 import { SplashOverlay } from './src/components/SplashOverlay';
 import { usePushRegistration } from './src/notifications/usePushRegistration';
 import { clearVoiceCache } from './src/audio/voiceFiles';
@@ -74,7 +75,12 @@ export default function App() {
             briefly visible. Message sync above stays running regardless --
             messages should keep arriving while the app is locked. */}
         <AppLockGate>
-          <RootNavigator />
+          {/* Inside the lock, so a locked phone shows the lock and not the
+              terms; outside the navigator, so no screen is reachable before
+              they are accepted -- including restoring a backup. */}
+          <TermsGate>
+            <RootNavigator />
+          </TermsGate>
         </AppLockGate>
         <StatusBar style="auto" />
         {/* Last child, so it covers everything -- including the lock screen,
