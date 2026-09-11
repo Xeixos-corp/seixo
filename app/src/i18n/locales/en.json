@@ -6,7 +6,8 @@
     "settings": "Settings",
     "scanQr": "Scan QR code",
     "backup": "Backup",
-    "restoreBackup": "Restore account"
+    "restoreBackup": "Restore account",
+    "shareTarget": "Share to…"
   },
   "onboarding": {
     "title": "Private messaging",
@@ -239,5 +240,9 @@
     "openSettings": "Open Settings",
     "microphoneBlockedTitle": "Microphone off",
     "microphoneBlockedBody": "You turned off microphone access. To record voice messages, turn it on in iPhone Settings, under Seixo."
+  },
+  "share": {
+    "intro": "Choose a conversation. The content goes into the text box and is only sent when you press send.",
+    "empty": "You have no conversations yet. Start one and share again."
   }
 }

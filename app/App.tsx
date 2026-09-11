@@ -13,6 +13,9 @@ import { TermsGate } from './src/components/TermsGate';
 import { SplashOverlay } from './src/components/SplashOverlay';
 import { usePushRegistration } from './src/notifications/usePushRegistration';
 import { clearVoiceCache } from './src/audio/voiceFiles';
+import { ShareIntentProvider } from 'expo-share-intent';
+import { SharedContentListener } from './src/components/SharedContentListener';
+import { useAppBadge } from './src/notifications/useAppBadge';
 
 // Called before the component tree exists, which is the point: the native
 // splash must be told to stay up before React has a chance to render a blank
@@ -32,6 +35,8 @@ export default function App() {
   // Handles taps on notifications. The permission prompt and the token wait
   // for an identity -- see useRegisterPushToken for why.
   usePushRegistration();
+  // Keeps the number on the app icon equal to the unread messages here.
+  useAppBadge();
 
   const [splashVisible, setSplashVisible] = useState(true);
 
@@ -70,7 +75,13 @@ export default function App() {
     // Outside ThemeProvider on purpose, so a failure in the theme itself is
     // still reported rather than showing a blank screen.
     <ErrorBoundary>
+      {/* Outermost provider, as expo-share-intent requires, so a link
+          shared while the app was closed is caught on the first render. */}
+      <ShareIntentProvider>
       <ThemeProvider>
+        {/* Only parks what was shared; choosing where it goes happens
+            behind the lock and the terms, in the conversation list. */}
+        <SharedContentListener />
         {/* Inside ThemeProvider (the lock screen needs colours) but outside
             the navigator, so nothing behind the lock is ever mounted or
             briefly visible. Message sync above stays running regardless --
@@ -88,6 +99,7 @@ export default function App() {
             which should not flash into view during launch. */}
         <SplashOverlay visible={splashVisible} />
       </ThemeProvider>
+      </ShareIntentProvider>
     </ErrorBoundary>
   );
 }

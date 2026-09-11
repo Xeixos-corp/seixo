@@ -30,6 +30,7 @@ import { isBlockedChannelError } from '../transport/blocking';
 import { isUntrustedIdentityError } from '../crypto';
 import { MyIdCard } from '../components/MyIdCard';
 import { useRegisterPushToken } from '../notifications/usePushRegistration';
+import { usePendingShareStore } from '../store/pendingShareStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConversationList'>;
@@ -54,6 +55,13 @@ export function ConversationListScreen({ navigation }: Props) {
   // The first screen that is only reachable with an identity and after the
   // terms, so the notification prompt can wait until here.
   useRegisterPushToken();
+  // Something shared from another app is waiting for a conversation. This
+  // screen is the first one behind the lock, the terms and an identity,
+  // so the choice is offered here and never earlier.
+  const pendingShare = usePendingShareStore((state) => state.text);
+  useEffect(() => {
+    if (pendingShare) navigation.navigate('ShareTarget');
+  }, [pendingShare, navigation]);
   const conversations = useConversationsStore((state) => state.conversations);
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
   const visibleConversations = conversations.filter((c) => !isBlocked(c.peerUserId));

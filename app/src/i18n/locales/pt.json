@@ -6,7 +6,8 @@
     "settings": "Definições",
     "scanQr": "Ler código QR",
     "backup": "Cópia de segurança",
-    "restoreBackup": "Recuperar conta"
+    "restoreBackup": "Recuperar conta",
+    "shareTarget": "Partilhar em…"
   },
   "onboarding": {
     "title": "Mensagens privadas",
@@ -239,5 +240,9 @@
     "openSettings": "Abrir Definições",
     "microphoneBlockedTitle": "Microfone desligado",
     "microphoneBlockedBody": "Recusaste o acesso ao microfone. Para gravares mensagens de voz, liga-o nas Definições do iPhone, em Seixo."
+  },
+  "share": {
+    "intro": "Escolhe a conversa. O conteúdo fica na caixa de texto e só é enviado quando carregares em enviar.",
+    "empty": "Ainda não tens conversas. Começa uma e volta a partilhar."
   }
 }

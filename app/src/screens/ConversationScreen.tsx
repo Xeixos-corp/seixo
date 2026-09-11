@@ -135,7 +135,7 @@ function formatSentAt(createdAt: string): string {
 }
 
 export function ConversationScreen({ route, navigation }: Props) {
-  const { channelId, peerUserId } = route.params;
+  const { channelId, peerUserId, initialDraft } = route.params;
   const { colors } = useAppTheme();
   const headerHeight = useHeaderHeight();
   const { t } = useTranslation();
@@ -265,7 +265,13 @@ export function ConversationScreen({ route, navigation }: Props) {
     return () => clearInterval(tick);
   }, []);
 
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState(initialDraft ?? '');
+  // Also when this screen is reused with new params rather than mounted
+  // afresh, which the navigator may do; useState's initial value would
+  // otherwise keep the old, empty draft.
+  useEffect(() => {
+    if (initialDraft) setInputText(initialDraft);
+  }, [initialDraft]);
   const [sending, setSending] = useState(false);
   // Sending used to fail silently: the catch below only wrote to the
   // console, so pressing send with no connection did visibly nothing at
