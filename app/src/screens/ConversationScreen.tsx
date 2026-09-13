@@ -721,6 +721,46 @@ export function ConversationScreen({ route, navigation }: Props) {
     }
   }, [channelId, newMemberId, refreshMembers]);
 
+  /**
+   * Blocks one member of a group, for this device only.
+   *
+   * Removing a member is the owner's power and takes them out for everyone.
+   * This is the other thing entirely, available to anybody: their messages
+   * stop reaching you -- here and in any private conversation -- while they
+   * stay in the group and are never told. Every part of that already worked;
+   * group messages from a blocked sender are dropped on arrival in
+   * messaging/ingest.ts. What was missing was any way to ask for it, which in
+   * a group is where it is most likely to be needed.
+   *
+   * Reported through membersNotice, inside the sheet. sendError draws on the
+   * conversation behind it, where this modal would hide it -- the same trap
+   * the group rename fell into.
+   */
+  const handleBlockMember = useCallback(
+    (peerId: string) => {
+      Alert.alert(t('conversation.blockMemberTitle'), t('conversation.blockMemberBody'), [
+        { text: t('conversation.cancel'), style: 'cancel' },
+        {
+          text: t('conversation.blockMemberConfirm'),
+          style: 'destructive',
+          onPress: async () => {
+            setMembersNotice(null);
+            try {
+              const { userId } = await registerIdentity();
+              await blockPeer(userId, peerId);
+              addBlockedPeer(peerId);
+              setMembersNotice({ kind: 'ok', text: t('conversation.blockMemberDone') });
+            } catch (error) {
+              console.error('[ConversationScreen] failed to block member', error);
+              setMembersNotice({ kind: 'error', text: t('conversation.blockMemberFailed') });
+            }
+          },
+        },
+      ]);
+    },
+    [addBlockedPeer, t],
+  );
+
   const handleRemoveMember = useCallback(
     (peerId: string) => {
       Alert.alert(t('conversation.removeMemberTitle'), peerId, [
@@ -1411,20 +1451,35 @@ export function ConversationScreen({ route, navigation }: Props) {
                 {t('conversation.membersTitle')}
               </Text>
 
-              {(groupMemberIds ?? []).map((memberId) => (
-                <View key={memberId} style={styles.memberRow}>
-                  <Text style={{ color: colors.textPrimary, flex: 1, fontSize: 13 }} numberOfLines={1}>
-                    {memberId}
-                  </Text>
-                  {isOwner && memberId !== getCurrentUserId() ? (
-                    <Pressable onPress={() => handleRemoveMember(memberId)} hitSlop={8}>
-                      <Text style={{ color: colors.danger, fontSize: 13 }}>
-                        {t('conversation.removeMemberConfirm')}
+              {(groupMemberIds ?? []).map((memberId) => {
+                const isSelf = memberId === getCurrentUserId();
+                const blocked = isBlocked(memberId);
+                return (
+                  <View key={memberId} style={styles.memberRow}>
+                    <Text style={{ color: colors.textPrimary, flex: 1, fontSize: 13 }} numberOfLines={1}>
+                      {memberId}
+                    </Text>
+                    {isSelf ? null : blocked ? (
+                      <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                        {t('conversation.blockMemberBlocked')}
                       </Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-              ))}
+                    ) : (
+                      <Pressable onPress={() => handleBlockMember(memberId)} hitSlop={8}>
+                        <Text style={{ color: colors.danger, fontSize: 13 }}>
+                          {t('conversation.blockMemberButton')}
+                        </Text>
+                      </Pressable>
+                    )}
+                    {isOwner && !isSelf ? (
+                      <Pressable onPress={() => handleRemoveMember(memberId)} hitSlop={8}>
+                        <Text style={{ color: colors.danger, fontSize: 13 }}>
+                          {t('conversation.removeMemberConfirm')}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                );
+              })}
 
               {membersNotice ? (
                 <Text
