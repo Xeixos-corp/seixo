@@ -39,6 +39,7 @@ import {
   removeGroupMember,
   fetchChannelMembers,
   deleteGroupChannel,
+  leaveChannel,
 } from '../transport/channels';
 import {
   AudioModule,
@@ -218,12 +219,54 @@ export function ConversationScreen({ route, navigation }: Props) {
     );
   }, [peerUserId, channelId, addBlockedPeer, navigation, t]);
 
+  /**
+   * Leaving a group, which is what "block" cannot be for one.
+   *
+   * A group has no peer: peerUserId is the empty string for it (see the
+   * reconciliation in registerIdentity). The block button offered on one read
+   * "you will no longer be able to exchange messages with ." and, if pressed,
+   * sent that empty id to the server and failed. Leaving is the honest
+   * equivalent, and until now it existed only in the conversation list.
+   *
+   * Only this device leaves. The group carries on without it, which is why
+   * the wording says so -- nobody should press this thinking it ends the
+   * group for everyone. That is a separate thing, and only its owner can.
+   */
+  const handleLeaveGroup = useCallback(() => {
+    Alert.alert(t('conversation.leaveGroupTitle'), t('conversation.leaveGroupBody'), [
+      { text: t('conversation.cancel'), style: 'cancel' },
+      {
+        text: t('conversation.leaveGroupConfirm'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const { userId } = await registerIdentity();
+            await leaveChannel(channelId, userId);
+            useMessagesStore.getState().clearChannel(channelId);
+            useConversationsStore.getState().removeConversation(channelId);
+            navigation.navigate('ConversationList');
+          } catch (error) {
+            console.error('[ConversationScreen] failed to leave group', error);
+            setSendError(t('conversation.leaveGroupFailed'));
+          }
+        },
+      },
+    ]);
+  }, [channelId, navigation, t]);
+
   const handleReport = useCallback(() => {
     if (!SUPPORT_CONTACT_EMAIL) return;
     const subject = encodeURIComponent(t('conversation.reportEmailSubject'));
-    const body = encodeURIComponent(t('conversation.reportEmailBody', { peerId: peerUserId }));
+    // A group report names the channel, because there is no single user to
+    // name -- the peer id is empty for a group, and the mail used to arrive
+    // saying "the user with user_id:" and nothing after it.
+    const body = encodeURIComponent(
+      isGroup
+        ? t('conversation.reportGroupEmailBody', { channelId })
+        : t('conversation.reportEmailBody', { peerId: peerUserId }),
+    );
     Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}?subject=${subject}&body=${body}`);
-  }, [peerUserId, t]);
+  }, [peerUserId, channelId, isGroup, t]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -248,13 +291,25 @@ export function ConversationScreen({ route, navigation }: Props) {
               <Text style={{ color: colors.accent, fontSize: 13 }}>{t('conversation.reportButton')}</Text>
             </Pressable>
           ) : null}
-          <Pressable onPress={handleBlock} hitSlop={8}>
-            <Text style={{ color: colors.danger, fontSize: 13 }}>{t('conversation.blockButton')}</Text>
+          <Pressable onPress={isGroup ? handleLeaveGroup : handleBlock} hitSlop={8}>
+            <Text style={{ color: colors.danger, fontSize: 13 }}>
+              {isGroup ? t('conversation.leaveGroupButton') : t('conversation.blockButton')}
+            </Text>
           </Pressable>
         </View>
       ),
     });
-  }, [navigation, colors.accent, colors.danger, handleBlock, handleReport, t, conversationName]);
+  }, [
+    navigation,
+    colors.accent,
+    colors.danger,
+    handleBlock,
+    handleLeaveGroup,
+    handleReport,
+    isGroup,
+    t,
+    conversationName,
+  ]);
 
   // Drives the per-message countdown labels. Coarse on purpose (10s): the
   // label only needs to be roughly right, and the actual disappearance is
