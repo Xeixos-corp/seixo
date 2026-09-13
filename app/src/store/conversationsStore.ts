@@ -38,6 +38,17 @@ export type Conversation = {
   memberIds?: string[];
   /** Who may add and remove members. Only they see those controls. */
   ownerId?: string;
+  /**
+   * Notifications for this conversation are silenced.
+   *
+   * Unlike the nickname, this one is not local by choice: the server is what
+   * sends the notification, and the push payload carries no channel id for
+   * the phone to match against, so the phone cannot filter what it receives
+   * (see supabase/migrations/0023_mute_conversations.sql). Kept here as well
+   * so the list can show it immediately, and re-read from the server on every
+   * launch, which is the copy that decides.
+   */
+  muted?: boolean;
 };
 
 /**
@@ -93,6 +104,7 @@ type ConversationsState = {
   markConversationRead: (channelId: string) => void;
   /** Replaces a group's membership after the server confirms a change. */
   setGroupMembers: (channelId: string, memberIds: string[]) => void;
+  setConversationMuted: (channelId: string, muted: boolean) => void;
   removeConversation: (channelId: string) => void;
 };
 
@@ -133,6 +145,16 @@ export const useConversationsStore = create<ConversationsState>()(
         set((state) => ({
           conversations: state.conversations.map((c) =>
             c.channelId === channelId ? { ...c, memberIds } : c,
+          ),
+        }));
+      },
+      // Only the local reflection of it. The server call belongs to whoever
+      // toggles it, so that a failure there can be reported and this not
+      // left claiming a conversation is silent when it isn't.
+      setConversationMuted: (channelId, muted) => {
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.channelId === channelId ? { ...c, muted } : c,
           ),
         }));
       },

@@ -200,7 +200,28 @@ export type ServerChannel = {
   kind: 'direct' | 'group';
   ownerId: string | null;
   memberIds: string[];
+  /** Whether this user silenced notifications for it. */
+  muted: boolean;
 };
+
+/**
+ * Silences (or unsilences) notifications for one conversation, for this user
+ * only.
+ *
+ * Necessarily server-side: the push payload deliberately carries no channel
+ * id, so a notification cannot be matched to a conversation once it reaches
+ * the phone, and iOS gives an extension no way to drop one. The only way not
+ * to be notified is for the notification not to be sent. See
+ * supabase/migrations/0023_mute_conversations.sql for what that tells the
+ * server and why it is acceptable.
+ */
+export async function setChannelMuted(channelId: string, muted: boolean): Promise<void> {
+  const { error } = await supabase.rpc('set_channel_muted', {
+    channel_id: channelId,
+    muted,
+  });
+  if (error) throw new Error(error.message);
+}
 
 /**
  * Every channel this user belongs to, with its kind and full membership.
@@ -212,12 +233,19 @@ export type ServerChannel = {
 export async function fetchMyChannelsDetailed(selfUserId: string): Promise<ServerChannel[]> {
   const { data: mine, error: mineError } = await supabase
     .from('channel_members')
-    .select('channel_id')
+    .select('channel_id, muted')
     .eq('member_id', selfUserId);
   if (mineError) throw new Error(mineError.message);
 
   const channelIds = (mine ?? []).map((row) => row.channel_id as string);
   if (channelIds.length === 0) return [];
+
+  // Muting lives on the server because that is where the notification is
+  // sent from, so this is the authoritative copy: a phone restored from a
+  // recovery backup has no local record of it.
+  const mutedChannelIds = new Set(
+    (mine ?? []).filter((row) => row.muted === true).map((row) => row.channel_id as string),
+  );
 
   const { data: channels, error: channelsError } = await supabase
     .from('channels')
@@ -242,6 +270,7 @@ export async function fetchMyChannelsDetailed(selfUserId: string): Promise<Serve
     kind: (row.kind as 'direct' | 'group') ?? 'direct',
     ownerId: (row.owner_id as string | null) ?? null,
     memberIds: byChannel.get(row.id as string) ?? [],
+    muted: mutedChannelIds.has(row.id as string),
   }));
 }
 

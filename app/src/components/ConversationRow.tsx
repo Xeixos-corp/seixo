@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { MicIcon, PeopleIcon } from './icons';
+import { BellOffIcon, MicIcon, PeopleIcon } from './icons';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { avatarColorFor, initialsFor } from '../theme/avatarColors';
@@ -61,6 +61,7 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
   );
   const last = lastVisibleMessage(messages);
   const isUnread = unread > 0;
+  const isMuted = conversation.muted === true;
 
   const renderPreview = () => {
     if (!showPreviews) return null;
@@ -113,8 +114,12 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
           >
             {name}
           </Text>
+          {isMuted ? (
+            <BellOffIcon size={14} color={colors.textSecondary} />
+          ) : null}
+          <View style={styles.topSpacer} />
           {last ? (
-            <Text style={[styles.when, { color: isUnread ? colors.accent : colors.textSecondary }]}>
+            <Text style={[styles.when, { color: isUnread && !isMuted ? colors.accent : colors.textSecondary }]}>
               {formatWhen(last.createdAt, i18n.language, t('conversationList.yesterday'))}
             </Text>
           ) : null}
@@ -123,7 +128,11 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
           <View style={styles.previewSlot}>{renderPreview()}</View>
           {isUnread ? (
             <View
-              style={[styles.badge, { backgroundColor: colors.accent }]}
+              // A muted conversation still counts what it has -- silencing is
+              // about not being interrupted, not about hiding -- but says it
+              // quietly, in the same grey as everything else that is not
+              // asking for attention.
+              style={[styles.badge, { backgroundColor: isMuted ? colors.textSecondary : colors.accent }]}
               accessibilityLabel={t('conversationList.unreadBadgeLabel', { count: unread })}
             >
               <Text style={[styles.badgeText, { color: colors.onAccent }]}>{unread > 99 ? '99+' : unread}</Text>
@@ -152,9 +161,10 @@ const styles = StyleSheet.create({
   },
   initials: { fontSize: 16, fontWeight: '600' },
   body: { flex: 1, minWidth: 0 },
-  topLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { flex: 1, fontSize: 16 },
+  topLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { flexShrink: 1, fontSize: 16 },
   nameUnread: { fontWeight: '700' },
+  topSpacer: { flex: 1 },
   when: { fontSize: 12 },
   bottomLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   previewSlot: { flex: 1, minWidth: 0 },

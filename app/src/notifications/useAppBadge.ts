@@ -33,10 +33,16 @@ export function useAppBadge(): void {
 
   // Blocked conversations are hidden from the list, so they must not add to
   // the badge either -- a number with nothing behind it reads as a bug.
+  //
+  // Muted ones are excluded for a different reason: a number on the app icon
+  // is an interruption, and silencing a conversation is a request not to be
+  // interrupted by it. The unread count stays visible inside the list, where
+  // it is only seen by someone who already opened the app.
   const total = useMemo(
     () =>
       conversations
         .filter((conversation) => !blockedPeerIds.includes(conversation.peerUserId))
+        .filter((conversation) => conversation.muted !== true)
         .reduce(
           (sum, conversation) => sum + unreadCount(conversation, messagesByChannel[conversation.channelId]),
           0,

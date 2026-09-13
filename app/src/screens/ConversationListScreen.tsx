@@ -23,7 +23,7 @@ import {
 } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { startConversationWithPeer, SelfConversationError } from '../identity/startConversation';
-import { leaveChannel, createGroupChannel } from '../transport/channels';
+import { leaveChannel, createGroupChannel, setChannelMuted } from '../transport/channels';
 import { registerIdentity } from '../identity/registerIdentity';
 import { useMessagesStore } from '../store/messagesStore';
 import { isBlockedChannelError } from '../transport/blocking';
@@ -93,6 +93,7 @@ export function ConversationListScreen({ navigation }: Props) {
   // Rename flow. Long-pressing a row opens this; the label is stored locally
   // only (see conversationsStore) and never leaves the device.
   const setConversationNickname = useConversationsStore((state) => state.setConversationNickname);
+  const setConversationMuted = useConversationsStore((state) => state.setConversationMuted);
   const addConversation = useConversationsStore((state) => state.addConversation);
   const [renaming, setRenaming] = useState<Conversation | null>(null);
   const [nicknameDraft, setNicknameDraft] = useState('');
@@ -185,6 +186,22 @@ export function ConversationListScreen({ navigation }: Props) {
     );
   };
 
+  // Silencing is a server-side setting, because the server is what sends the
+  // notification and the payload carries no channel id for the phone to match
+  // against (supabase/migrations/0023_mute_conversations.sql). So the local
+  // flag is only set once the server has confirmed -- otherwise the row would
+  // show a crossed-out bell while notifications kept arriving.
+  const toggleMuted = async (conversation: Conversation) => {
+    const next = conversation.muted !== true;
+    try {
+      await setChannelMuted(conversation.channelId, next);
+      setConversationMuted(conversation.channelId, next);
+    } catch (error) {
+      console.error('[ConversationListScreen] failed to change muting', error);
+      setErrorMessage(t('conversationList.muteFailed'));
+    }
+  };
+
   // Long-press opens the choice rather than jumping straight to rename:
   // deleting needed somewhere to live, and a hidden second gesture would be
   // undiscoverable.
@@ -194,6 +211,12 @@ export function ConversationListScreen({ navigation }: Props) {
       conversationDisplayName(conversation, t('conversationList.unnamedGroup')),
       [
       { text: t('conversationList.rowActionsRename'), onPress: () => openRename(conversation) },
+      {
+        text: conversation.muted
+          ? t('conversationList.rowActionsUnmute')
+          : t('conversationList.rowActionsMute'),
+        onPress: () => void toggleMuted(conversation),
+      },
       {
         text: t('conversationList.rowActionsDelete'),
         style: 'destructive',

@@ -216,8 +216,8 @@ async function finishRegistration(userId: string): Promise<void> {
   // launch, which is not worth blocking startup over.
   try {
     const serverChannels = await fetchMyChannelsDetailed(userId);
-    const { addConversation, setGroupMembers } = useConversationsStore.getState();
-    serverChannels.forEach(({ channelId, kind, ownerId, memberIds }) => {
+    const { addConversation, setGroupMembers, setConversationMuted } = useConversationsStore.getState();
+    serverChannels.forEach(({ channelId, kind, ownerId, memberIds, muted }) => {
       if (kind === 'group') {
         addConversation({
           channelId,
@@ -233,11 +233,15 @@ async function finishRegistration(userId: string): Promise<void> {
         // Membership changes while this device was away, so it is refreshed
         // on every launch rather than only when the group is first seen.
         setGroupMembers(channelId, memberIds);
+        // The server decides this one: it is what sends the notifications,
+        // and a device restored from a backup has no local copy of it.
+        setConversationMuted(channelId, muted);
         return;
       }
       const peerUserId = memberIds.find((id) => id !== userId);
       if (!peerUserId) return;
       addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS });
+      setConversationMuted(channelId, muted);
     });
 
     // And drop what the server no longer has. A group deleted by its owner,

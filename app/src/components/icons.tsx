@@ -4,7 +4,7 @@ import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 type IconProps = { size: number; color: string };
 
 /**
- * The two small icons the conversation list needs, drawn with react-native-svg.
+ * The small icons the conversation list needs, drawn with react-native-svg.
  *
  * Not @expo/vector-icons: that library loads its glyphs through expo-font, a
  * native module this app does not include, so it failed to bundle -- and
@@ -29,6 +29,17 @@ export function PeopleIcon({ size, color }: IconProps) {
       <Path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
       <Circle cx={17} cy={9} r={2.5} />
       <Path d="M16 14.2c2.9 0.4 5 2.8 5 5.8" />
+    </Svg>
+  );
+}
+
+/** A bell with a line through it: this conversation does not notify. */
+export function BellOffIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <Path d="M13.7 21a2 2 0 0 1-3.4 0" />
+      <Line x1={3.5} y1={3.5} x2={20.5} y2={20.5} />
     </Svg>
   );
 }
