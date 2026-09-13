@@ -1,4 +1,5 @@
 import { supabase } from '../transport/supabaseClient';
+import { DEFAULT_SOUND } from './sounds';
 
 /**
  * Stores this device's push token, together with the exact text the server
@@ -15,6 +16,8 @@ export async function upsertPushToken(
   notificationBody: string,
   /** Shown when someone adds this user to a group, rather than for a message. */
   notificationGroupBody: string,
+  /** A bundled file name, or 'default' for the phone's ordinary sound. */
+  notificationSound: string,
 ): Promise<void> {
   // Claim the token for this identity first. A push token belongs to the
   // *device*, not to an identity -- so creating a new identity on a phone
@@ -36,6 +39,9 @@ export async function upsertPushToken(
       notification_title: notificationTitle,
       notification_body: notificationBody,
       notification_group_body: notificationGroupBody,
+      // Null rather than the string 'default': the column means "a sound this
+      // app carries", and the ordinary sound is not one of those.
+      notification_sound: notificationSound === DEFAULT_SOUND ? null : notificationSound,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },
@@ -45,5 +51,24 @@ export async function upsertPushToken(
 
 export async function deletePushToken(userId: string): Promise<void> {
   const { error } = await supabase.from('push_tokens').delete().eq('user_id', userId);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Changes only the sound, for someone who picks a different one in Settings.
+ *
+ * A plain update rather than the upsert above: if no token row exists yet --
+ * notifications never allowed, or not registered on this launch -- there is
+ * nothing to change, and the choice is still kept on the device and sent with
+ * the token whenever one is registered.
+ */
+export async function updatePushSound(userId: string, notificationSound: string): Promise<void> {
+  const { error } = await supabase
+    .from('push_tokens')
+    .update({
+      notification_sound: notificationSound === DEFAULT_SOUND ? null : notificationSound,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId);
   if (error) throw new Error(error.message);
 }

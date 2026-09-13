@@ -5,6 +5,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useTranslation } from 'react-i18next';
 import { resumeIdentityIfRegistered } from '../identity/registerIdentity';
 import { upsertPushToken } from './pushTokens';
+import { useNotificationSoundStore } from '../store/notificationSoundStore';
 import { requestOpenNewestUnread } from './notificationRouting';
 import {
   getActiveConversation,
@@ -180,6 +181,9 @@ export function useRegisterPushToken(): void {
         // holding.
         t('notifications.body'),
         t('notifications.groupBody'),
+        // Re-sent on every launch, so a choice made while the server could
+        // not be reached still arrives.
+        useNotificationSoundStore.getState().sound,
       );
       registeredForUserId = userId;
     }

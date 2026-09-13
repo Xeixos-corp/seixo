@@ -151,6 +151,16 @@
     "deleteConfirmTitle": "Eliminar cuenta",
     "deleteConfirmMessage": "Esto elimina tu identidad y todos los datos asociados en el servidor (claves, prekeys, conversaciones iniciadas, bloqueos) y en el dispositivo. No se puede deshacer.",
     "deleteButtonConfirm": "Eliminar",
+    "notificationsSection": "Notificaciones",
+    "sounds": {
+      "default": "Predeterminado",
+      "sino": "Campana",
+      "toque": "Toque",
+      "duplo": "Toque doble",
+      "grave": "Grave",
+      "hint": "El sonido suena cuando llega una notificación. Los sonidos vienen dentro de la app: el servidor nunca envía audio, solo el nombre del que elegiste. Si el teléfono está en silencio, iOS no reproduce ninguno.",
+      "saveFailed": "Tu elección queda guardada en este teléfono, pero no se pudo avisar al servidor. Se enviará la próxima vez que abras la app."
+    },
     "securitySection": "Seguridad",
     "appLockLabel": "Pedir Face ID para abrir la app",
     "appLockHint": "Cuando está activado, Seixo pide Face ID (o el código del dispositivo) cada vez que vuelves a la app. Los mensajes siguen llegando mientras está bloqueada.",

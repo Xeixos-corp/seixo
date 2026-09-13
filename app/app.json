@@ -44,7 +44,17 @@
       "expo-secure-store",
       "expo-asset",
       "expo-localization",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/sino.wav",
+            "./assets/sounds/toque.wav",
+            "./assets/sounds/duplo.wav",
+            "./assets/sounds/grave.wav"
+          ]
+        }
+      ],
       [
         "expo-camera",
         {

@@ -151,6 +151,16 @@
     "deleteConfirmTitle": "Eliminar conta",
     "deleteConfirmMessage": "Isto apaga a tua identidade e todos os dados associados no servidor (chaves, prekeys, conversas iniciadas, bloqueios) e no dispositivo. Não é reversível.",
     "deleteButtonConfirm": "Eliminar",
+    "notificationsSection": "Notificações",
+    "sounds": {
+      "default": "Predefinido",
+      "sino": "Sino",
+      "toque": "Toque",
+      "duplo": "Toque duplo",
+      "grave": "Grave",
+      "hint": "O som toca quando chega uma notificação. Os sons vêm dentro da app — o servidor nunca envia áudio, só o nome do som que escolheste. Se o telemóvel estiver em silêncio, o iOS não toca nenhum.",
+      "saveFailed": "A escolha ficou guardada neste telemóvel, mas não foi possível avisar o servidor. Será enviada da próxima vez que abrires a app."
+    },
     "securitySection": "Segurança",
     "appLockLabel": "Pedir Face ID para abrir a app",
     "appLockHint": "Quando está ligado, o Seixo pede o Face ID (ou o código do telemóvel) sempre que voltas à app. As mensagens continuam a chegar enquanto está bloqueado.",

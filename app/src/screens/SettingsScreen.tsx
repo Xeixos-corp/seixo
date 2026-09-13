@@ -8,6 +8,7 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { SUPPORT_CONTACT_EMAIL, PRIVACY_POLICY_URL, TERMS_URL } from '../config/support';
 import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
 import { MyIdCard } from '../components/MyIdCard';
+import { NotificationSoundPicker } from '../components/NotificationSoundPicker';
 import { useAppLockStore } from '../store/appLockStore';
 import { useThemeStore, type ThemePreference } from '../store/themeStore';
 import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
@@ -96,6 +97,13 @@ export function SettingsScreen({ navigation }: Props) {
             );
           })}
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+          {t('settings.notificationsSection')}
+        </Text>
+        <NotificationSoundPicker />
       </View>
 
       <View style={styles.section}>
