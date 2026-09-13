@@ -1,0 +1,25 @@
+-- Realtime could not evaluate the RLS policy on channel_members.
+--
+-- The policy that decides who may read a membership row calls
+-- is_channel_member (0004). Realtime evaluates that same policy against the
+-- replication stream before delivering a change, and it does so as
+-- supabase_realtime_admin -- a role 0008 never granted execute to, when it
+-- revoked the blanket access every function had. The result, in the realtime
+-- logs, is:
+--
+--   permission denied for function is_channel_member
+--     PL/pgSQL function realtime.apply_rls(jsonb,integer) line 219
+--
+-- It is intermittent and it recovers, which is why it went unnoticed: the
+-- affected subscription is the one that notices somebody starting a
+-- conversation with you (subscribeToMyNewMemberships). When the check fails
+-- the conversation simply does not appear until the next launch, where the
+-- reconciliation pass finds it on the server anyway. Messages are unaffected
+-- -- their policy is a plain subquery and calls nothing.
+--
+-- This grants nothing that role did not already have. supabase_realtime_admin
+-- reads the write-ahead log, so every row in the database is already visible
+-- to it; what it lacked was the ability to call the function that decides
+-- which of those rows to hand to which subscriber. Withholding it did not
+-- protect anything -- it only stopped the filtering from running.
+grant execute on function public.is_channel_member(uuid, uuid) to supabase_realtime_admin;
