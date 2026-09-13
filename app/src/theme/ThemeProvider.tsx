@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useMemo } from 'react';
-import { useColorScheme } from 'react-native';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import { Appearance, useColorScheme } from 'react-native';
 import { darkPalette, lightPalette, Palette } from './palette';
 import { useThemeStore } from '../store/themeStore';
 
@@ -21,6 +21,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // written and never seen.
   const colorScheme =
     preference === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : preference;
+
+  // The palette above only reaches what this app draws itself. Alerts, action
+  // sheets and the keyboard are drawn by iOS, which styles them from the
+  // phone's setting -- so a light app on a phone set to dark got a black
+  // long-press menu over a white list. That was already true for anyone who
+  // chose 'light' by hand; with light as the default it would have become the
+  // ordinary first impression.
+  //
+  // Appearance.setColorScheme overrides the appearance for the app's own
+  // window, which is what those native views read. Back to null for 'system',
+  // so following the phone keeps meaning exactly that.
+  useEffect(() => {
+    Appearance.setColorScheme(preference === 'system' ? null : preference);
+  }, [preference]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
