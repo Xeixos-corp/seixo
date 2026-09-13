@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { SUPPORT_CONTACT_EMAIL, PRIVACY_POLICY_URL, TERMS_URL } from '../config/support';
+import { SUPPORT_CONTACT_EMAIL, PRIVACY_POLICY_URL, TERMS_URL, FAQ_URL } from '../config/support';
 import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
 import { MyIdCard } from '../components/MyIdCard';
 import { NotificationSoundPicker } from '../components/NotificationSoundPicker';
@@ -156,6 +156,9 @@ export function SettingsScreen({ navigation }: Props) {
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.supportSection')}</Text>
+        <Pressable onPress={() => Linking.openURL(FAQ_URL)}>
+          <Text style={[styles.link, { color: colors.accent }]}>{t('settings.faq')}</Text>
+        </Pressable>
         {SUPPORT_CONTACT_EMAIL ? (
           <Pressable onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}`)}>
             <Text style={[styles.link, { color: colors.accent }]}>{SUPPORT_CONTACT_EMAIL}</Text>

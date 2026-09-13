@@ -20,3 +20,15 @@ export const PRIVACY_POLICY_URL = 'https://xeixos-corp.github.io/Seixo-Legal/';
 // every device asks again.
 export const TERMS_URL = 'https://xeixos-corp.github.io/Seixo-Legal/terms.html';
 export const TERMS_VERSION = 1;
+
+// Frequently asked questions, published beside the privacy policy and the
+// terms (Xeixos-corp/Seixo-Legal) with the source at docs/faq.md. Also the
+// answer to App Store Connect's mandatory "Support URL" field, which is why
+// it exists as a page rather than only as an email address.
+//
+// Deliberately small, and deliberately only the questions that cannot be
+// answered inside the app at the moment they come up -- what an account is
+// without a phone number, what happens when a phone is lost, what the server
+// can see. Anything explainable in place belongs in place; a growing FAQ is
+// where documentation goes to rot.
+export const FAQ_URL = 'https://xeixos-corp.github.io/Seixo-Legal/faq.html';
