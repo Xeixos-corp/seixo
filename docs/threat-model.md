@@ -39,7 +39,8 @@ underlying implementation (linked file) changes without this doc being updated.
   - **Connection IP and request timing, always.** There is no Tor toggle and
     no other IP-hiding path in the app today (see below), so the backend —
     and Supabase Inc. while Cloud is in use — sees the real client IP of
-    every request.
+    every request, and records considerably more than the IP for 24 hours
+    (see "What the platform's request log actually holds", below).
   - Approximate message size and frequency (ciphertext length, insert rate),
     even though content and sender-within-a-message are hidden.
 
@@ -1621,3 +1622,45 @@ all permission strings present). What cannot be checked on Windows: Expo
 refuses to generate the iOS project there, and Swift cannot be compiled, so
 the first real test of the Xcode targets and of both Swift files is the build.
 
+
+### What the platform's request log actually holds (2026-09-16)
+
+Scrubbing `auth.sessions` every minute (2026-09-10, below) fixed what this
+project controls. It said nothing about the layer in front of it, and the
+privacy policy described that layer as "technical request logs, which include
+the IP, for a short period defined by the provider" -- which turned out to be
+an understatement in both directions: the period was unknown to us, and the
+content is much more than an IP.
+
+Measured on the live project rather than read off a documentation page. Every
+`edge_logs` row -- 1524 of them in the window, one per request -- carries:
+
+| Field | Present |
+| --- | --- |
+| `request.headers.cf_connecting_ip`, `x_real_ip` | 1524 / 1524 |
+| `request.cf.city`, `region`, `postalCode`, `country` | 1524 / 1524 |
+| `request.cf.botManagement.ja3Hash`, `ja4` (TLS fingerprint) | 1524 / 1524 |
+| `request.cf.asOrganization` (the ISP) | yes |
+| `request.sb.auth_user` and the JWT subject | 1389 / 1524 |
+
+So for as long as a row survives, the hosting layer can join a Seixo account
+to an IP, an approximate location down to a postal code, an ISP, and a
+fingerprint that distinguishes devices. That is a stronger link than anything
+this project's own schema holds, and it is created before a request reaches
+any code written here.
+
+**The retention is 24 hours**, and that is measured, not quoted: across every
+log source, the oldest row in the project was exactly 24 hours old. It is a
+property of the hosting plan, and it can be longer on larger plans -- worth
+knowing before any upgrade is considered a pure improvement.
+
+**What can be done about it: nothing, from here.** The log is not in the
+database. It cannot be written to, deleted from or switched off through any
+interface this project has. The only mitigations are the ones already stated
+in this document -- a VPN or Tor on the user's side, or self-hosting the
+backend, which moves the log to whoever runs it rather than removing it.
+
+**What was done about it:** said so. The privacy policy and the FAQ now list
+the fields and the 24 hours, and the in-app "what the server knows" screen
+carries the same statement, because a screen that claims to show everything
+and stops at the database would be the most misleading thing in the app.

@@ -1,6 +1,6 @@
 # Política de privacidade — Seixo
 
-**Última atualização: 11 de setembro de 2026**
+**Última atualização: 16 de setembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -44,9 +44,22 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 
 Como qualquer serviço na internet, o servidor vê o endereço IP de onde te ligas. O que fazemos com isso:
 
+**Na nossa base de dados**, onde temos poder para agir:
+
 - O serviço de autenticação regista o IP e o tipo de dispositivo em cada sessão. **Apagamos esses dois campos a cada minuto.**
 - O registo de auditoria da autenticação é apagado ao fim de **uma hora**.
-- O fornecedor de alojamento mantém registos técnicos dos pedidos, que incluem o IP, durante um período curto definido por ele e que não controlamos.
+
+**Nos registos do alojamento**, onde não temos:
+
+Antes de um pedido chegar ao nosso código, a camada de entrada do fornecedor regista-o. Esse registo guarda, **durante 24 horas**:
+
+- o endereço IP;
+- o país, a cidade e o código postal aproximados de onde te ligas;
+- o teu fornecedor de acesso à internet;
+- uma impressão digital técnica do dispositivo — a forma como o teu telemóvel negoceia a ligação cifrada, que não é o mesmo que um identificador teu, mas distingue aparelhos;
+- e, na maioria dos pedidos, o identificador da conta que o fez.
+
+Não escrevemos esse registo, não lhe podemos tocar e não o podemos apagar mais cedo. Ao fim de 24 horas desaparece. Dizemo-lo por inteiro porque durante essas horas existe, no alojamento, uma ligação possível entre uma conta e um sítio — e essa é exactamente a informação que o resto desta política se esforça por não criar.
 
 A app não esconde o teu IP. Se isso for importante para ti, usa uma VPN ou Tor.
 
