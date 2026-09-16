@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   FlatList,
-  KeyboardAvoidingView,
   Modal,
   Linking,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -16,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { useHeaderHeight } from '@react-navigation/elements';
+import { useKeyboardSpacer } from '../hooks/useKeyboardSpacer';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useMessagesStore, type DecryptedMessage } from '../store/messagesStore';
 import {
@@ -139,7 +138,7 @@ function formatSentAt(createdAt: string): string {
 export function ConversationScreen({ route, navigation }: Props) {
   const { channelId, peerUserId, initialDraft } = route.params;
   const { colors } = useAppTheme();
-  const headerHeight = useHeaderHeight();
+  const keyboardSpacer = useKeyboardSpacer();
   const { t } = useTranslation();
   const messages = useMessagesStore((state) => state.messagesByChannel[channelId] ?? NO_MESSAGES);
 
@@ -1134,16 +1133,13 @@ export function ConversationScreen({ route, navigation }: Props) {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      // Without this the input bar sits under the keyboard by roughly the
-      // height of the navigation header: 'padding' measures the keyboard
-      // against the window, but this view starts below the header, so that
-      // much of the padding is spent on space the keyboard was never
-      // covering. The header height is exactly the discrepancy.
-      keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
-    >
+    // A plain view with a spacer at the bottom, rather than
+    // KeyboardAvoidingView -- see hooks/useKeyboardSpacer for what that one
+    // does wrong. It also drops the header-height offset this used to need:
+    // the spacer lives inside the layout, so the bar sits exactly the
+    // keyboard's height above the bottom of the screen with nothing to
+    // correct for.
+    <View style={styles.flex}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {loadError ? (
           <Text style={[styles.errorText, { color: colors.danger }]}>{loadError}</Text>
@@ -1614,8 +1610,9 @@ export function ConversationScreen({ route, navigation }: Props) {
             </Pressable>
           </Pressable>
         </Modal>
+        <Animated.View style={{ height: keyboardSpacer }} />
       </SafeAreaView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
