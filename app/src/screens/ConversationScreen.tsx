@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Animated,
+  AppState,
   FlatList,
   Modal,
   Linking,
@@ -52,7 +53,11 @@ import {
   VOICE_SERVER_TTL_SECONDS,
 } from '../audio/recordingOptions';
 import { readRecordingAndDelete } from '../audio/voiceFiles';
-import { configureForRecording, configureForPlayback } from '../../modules/audio-session-expo/src';
+import {
+  configureForRecording,
+  configureForPlayback,
+  onAudioInterruption,
+} from '../../modules/audio-session-expo/src';
 import { VoiceMessage } from '../components/VoiceMessage';
 import * as Clipboard from 'expo-clipboard';
 import { blockPeer } from '../transport/blocking';
@@ -667,6 +672,42 @@ export function ConversationScreen({ route, navigation }: Props) {
       clearInterval(tick);
     };
   }, [recording, stopRecording]);
+
+  // Ends a recording that iOS is about to break, and says so.
+  //
+  // Two ways it happens, and both are covered because they are reported
+  // differently. A call arriving or Siri taking the microphone raises an audio
+  // interruption, which the native module forwards. Pressing the side button,
+  // or switching apps, does not: the app simply leaves the foreground, taking
+  // the audio session with it. AppState sees that one.
+  //
+  // What is discarded here is deliberate. Audio recorded either side of a gap
+  // is still a message with a gap in it, and the person speaking has no way of
+  // knowing which words were lost -- so the recording ends, nothing is sent,
+  // and they are told why. That is the whole point: silence about it was the
+  // bug.
+  useEffect(() => {
+    if (!recording) return;
+
+    const interrupted = () => {
+      void stopRecording(false);
+      setSendError(t('conversation.recordingInterrupted'));
+    };
+
+    const unsubscribe = onAudioInterruption(interrupted);
+    const appState = AppState.addEventListener('change', (next) => {
+      // 'background' only. iOS also reports 'inactive' for things that do not
+      // touch the microphone at all -- pulling down Control Center, a banner
+      // arriving -- and ending someone's recording because they glanced at a
+      // notification would be a worse bug than the one this fixes.
+      if (next === 'background') interrupted();
+    });
+
+    return () => {
+      unsubscribe();
+      appState.remove();
+    };
+  }, [recording, stopRecording, t]);
 
   const setGroupMembers = useConversationsStore((state) => state.setGroupMembers);
   const removeConversation = useConversationsStore((state) => state.removeConversation);

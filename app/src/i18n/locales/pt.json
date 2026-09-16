@@ -118,6 +118,7 @@
     "voiceMessage": "Mensagem de voz",
     "recordingNow": "A gravar…",
     "recordingFailed": "Não foi possível gravar.",
+    "recordingInterrupted": "A gravação foi interrompida pelo telemóvel (uma chamada, ou o ecrã a bloquear) e não foi enviada. Podes gravar de novo.",
     "microphoneDenied": "O Seixo precisa de acesso ao microfone para gravar.",
     "recordButton": "Gravar voz",
     "stopRecording": "Parar e enviar · {{elapsed}}",

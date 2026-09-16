@@ -23,6 +23,7 @@ import UIKit
 public class AudioSessionExpoModule: Module {
   private var proximityObserver: NSObjectProtocol?
   private var routeObserver: NSObjectProtocol?
+  private var interruptionObserver: NSObjectProtocol?
 
   /// Outputs that mean the person is listening through something other than
   /// the phone itself. When one is active, the phone's own routing -- speaker,
@@ -69,13 +70,20 @@ public class AudioSessionExpoModule: Module {
   public func definition() -> ModuleDefinition {
     Name("AudioSessionExpo")
 
+    /// Fired when iOS takes the audio session away mid-recording -- an
+    /// incoming call, Siri, another app claiming the microphone. The app
+    /// cannot carry on recording through it, and what it must not do is
+    /// pretend nothing happened: that is how a voice message ends up with a
+    /// silent hole in it.
+    Events("onAudioInterruption")
+
     /// For playing a voice message: high-quality Bluetooth output (A2DP),
     /// speaker rather than earpiece by default.
     ///
     /// `.playback` rather than `.playAndRecord`, because the record-capable
     /// category routes audio to the receiver at low volume and treats
     /// Bluetooth as a headset rather than as headphones.
-    AsyncFunction("configureForPlayback") {
+    AsyncFunction("configureForPlayback") { [weak self] in
       let session = AVAudioSession.sharedInstance()
       // No options. `.allowBluetoothA2DP` is only accepted with a
       // record-capable category -- with `.playback`, high-quality Bluetooth
@@ -89,6 +97,11 @@ public class AudioSessionExpoModule: Module {
       DispatchQueue.main.async {
         UIApplication.shared.isIdleTimerDisabled = false
       }
+
+      if let observer = self?.interruptionObserver {
+        NotificationCenter.default.removeObserver(observer)
+        self?.interruptionObserver = nil
+      }
     }
 
     /// For recording: `.playAndRecord` with the hands-free profile allowed,
@@ -101,7 +114,7 @@ public class AudioSessionExpoModule: Module {
     /// discards `.allowBluetooth`. Calling this first -- as the app did until
     /// now -- meant the option was wiped a moment later, and the AirPods
     /// microphone was never reachable.
-    AsyncFunction("configureForRecording") {
+    AsyncFunction("configureForRecording") { [weak self] in
       let session = AVAudioSession.sharedInstance()
       // `.defaultToSpeaker` is dropped: nothing is played while recording, and
       // forcing the speaker fights the Bluetooth route this exists to enable.
@@ -144,6 +157,25 @@ public class AudioSessionExpoModule: Module {
       // awake for ever.
       DispatchQueue.main.async {
         UIApplication.shared.isIdleTimerDisabled = true
+      }
+
+      if self?.interruptionObserver == nil {
+        self?.interruptionObserver = NotificationCenter.default.addObserver(
+          forName: AVAudioSession.interruptionNotification,
+          object: nil,
+          queue: .main
+        ) { [weak self] notification in
+          guard
+            let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+            let type = AVAudioSession.InterruptionType(rawValue: raw),
+            type == .began
+          else { return }
+          // Only the beginning is reported. Resuming is not offered on
+          // purpose: audio recorded after a gap is still a message with a gap,
+          // and the person has no way of knowing what was lost. Ending it and
+          // saying so leaves them able to decide.
+          self?.sendEvent("onAudioInterruption", [:])
+        }
       }
     }
 

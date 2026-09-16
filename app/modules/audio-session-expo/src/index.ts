@@ -5,6 +5,7 @@ type AudioSessionModule = {
   configureForRecording(): Promise<void>;
   startEarpieceRouting(): Promise<void>;
   stopEarpieceRouting(): Promise<void>;
+  addListener?(event: 'onAudioInterruption', listener: () => void): { remove(): void };
 };
 
 /**
@@ -47,4 +48,23 @@ export async function startEarpieceRouting(): Promise<void> {
 
 export async function stopEarpieceRouting(): Promise<void> {
   await attempt('stopEarpieceRouting', native?.stopEarpieceRouting.bind(native));
+}
+
+/**
+ * Called when iOS takes the audio session away mid-recording -- a call
+ * arriving, Siri, another app claiming the microphone.
+ *
+ * Returns an unsubscribe function, and one that does nothing on a build whose
+ * native side predates this event: `addListener` is optional for the same
+ * reason the whole module is, and an older build simply never reports an
+ * interruption rather than crashing on a listener it cannot register.
+ */
+export function onAudioInterruption(listener: () => void): () => void {
+  try {
+    const subscription = native?.addListener?.('onAudioInterruption', listener);
+    return () => subscription?.remove();
+  } catch (error) {
+    console.warn('[audioSession] could not listen for interruptions', error);
+    return () => {};
+  }
 }

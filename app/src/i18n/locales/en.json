@@ -118,6 +118,7 @@
     "voiceMessage": "Voice message",
     "recordingNow": "Recording…",
     "recordingFailed": "Couldn't record.",
+    "recordingInterrupted": "The phone interrupted the recording (a call, or the screen locking) and it was not sent. You can record again.",
     "microphoneDenied": "Seixo needs microphone access to record.",
     "recordButton": "Record voice",
     "stopRecording": "Stop and send · {{elapsed}}",
