@@ -88,6 +88,7 @@
     "sendFailed": "Could not send. Check your connection and try again — your text is still here.",
     "messageActionsTitle": "Message",
     "reply": "Reply",
+    "copy": "Copy text",
     "replyingTo": "Replying to",
     "quoteUnavailable": "Message unavailable",
     "blockFailed": "Couldn't block. Check your connection and try again.",
@@ -104,6 +105,7 @@
     "retrySend": "Try sending again",
     "openLinkTitle": "Open this link?",
     "openLinkConfirm": "Open",
+    "copyLink": "Copy link",
     "openLinkFailed": "Couldn't open the link.",
     "edit": "Edit",
     "edited": "edited",
@@ -147,7 +149,10 @@
     "oneOffTtlTitle": "Delete this message after",
     "oneOffTtlHint": "Applies to the next message only. The conversation keeps its own timer.",
     "oneOffTtlActive": "This message disappears in {{label}}",
-    "groupNameSent": "Name sent to the members."
+    "groupNameSent": "Name sent to the members.",
+    "messageCopied": "Text copied.",
+    "linkCopied": "Link copied.",
+    "copyFailed": "Could not copy."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",

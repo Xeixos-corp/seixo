@@ -55,6 +55,7 @@ import {
 import { readRecordingAndDelete } from '../audio/voiceFiles';
 import { configureForRecording, configureForPlayback } from '../../modules/audio-session-expo/src';
 import { VoiceMessage } from '../components/VoiceMessage';
+import * as Clipboard from 'expo-clipboard';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
 import { encryptMessage, isUntrustedIdentityError } from '../crypto';
@@ -333,6 +334,39 @@ export function ConversationScreen({ route, navigation }: Props) {
   // all. "I don't know whether that sent" is about the worst state a
   // messenger can leave someone in.
   const [sendError, setSendError] = useState<string | null>(null);
+  // Says a copy happened. iOS gives no feedback of its own for the clipboard,
+  // and a silent menu item leaves you wondering whether it worked.
+  const [notice, setNotice] = useState<string | null>(null);
+
+  /**
+   * Puts text on the clipboard and says so.
+   *
+   * Worth being clear-eyed about what this is: the clipboard belongs to the
+   * whole phone, not to this app. Anything put there can be read by any other
+   * app the person opens next, and iOS syncs it to their other Apple devices.
+   * It is also a way out of the disappearing-message timer -- text copied out
+   * survives the message it came from.
+   *
+   * It is offered anyway, because people copy an address or a code out of a
+   * message constantly, and the alternative they are left with otherwise is
+   * retyping it by hand or taking a screenshot, which is worse on both counts.
+   * The FAQ says what leaving the app costs; this is the same bargain,
+   * made deliberately.
+   */
+  const copyToClipboard = useCallback(
+    async (text: string, confirmation: string) => {
+      try {
+        await Clipboard.setStringAsync(text);
+        setNotice(confirmation);
+        setTimeout(() => setNotice(null), 2000);
+      } catch (error) {
+        console.error('[ConversationScreen] failed to copy', error);
+        setSendError(t('conversation.copyFailed'));
+      }
+    },
+    [t],
+  );
+
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showSafetyNumber, setShowSafetyNumber] = useState(false);
@@ -867,6 +901,17 @@ export function ConversationScreen({ route, navigation }: Props) {
             ]),
         },
         { text: t('conversation.reply'), onPress: () => setReplyToId(messageId) },
+        // Not offered for a voice message, whose text is empty -- a menu item
+        // that copies nothing is worse than no menu item.
+        ...(message?.plaintext?.trim()
+          ? [
+              {
+                text: t('conversation.copy'),
+                onPress: () =>
+                  void copyToClipboard(message.plaintext, t('conversation.messageCopied')),
+              },
+            ]
+          : []),
         ...(canEdit
           ? [
               {
@@ -888,7 +933,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         { text: t('conversation.cancel'), style: 'cancel' },
       ]);
     },
-    [handleDeleteMessage, handleReact, messages, t],
+    [copyToClipboard, handleDeleteMessage, handleReact, messages, t],
   );
 
   // Lets an arriving notification know it has nothing to announce while this
@@ -1061,6 +1106,12 @@ export function ConversationScreen({ route, navigation }: Props) {
       Alert.alert(t('conversation.openLinkTitle'), url, [
         { text: t('conversation.cancel'), style: 'cancel' },
         {
+          // Copying is the safer half of this dialog: it takes the address
+          // without handing the site this device's IP.
+          text: t('conversation.copyLink'),
+          onPress: () => void copyToClipboard(url, t('conversation.linkCopied')),
+        },
+        {
           text: t('conversation.openLinkConfirm'),
           onPress: () => {
             Linking.openURL(url).catch((error) => {
@@ -1071,7 +1122,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         },
       ]);
     },
-    [t],
+    [copyToClipboard, t],
   );
 
   const handleRetry = useCallback(
@@ -1269,6 +1320,10 @@ export function ConversationScreen({ route, navigation }: Props) {
 
         {sendError ? (
           <Text style={[styles.sendErrorText, { color: colors.danger }]}>{sendError}</Text>
+        ) : null}
+
+        {notice ? (
+          <Text style={[styles.sendErrorText, { color: colors.textSecondary }]}>{notice}</Text>
         ) : null}
 
         {editingId ? (

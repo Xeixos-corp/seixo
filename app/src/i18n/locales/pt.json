@@ -88,6 +88,7 @@
     "sendFailed": "Não foi possível enviar. Verifica a ligação e tenta outra vez — o texto ficou guardado.",
     "messageActionsTitle": "Mensagem",
     "reply": "Responder",
+    "copy": "Copiar texto",
     "replyingTo": "A responder a",
     "quoteUnavailable": "Mensagem indisponível",
     "blockFailed": "Não foi possível bloquear. Verifica a ligação e tenta outra vez.",
@@ -104,6 +105,7 @@
     "retrySend": "Tentar enviar outra vez",
     "openLinkTitle": "Abrir esta ligação?",
     "openLinkConfirm": "Abrir",
+    "copyLink": "Copiar link",
     "openLinkFailed": "Não foi possível abrir a ligação.",
     "edit": "Editar",
     "edited": "editada",
@@ -147,7 +149,10 @@
     "oneOffTtlTitle": "Apagar esta mensagem em",
     "oneOffTtlHint": "Vale só para a próxima mensagem. A conversa mantém o temporizador dela.",
     "oneOffTtlActive": "Esta mensagem apaga em {{label}}",
-    "groupNameSent": "Nome enviado aos membros."
+    "groupNameSent": "Nome enviado aos membros.",
+    "messageCopied": "Texto copiado.",
+    "linkCopied": "Link copiado.",
+    "copyFailed": "Não foi possível copiar."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
