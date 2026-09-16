@@ -157,9 +157,13 @@ export function SettingsScreen({ navigation }: Props) {
           />
         </SettingsGroup>
 
-        <SettingsGroup title={t('settings.accountSection')} footer={t('settings.backupHint')}>
+        {/* The hint belongs to the backup row, not to the group: as a group
+            footer it sat under "Delete account" and read as though it
+            described deleting. */}
+        <SettingsGroup title={t('settings.accountSection')}>
           <SettingsRow
             label={t('settings.backupButton')}
+            hint={t('settings.backupHint')}
             onPress={() => navigation.navigate('Backup')}
             opensScreen
           />

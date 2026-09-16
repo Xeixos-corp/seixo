@@ -88,7 +88,13 @@ export function SettingsRow({
         <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
         {hint ? <Text style={[styles.hint, { color: colors.textSecondary }]}>{hint}</Text> : null}
       </View>
-      {value ? <Text style={[styles.value, { color: colors.textSecondary }]}>{value}</Text> : null}
+      {value ? (
+        // Capped at one line so a long value -- a support address, say --
+        // shortens itself instead of squeezing the label out of the row.
+        <Text style={[styles.value, { color: colors.textSecondary }]} numberOfLines={1}>
+          {value}
+        </Text>
+      ) : null}
       {toggle ? (
         <Switch
           value={toggle.value}
@@ -163,6 +169,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 15,
+    flexShrink: 1,
   },
   footer: {
     fontSize: 12,
