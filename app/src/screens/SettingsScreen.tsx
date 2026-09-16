@@ -121,6 +121,15 @@ export function SettingsScreen({ navigation }: Props) {
             onPress={() => navigation.navigate('BlockedPeers')}
             opensScreen
           />
+          {/* The policy says what the server keeps; this shows it. Put here
+              rather than under "About" because it is not reading material --
+              it is the same claim with the evidence attached. */}
+          <SettingsRow
+            label={t('settings.serverFootprint')}
+            hint={t('settings.serverFootprintHint')}
+            onPress={() => navigation.navigate('ServerFootprint')}
+            opensScreen
+          />
         </SettingsGroup>
 
         <SettingsGroup title={t('settings.appearanceSection')}>

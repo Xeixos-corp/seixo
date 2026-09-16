@@ -13,6 +13,7 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { ScanQrScreen } from '../screens/ScanQrScreen';
 import { BackupScreen } from '../screens/BackupScreen';
 import { NotificationSoundScreen } from '../screens/NotificationSoundScreen';
+import { ServerFootprintScreen } from '../screens/ServerFootprintScreen';
 import { RestoreBackupScreen } from '../screens/RestoreBackupScreen';
 import { ShareTargetScreen } from '../screens/ShareTargetScreen';
 
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   BlockedPeers: undefined;
   Settings: undefined;
   NotificationSound: undefined;
+  ServerFootprint: undefined;
   ScanQr: undefined;
   Backup: undefined;
   RestoreBackup: undefined;
@@ -86,6 +88,11 @@ export function RootNavigator() {
           name="NotificationSound"
           component={NotificationSoundScreen}
           options={{ title: t('navigation.notificationSound') }}
+        />
+        <Stack.Screen
+          name="ServerFootprint"
+          component={ServerFootprintScreen}
+          options={{ title: t('navigation.serverFootprint') }}
         />
         <Stack.Screen name="ScanQr" component={ScanQrScreen} options={{ title: t('navigation.scanQr') }} />
         <Stack.Screen name="Backup" component={BackupScreen} options={{ title: t('navigation.backup') }} />

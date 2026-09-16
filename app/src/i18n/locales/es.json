@@ -8,7 +8,8 @@
     "backup": "Copia de seguridad",
     "restoreBackup": "Recuperar cuenta",
     "shareTarget": "Compartir en…",
-    "notificationSound": "Sonido de las notificaciones"
+    "notificationSound": "Sonido de las notificaciones",
+    "serverFootprint": "Lo que sabe el servidor"
   },
   "onboarding": {
     "title": "Mensajería privada",
@@ -196,6 +197,8 @@
     "privacySection": "Privacidad y seguridad",
     "aboutSection": "Acerca de",
     "blockedPeers": "Contactos bloqueados",
+    "serverFootprint": "Lo que sabe el servidor",
+    "serverFootprintHint": "Mira, ahora mismo, todo lo que existe sobre ti en el servidor.",
     "soundRow": "Sonido",
     "contact": "Contacto",
     "version": "Versión"
@@ -288,5 +291,37 @@
   "share": {
     "intro": "Elige la conversación. El contenido queda en el cuadro de texto y solo se envía cuando pulses enviar.",
     "empty": "Todavía no tienes conversaciones. Empieza una y vuelve a compartir."
+  },
+  "serverFootprint": {
+    "intro": "Esto es todo lo que existe sobre ti en la base de datos, leído ahora mismo. Nada se guarda en el teléfono: si cierras y vuelves, se pide otra vez.",
+    "failed": "No se pudo leer el servidor.",
+    "retry": "Intentar de nuevo",
+    "accountSection": "Tu cuenta",
+    "identifier": "Identificador",
+    "createdAt": "Cuenta creada",
+    "lastUse": "Último uso",
+    "lastUseHint": "Solo el día. La hora nunca se guarda.",
+    "keys": "Claves públicas",
+    "keysHint": "Firmada + de un solo uso, para que otros inicien conversación contigo.",
+    "conversationsSection": "Conversaciones",
+    "noConversations": "El servidor no tiene ninguna conversación tuya.",
+    "none": "Ninguna",
+    "direct": "Directa",
+    "group": "Grupo",
+    "members": "{{count}} miembros",
+    "mutedByYou": "silenciada por ti",
+    "firstExpiry": "la más antigua caduca en {{time}}",
+    "messages": "{{count}} mensajes",
+    "expiringNow": "instantes",
+    "inMinutes": "{{count}} min",
+    "inHours": "{{count}} h",
+    "notificationsSection": "Notificaciones y bloqueos",
+    "notificationText": "Texto guardado",
+    "tokenUpdated": "Token actualizado",
+    "noToken": "Sin token de notificaciones",
+    "blocked": "Personas bloqueadas",
+    "absentSection": "Lo que no está aquí",
+    "absentList": "El contenido de los mensajes · quién envió cada mensaje en una conversación entre dos · los nombres que diste a tus contactos · los nombres de los grupos",
+    "hostingNote": "Esto es la base de datos. Antes de que una petición llegue, la capa de entrada del alojamiento la registra y guarda durante 24 horas tu IP, la ciudad y el código postal aproximados, tu proveedor de internet y, en la mayoría de los casos, el identificador de tu cuenta. No lo controlamos ni podemos borrarlo antes. Está explicado en la política de privacidad."
   }
 }

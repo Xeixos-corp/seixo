@@ -8,7 +8,8 @@
     "backup": "Cópia de segurança",
     "restoreBackup": "Recuperar conta",
     "shareTarget": "Partilhar em…",
-    "notificationSound": "Som das notificações"
+    "notificationSound": "Som das notificações",
+    "serverFootprint": "O que o servidor sabe"
   },
   "onboarding": {
     "title": "Mensagens privadas",
@@ -196,6 +197,8 @@
     "privacySection": "Privacidade e segurança",
     "aboutSection": "Sobre",
     "blockedPeers": "Contactos bloqueados",
+    "serverFootprint": "O que o servidor sabe",
+    "serverFootprintHint": "Ver, agora mesmo, tudo o que existe sobre ti no servidor.",
     "soundRow": "Som",
     "contact": "Contacto",
     "version": "Versão"
@@ -288,5 +291,37 @@
   "share": {
     "intro": "Escolhe a conversa. O conteúdo fica na caixa de texto e só é enviado quando carregares em enviar.",
     "empty": "Ainda não tens conversas. Começa uma e volta a partilhar."
+  },
+  "serverFootprint": {
+    "intro": "Isto é tudo o que existe sobre ti na base de dados, lido agora mesmo. Nada aqui está guardado no telemóvel: se fechares e voltares, é pedido outra vez.",
+    "failed": "Não foi possível ler o servidor.",
+    "retry": "Tentar de novo",
+    "accountSection": "A tua conta",
+    "identifier": "Identificador",
+    "createdAt": "Conta criada",
+    "lastUse": "Último uso",
+    "lastUseHint": "Só o dia. A hora nunca é guardada.",
+    "keys": "Chaves públicas",
+    "keysHint": "Assinada + de uso único, para outros iniciarem conversa contigo.",
+    "conversationsSection": "Conversas",
+    "noConversations": "O servidor não tem nenhuma conversa tua.",
+    "none": "Nenhuma",
+    "direct": "Direta",
+    "group": "Grupo",
+    "members": "{{count}} membros",
+    "mutedByYou": "silenciada por ti",
+    "firstExpiry": "a mais antiga expira em {{time}}",
+    "messages": "{{count}} mensagens",
+    "expiringNow": "instantes",
+    "inMinutes": "{{count}} min",
+    "inHours": "{{count}} h",
+    "notificationsSection": "Notificações e bloqueios",
+    "notificationText": "Texto guardado",
+    "tokenUpdated": "Token atualizado",
+    "noToken": "Sem token de notificações",
+    "blocked": "Pessoas bloqueadas",
+    "absentSection": "O que não está aqui",
+    "absentList": "O conteúdo das mensagens · quem enviou cada mensagem numa conversa a dois · os nomes que deste aos contactos · os nomes dos grupos",
+    "hostingNote": "Isto é a base de dados. Antes de um pedido lá chegar, a camada de entrada do alojamento regista-o e guarda durante 24 horas o teu IP, a cidade e o código postal aproximados, o teu fornecedor de internet e, na maioria dos casos, o identificador da tua conta. Não o controlamos nem o conseguimos apagar mais cedo. Está explicado na política de privacidade."
   }
 }

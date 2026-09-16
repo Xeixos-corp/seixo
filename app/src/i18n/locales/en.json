@@ -8,7 +8,8 @@
     "backup": "Backup",
     "restoreBackup": "Restore account",
     "shareTarget": "Share to…",
-    "notificationSound": "Notification sound"
+    "notificationSound": "Notification sound",
+    "serverFootprint": "What the server knows"
   },
   "onboarding": {
     "title": "Private messaging",
@@ -196,6 +197,8 @@
     "privacySection": "Privacy and security",
     "aboutSection": "About",
     "blockedPeers": "Blocked contacts",
+    "serverFootprint": "What the server knows",
+    "serverFootprintHint": "See, right now, everything that exists about you on the server.",
     "soundRow": "Sound",
     "contact": "Contact",
     "version": "Version"
@@ -288,5 +291,37 @@
   "share": {
     "intro": "Choose a conversation. The content goes into the text box and is only sent when you press send.",
     "empty": "You have no conversations yet. Start one and share again."
+  },
+  "serverFootprint": {
+    "intro": "This is everything that exists about you in the database, read just now. None of it is stored on the phone: close this and come back, and it is asked for again.",
+    "failed": "Could not read the server.",
+    "retry": "Try again",
+    "accountSection": "Your account",
+    "identifier": "Identifier",
+    "createdAt": "Account created",
+    "lastUse": "Last use",
+    "lastUseHint": "The day only. The time is never stored.",
+    "keys": "Public keys",
+    "keysHint": "Signed + one-time, so others can start a conversation with you.",
+    "conversationsSection": "Conversations",
+    "noConversations": "The server holds no conversations of yours.",
+    "none": "None",
+    "direct": "Direct",
+    "group": "Group",
+    "members": "{{count}} members",
+    "mutedByYou": "muted by you",
+    "firstExpiry": "the earliest expires in {{time}}",
+    "messages": "{{count}} messages",
+    "expiringNow": "moments",
+    "inMinutes": "{{count}} min",
+    "inHours": "{{count}} h",
+    "notificationsSection": "Notifications and blocks",
+    "notificationText": "Stored text",
+    "tokenUpdated": "Token updated",
+    "noToken": "No notification token",
+    "blocked": "People blocked",
+    "absentSection": "What is not here",
+    "absentList": "The content of messages · who sent each message in a one-to-one conversation · the names you gave your contacts · the names of groups",
+    "hostingNote": "This is the database. Before a request reaches it, the hosting provider's entry layer records it and keeps, for 24 hours, your IP, the approximate city and postal code, your internet provider and, in most cases, your account id. We do not control it and cannot delete it sooner. It is explained in the privacy policy."
   }
 }
