@@ -7,7 +7,8 @@
     "scanQr": "Scan QR code",
     "backup": "Backup",
     "restoreBackup": "Restore account",
-    "shareTarget": "Share to…"
+    "shareTarget": "Share to…",
+    "notificationSound": "Notification sound"
   },
   "onboarding": {
     "title": "Private messaging",
@@ -19,7 +20,6 @@
   "conversationList": {
     "peerIdPlaceholder": "the other person's user_id",
     "newButton": "New",
-    "blockedHeaderButton": "Blocked",
     "settingsHeaderButton": "Settings",
     "scanHeaderButton": "Scan QR",
     "selfConversationError": "You can't start a conversation with yourself.",
@@ -154,10 +154,8 @@
     "emptyState": "You haven't blocked anyone yet."
   },
   "settings": {
-    "supportSection": "Support",
     "faq": "Frequently asked questions",
     "supportUnset": "Support contact not set yet.",
-    "legalSection": "Legal",
     "privacyPolicy": "Privacy policy",
     "accountSection": "Account",
     "deleteButton": "Delete account and all data",
@@ -175,7 +173,6 @@
       "hint": "The sound plays when a notification arrives. The sounds ship inside the app — the server never sends audio, only the name of the one you chose. If the phone is on silent, iOS plays none.",
       "saveFailed": "Your choice is saved on this phone, but the server could not be told. It will be sent next time you open the app."
     },
-    "securitySection": "Security",
     "appLockLabel": "Require Face ID to open the app",
     "appLockHint": "When on, Seixo asks for Face ID (or your device passcode) every time you come back to it. Messages still arrive while it's locked.",
     "appLockUnavailable": "This device has no Face ID, Touch ID or passcode set, so there is nothing for Seixo to check against.",
@@ -185,12 +182,17 @@
       "light": "Light",
       "dark": "Dark"
     },
-    "backupSection": "Backup",
     "backupButton": "Create a backup",
     "backupHint": "Saves your identity to an encrypted file, so you can get back into the same account on another phone. Messages are not included.",
     "termsOfUse": "Terms of use",
     "showPreviewsLabel": "Show the last message",
-    "showPreviewsHint": "In the conversation list, under each name. Turn it off if you don't want someone looking at your screen to see it."
+    "showPreviewsHint": "In the conversation list, under each name. Turn it off if you don't want someone looking at your screen to see it.",
+    "privacySection": "Privacy and security",
+    "aboutSection": "About",
+    "blockedPeers": "Blocked contacts",
+    "soundRow": "Sound",
+    "contact": "Contact",
+    "version": "Version"
   },
   "screenshotWarning": {
     "title": "Screenshot",

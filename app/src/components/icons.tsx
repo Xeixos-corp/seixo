@@ -43,3 +43,12 @@ export function BellOffIcon({ size, color }: IconProps) {
     </Svg>
   );
 }
+
+/** The chevron that means "this row opens another screen". */
+export function ChevronIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M9 5l7 7-7 7" />
+    </Svg>
+  );
+}

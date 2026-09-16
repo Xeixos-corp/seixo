@@ -75,9 +75,6 @@ export function ConversationListScreen({ navigation }: Props) {
           <Pressable onPress={() => navigation.navigate('ScanQr')} hitSlop={8}>
             <Text style={{ color: colors.accent, fontSize: 14 }}>{t('conversationList.scanHeaderButton')}</Text>
           </Pressable>
-          <Pressable onPress={() => navigation.navigate('BlockedPeers')} hitSlop={8}>
-            <Text style={{ color: colors.accent, fontSize: 14 }}>{t('conversationList.blockedHeaderButton')}</Text>
-          </Pressable>
           <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
             <Text style={{ color: colors.accent, fontSize: 14 }}>{t('conversationList.settingsHeaderButton')}</Text>
           </Pressable>

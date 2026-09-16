@@ -12,6 +12,7 @@ import { BlockedPeersScreen } from '../screens/BlockedPeersScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ScanQrScreen } from '../screens/ScanQrScreen';
 import { BackupScreen } from '../screens/BackupScreen';
+import { NotificationSoundScreen } from '../screens/NotificationSoundScreen';
 import { RestoreBackupScreen } from '../screens/RestoreBackupScreen';
 import { ShareTargetScreen } from '../screens/ShareTargetScreen';
 
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   Conversation: { channelId: string; peerUserId: string; initialDraft?: string };
   BlockedPeers: undefined;
   Settings: undefined;
+  NotificationSound: undefined;
   ScanQr: undefined;
   Backup: undefined;
   RestoreBackup: undefined;
@@ -80,6 +82,11 @@ export function RootNavigator() {
           options={{ title: t('navigation.blockedPeers') }}
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('navigation.settings') }} />
+        <Stack.Screen
+          name="NotificationSound"
+          component={NotificationSoundScreen}
+          options={{ title: t('navigation.notificationSound') }}
+        />
         <Stack.Screen name="ScanQr" component={ScanQrScreen} options={{ title: t('navigation.scanQr') }} />
         <Stack.Screen name="Backup" component={BackupScreen} options={{ title: t('navigation.backup') }} />
         <Stack.Screen

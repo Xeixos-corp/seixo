@@ -7,7 +7,8 @@
     "scanQr": "Escanear código QR",
     "backup": "Copia de seguridad",
     "restoreBackup": "Recuperar cuenta",
-    "shareTarget": "Compartir en…"
+    "shareTarget": "Compartir en…",
+    "notificationSound": "Sonido de las notificaciones"
   },
   "onboarding": {
     "title": "Mensajería privada",
@@ -19,7 +20,6 @@
   "conversationList": {
     "peerIdPlaceholder": "user_id de la otra persona",
     "newButton": "Nueva",
-    "blockedHeaderButton": "Bloqueados",
     "settingsHeaderButton": "Ajustes",
     "scanHeaderButton": "Escanear QR",
     "selfConversationError": "No puedes iniciar una conversación contigo mismo.",
@@ -154,10 +154,8 @@
     "emptyState": "Aún no has bloqueado a nadie."
   },
   "settings": {
-    "supportSection": "Soporte",
     "faq": "Preguntas frecuentes",
     "supportUnset": "Contacto de soporte aún no definido.",
-    "legalSection": "Legal",
     "privacyPolicy": "Política de privacidad",
     "accountSection": "Cuenta",
     "deleteButton": "Eliminar cuenta y todos los datos",
@@ -175,7 +173,6 @@
       "hint": "El sonido suena cuando llega una notificación. Los sonidos vienen dentro de la app: el servidor nunca envía audio, solo el nombre del que elegiste. Si el teléfono está en silencio, iOS no reproduce ninguno.",
       "saveFailed": "Tu elección queda guardada en este teléfono, pero no se pudo avisar al servidor. Se enviará la próxima vez que abras la app."
     },
-    "securitySection": "Seguridad",
     "appLockLabel": "Pedir Face ID para abrir la app",
     "appLockHint": "Cuando está activado, Seixo pide Face ID (o el código del dispositivo) cada vez que vuelves a la app. Los mensajes siguen llegando mientras está bloqueada.",
     "appLockUnavailable": "Este dispositivo no tiene Face ID, Touch ID ni código configurado, así que no hay nada que Seixo pueda comprobar.",
@@ -185,12 +182,17 @@
       "light": "Claro",
       "dark": "Oscuro"
     },
-    "backupSection": "Copia de seguridad",
     "backupButton": "Crear copia de seguridad",
     "backupHint": "Guarda tu identidad en un fichero cifrado, para volver a entrar en la misma cuenta en otro teléfono. Los mensajes no se incluyen.",
     "termsOfUse": "Términos de uso",
     "showPreviewsLabel": "Mostrar el último mensaje",
-    "showPreviewsHint": "En la lista de conversaciones, debajo de cada nombre. Desactívalo si no quieres que quien mire tu pantalla lo vea."
+    "showPreviewsHint": "En la lista de conversaciones, debajo de cada nombre. Desactívalo si no quieres que quien mire tu pantalla lo vea.",
+    "privacySection": "Privacidad y seguridad",
+    "aboutSection": "Acerca de",
+    "blockedPeers": "Contactos bloqueados",
+    "soundRow": "Sonido",
+    "contact": "Contacto",
+    "version": "Versión"
   },
   "screenshotWarning": {
     "title": "Captura de pantalla",

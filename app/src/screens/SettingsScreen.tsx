@@ -1,20 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { SUPPORT_CONTACT_EMAIL, PRIVACY_POLICY_URL, TERMS_URL, FAQ_URL } from '../config/support';
 import { deleteAccountAndAllLocalData } from '../identity/deleteAccount';
 import { MyIdCard } from '../components/MyIdCard';
-import { NotificationSoundPicker } from '../components/NotificationSoundPicker';
+import { SettingsGroup, SettingsRow } from '../components/SettingsGroup';
 import { useAppLockStore } from '../store/appLockStore';
 import { useThemeStore, type ThemePreference } from '../store/themeStore';
 import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
+import { useNotificationSoundStore } from '../store/notificationSoundStore';
+import { NOTIFICATION_SOUNDS } from '../notifications/sounds';
+import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { isAppLockAvailable } from '../security/appLock';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+
+/**
+ * What version this is, for the bottom of the screen.
+ *
+ * Not decoration: every support conversation opens with "which version are
+ * you on", and an answer nobody has to go looking for saves a round trip on
+ * every single one. The build number matters as much as the version here,
+ * because TestFlight ships many builds under one version.
+ */
+function appVersionLabel(): string {
+  const version = Constants.expoConfig?.version ?? '—';
+  const build = Application.nativeBuildVersion;
+  return build ? `${version} (${build})` : version;
+}
 
 export function SettingsScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
@@ -27,6 +46,8 @@ export function SettingsScreen({ navigation }: Props) {
   const setAppLockEnabled = useAppLockStore((state) => state.setEnabled);
   const showMessagePreviews = usePrivacyPreferencesStore((state) => state.showMessagePreviews);
   const setShowMessagePreviews = usePrivacyPreferencesStore((state) => state.setShowMessagePreviews);
+  const sound = useNotificationSoundStore((state) => state.sound);
+  const blockedCount = useBlockedPeersStore((state) => state.blockedPeerIds.length);
   // null while the check is in flight -- the toggle stays disabled until we
   // know, rather than letting the user turn on a lock the device can't honour.
   const [lockAvailable, setLockAvailable] = useState<boolean | null>(null);
@@ -64,138 +85,122 @@ export function SettingsScreen({ navigation }: Props) {
     );
   };
 
+  const soundLabel = t(
+    `settings.sounds.${NOTIFICATION_SOUNDS.find((option) => option.file === sound)?.labelKey ?? 'default'}`,
+  );
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.section}>
-        <MyIdCard />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          {t('settings.appearanceSection')}
-        </Text>
-        <View style={styles.themeRow}>
-          {(['system', 'light', 'dark'] as ThemePreference[]).map((option) => {
-            const selected = themePreference === option;
-            return (
-              <Pressable
-                key={option}
-                onPress={() => setThemePreference(option)}
-                style={[
-                  styles.themeChip,
-                  {
-                    backgroundColor: selected ? colors.accent : colors.surfaceAlt,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Text style={{ color: selected ? colors.onAccent : colors.textSecondary, fontSize: 13 }}>
-                  {t(`settings.theme.${option}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.idCard}>
+          <MyIdCard />
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          {t('settings.notificationsSection')}
-        </Text>
-        <NotificationSoundPicker />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          {t('settings.securitySection')}
-        </Text>
-        <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
-            {t('settings.appLockLabel')}
-          </Text>
-          <Switch
-            value={appLockEnabled}
-            onValueChange={setAppLockEnabled}
-            disabled={lockAvailable !== true}
+        <SettingsGroup title={t('settings.privacySection')}>
+          <SettingsRow
+            label={t('settings.appLockLabel')}
+            hint={lockAvailable === false ? t('settings.appLockUnavailable') : t('settings.appLockHint')}
+            toggle={{
+              value: appLockEnabled,
+              onValueChange: setAppLockEnabled,
+              disabled: lockAvailable !== true,
+            }}
           />
-        </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          {lockAvailable === false ? t('settings.appLockUnavailable') : t('settings.appLockHint')}
-        </Text>
-        <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
-            {t('settings.showPreviewsLabel')}
-          </Text>
-          <Switch value={showMessagePreviews} onValueChange={setShowMessagePreviews} />
-        </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          {t('settings.showPreviewsHint')}
-        </Text>
-      </View>
+          <SettingsRow
+            label={t('settings.showPreviewsLabel')}
+            hint={t('settings.showPreviewsHint')}
+            toggle={{ value: showMessagePreviews, onValueChange: setShowMessagePreviews }}
+          />
+          {/* Moved here from the conversation list's header, which had three
+              buttons competing for the top bar -- and which made a liar of
+              both the FAQ and the app's own blocking confirmation, each of
+              which tells people to look in Settings. */}
+          <SettingsRow
+            label={t('settings.blockedPeers')}
+            value={blockedCount > 0 ? String(blockedCount) : undefined}
+            onPress={() => navigation.navigate('BlockedPeers')}
+            opensScreen
+          />
+        </SettingsGroup>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          {t('settings.backupSection')}
-        </Text>
-        <Pressable
-          onPress={() => navigation.navigate('Backup')}
-          style={({ pressed }) => [
-            styles.linkRow,
-            { borderColor: colors.border, backgroundColor: colors.surfaceAlt, opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
-            {t('settings.backupButton')}
-          </Text>
-        </Pressable>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          {t('settings.backupHint')}
-        </Text>
-      </View>
+        <SettingsGroup title={t('settings.appearanceSection')}>
+          <View style={styles.themeRow}>
+            {(['system', 'light', 'dark'] as ThemePreference[]).map((option) => {
+              const selected = themePreference === option;
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => setThemePreference(option)}
+                  style={[
+                    styles.themeChip,
+                    {
+                      backgroundColor: selected ? colors.accent : colors.surfaceAlt,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: selected ? colors.onAccent : colors.textSecondary, fontSize: 13 }}>
+                    {t(`settings.theme.${option}`)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </SettingsGroup>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.supportSection')}</Text>
-        <Pressable onPress={() => Linking.openURL(FAQ_URL)}>
-          <Text style={[styles.link, { color: colors.accent }]}>{t('settings.faq')}</Text>
-        </Pressable>
-        {SUPPORT_CONTACT_EMAIL ? (
-          <Pressable onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}`)}>
-            <Text style={[styles.link, { color: colors.accent }]}>{SUPPORT_CONTACT_EMAIL}</Text>
-          </Pressable>
-        ) : (
-          <Text style={{ color: colors.textSecondary }}>{t('settings.supportUnset')}</Text>
-        )}
-      </View>
+        <SettingsGroup title={t('settings.notificationsSection')}>
+          <SettingsRow
+            label={t('settings.soundRow')}
+            value={soundLabel}
+            onPress={() => navigation.navigate('NotificationSound')}
+            opensScreen
+          />
+        </SettingsGroup>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.legalSection')}</Text>
-        <Pressable onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
-          <Text style={[styles.link, { color: colors.accent }]}>{t('settings.privacyPolicy')}</Text>
-        </Pressable>
-        <Pressable onPress={() => Linking.openURL(TERMS_URL)}>
-          <Text style={[styles.link, { color: colors.accent }]}>{t('settings.termsOfUse')}</Text>
-        </Pressable>
-      </View>
+        <SettingsGroup title={t('settings.accountSection')} footer={t('settings.backupHint')}>
+          <SettingsRow
+            label={t('settings.backupButton')}
+            onPress={() => navigation.navigate('Backup')}
+            opensScreen
+          />
+          {/* Beside the backup on purpose: both decide whether this account
+              goes on existing, and anyone on their way to delete should pass
+              the one thing that would let them come back. */}
+          <SettingsRow
+            label={deleting ? t('settings.deleting') : t('settings.deleteButton')}
+            onPress={confirmDelete}
+            disabled={deleting}
+            danger
+          />
+        </SettingsGroup>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('settings.accountSection')}</Text>
         {errorMessage ? (
           <Text style={[styles.errorText, { color: colors.danger }]}>{errorMessage}</Text>
         ) : null}
-        <Pressable
-          disabled={deleting}
-          onPress={confirmDelete}
-          style={({ pressed }) => [
-            styles.dangerButton,
-            { backgroundColor: colors.danger, opacity: pressed || deleting ? 0.7 : 1 },
-          ]}
-        >
-          <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
-            {deleting ? t('settings.deleting') : t('settings.deleteButton')}
-          </Text>
-        </Pressable>
-      </View>
+
+        <SettingsGroup title={t('settings.aboutSection')}>
+          <SettingsRow label={t('settings.faq')} onPress={() => Linking.openURL(FAQ_URL)} opensScreen />
+          {SUPPORT_CONTACT_EMAIL ? (
+            <SettingsRow
+              label={t('settings.contact')}
+              value={SUPPORT_CONTACT_EMAIL}
+              onPress={() => Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}`)}
+            />
+          ) : (
+            <SettingsRow label={t('settings.supportUnset')} />
+          )}
+          <SettingsRow
+            label={t('settings.privacyPolicy')}
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+            opensScreen
+          />
+          <SettingsRow
+            label={t('settings.termsOfUse')}
+            onPress={() => Linking.openURL(TERMS_URL)}
+            opensScreen
+          />
+          <SettingsRow label={t('settings.version')} value={appVersionLabel()} />
+        </SettingsGroup>
       </ScrollView>
     </SafeAreaView>
   );
@@ -207,22 +212,16 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 32,
   },
-  section: {
-    marginTop: 24,
-    gap: 8,
-  },
-  linkRow: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingVertical: 14,
-    alignItems: 'center',
+  idCard: {
+    marginTop: 20,
   },
   themeRow: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
   },
   themeChip: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -230,37 +229,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  settingLabel: {
-    fontSize: 15,
-    flexShrink: 1,
-  },
-  settingHint: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 6,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  link: {
-    fontSize: 15,
-  },
   errorText: {
     fontSize: 13,
-  },
-  dangerButton: {
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
+    marginTop: 10,
   },
 });
