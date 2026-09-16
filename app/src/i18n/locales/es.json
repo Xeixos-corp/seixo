@@ -53,7 +53,11 @@
     "voicePreview": "Mensaje de voz · {{duration}}",
     "youPrefix": "Tú: {{text}}",
     "noMessages": "Sin mensajes",
-    "yesterday": "Ayer"
+    "yesterday": "Ayer",
+    "backupPromptTitle": "Aún no tienes copia de seguridad",
+    "backupPromptBody": "Si pierdes este teléfono, tu cuenta y tus contactos se pierden con él: no hay forma de recuperarlos, ni siquiera por nuestra parte. La copia lleva un minuto.",
+    "backupPromptDismiss": "Ahora no",
+    "backupPromptAction": "Crear copia"
   },
   "conversation": {
     "ttl": {
@@ -154,7 +158,8 @@
     "groupNameSent": "Nombre enviado a los miembros.",
     "messageCopied": "Texto copiado.",
     "linkCopied": "Enlace copiado.",
-    "copyFailed": "No se pudo copiar."
+    "copyFailed": "No se pudo copiar.",
+    "memberYou": "Tú"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",

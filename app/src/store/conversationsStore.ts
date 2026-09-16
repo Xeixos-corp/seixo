@@ -95,6 +95,23 @@ export function conversationDisplayName(
   return `${conversation.peerUserId.slice(0, 8)}…`;
 }
 
+/**
+ * The local name given to one person, found through whichever direct
+ * conversation carries it.
+ *
+ * Nicknames are stored per conversation, which is right -- they belong to a
+ * conversation with someone. But a person is the same person in a group, and
+ * the members sheet listed them as raw 36-character ids, which made "block
+ * this member" a decision taken blind. The name is already on the phone; it
+ * only had to be looked up.
+ *
+ * Groups are skipped: their nickname is the group's own name, not a person's.
+ */
+export function peerNickname(conversations: Conversation[], peerUserId: string): string | undefined {
+  return conversations.find((c) => !c.isGroup && c.peerUserId === peerUserId && c.nickname?.trim())
+    ?.nickname?.trim();
+}
+
 type ConversationsState = {
   conversations: Conversation[];
   addConversation: (conversation: Conversation) => void;

@@ -30,7 +30,7 @@ export function BlockedPeersScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       {errorMessage ? (
         <Text style={[styles.errorText, { color: colors.danger }]}>{errorMessage}</Text>
       ) : null}

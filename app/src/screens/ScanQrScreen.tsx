@@ -61,12 +61,12 @@ export function ScanQrScreen({ navigation }: Props) {
   };
 
   if (!permission) {
-    return <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} />;
+    return <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']} />;
   }
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, styles.centered, { backgroundColor: colors.background }]} edges={['bottom']}>
         <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
           {permission.canAskAgain ? t('scanQr.permissionDenied') : t('scanQr.permissionBlocked')}
         </Text>
@@ -93,7 +93,7 @@ export function ScanQrScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <View style={styles.cameraWrapper}>
         <CameraView
           style={styles.camera}

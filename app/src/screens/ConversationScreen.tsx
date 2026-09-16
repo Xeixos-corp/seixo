@@ -22,6 +22,7 @@ import { useMessagesStore, type DecryptedMessage } from '../store/messagesStore'
 import {
   useConversationsStore,
   conversationDisplayName,
+  peerNickname,
   DEFAULT_TTL_SECONDS,
 } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
@@ -184,6 +185,9 @@ export function ConversationScreen({ route, navigation }: Props) {
       : `${peerUserId.slice(0, 8)}…`;
   });
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
+  // Needed to put a name to each member of a group; nicknames live on the
+  // direct conversation with that person.
+  const allConversations = useConversationsStore((state) => state.conversations);
   const addBlockedPeer = useBlockedPeersStore((state) => state.addBlockedPeer);
   const markConversationRead = useConversationsStore((state) => state.markConversationRead);
 
@@ -1185,7 +1189,11 @@ export function ConversationScreen({ route, navigation }: Props) {
     // keyboard's height above the bottom of the screen with nothing to
     // correct for.
     <View style={styles.flex}>
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Bottom edge only. The navigation header already occupies the space
+          the top inset is for, and padding it a second time left a band of
+          empty screen above the disappearing-message row -- which is why that
+          setting sat far lower than it should. */}
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
         {loadError ? (
           <Text style={[styles.errorText, { color: colors.danger }]}>{loadError}</Text>
         ) : null}
@@ -1550,11 +1558,24 @@ export function ConversationScreen({ route, navigation }: Props) {
               {(groupMemberIds ?? []).map((memberId) => {
                 const isSelf = memberId === getCurrentUserId();
                 const blocked = isBlocked(memberId);
+                // The name you gave this person in your own conversation with
+                // them, if you have one. Never leaves the phone, and is not
+                // what anyone else in the group sees.
+                const name = isSelf
+                  ? t('conversation.memberYou')
+                  : peerNickname(allConversations, memberId);
                 return (
                   <View key={memberId} style={styles.memberRow}>
-                    <Text style={{ color: colors.textPrimary, flex: 1, fontSize: 13 }} numberOfLines={1}>
-                      {memberId}
-                    </Text>
+                    <View style={styles.memberIdentity}>
+                      <Text style={{ color: colors.textPrimary, fontSize: 14 }} numberOfLines={1}>
+                        {name ?? `${memberId.slice(0, 8)}…`}
+                      </Text>
+                      {name ? (
+                        <Text style={{ color: colors.textSecondary, fontSize: 11 }} numberOfLines={1}>
+                          {memberId}
+                        </Text>
+                      ) : null}
+                    </View>
                     {isSelf ? null : blocked ? (
                       <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
                         {t('conversation.blockMemberBlocked')}
@@ -1763,6 +1784,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  memberIdentity: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   addMemberRow: {
     flexDirection: 'row',

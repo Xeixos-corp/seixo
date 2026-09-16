@@ -33,6 +33,7 @@ import { ConversationRow } from '../components/ConversationRow';
 import { lastVisibleMessage } from '../messaging/lastMessage';
 import { useRegisterPushToken } from '../notifications/usePushRegistration';
 import { usePendingShareStore } from '../store/pendingShareStore';
+import { useBackupPromptStore, shouldOfferBackup } from '../store/backupPromptStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConversationList'>;
@@ -65,6 +66,16 @@ export function ConversationListScreen({ navigation }: Props) {
     if (pendingShare) navigation.navigate('ShareTarget');
   }, [pendingShare, navigation]);
   const conversations = useConversationsStore((state) => state.conversations);
+  // The one thing this app cannot undo for anybody: a phone lost with no
+  // backup. Mentioned once, a week in, and never again -- see the store.
+  const firstSeenAt = useBackupPromptStore((state) => state.firstSeenAt);
+  const hasBackedUp = useBackupPromptStore((state) => state.hasBackedUp);
+  const backupPromptDismissed = useBackupPromptStore((state) => state.dismissed);
+  const dismissBackupPrompt = useBackupPromptStore((state) => state.dismiss);
+  const noteFirstSeen = useBackupPromptStore((state) => state.noteFirstSeen);
+  useEffect(() => {
+    noteFirstSeen();
+  }, [noteFirstSeen]);
   const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
   const visibleConversations = conversations.filter((c) => !isBlocked(c.peerUserId));
 
@@ -279,8 +290,31 @@ export function ConversationListScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <Text style={[styles.header, { color: colors.textPrimary }]}>{t('navigation.conversationList')}</Text>
+
+      {shouldOfferBackup({ firstSeenAt, hasBackedUp, dismissed: backupPromptDismissed }, conversations.length) ? (
+        <View style={[styles.backupNotice, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.backupNoticeText, { color: colors.textPrimary }]}>
+            {t('conversationList.backupPromptTitle')}
+          </Text>
+          <Text style={[styles.backupNoticeHint, { color: colors.textSecondary }]}>
+            {t('conversationList.backupPromptBody')}
+          </Text>
+          <View style={styles.backupNoticeActions}>
+            <Pressable onPress={dismissBackupPrompt} hitSlop={8}>
+              <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+                {t('conversationList.backupPromptDismiss')}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => navigation.navigate('Backup')} hitSlop={8}>
+              <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '600' }}>
+                {t('conversationList.backupPromptAction')}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       <View style={[styles.newConversationRow, { borderColor: colors.border }]}>
         <TextInput
@@ -526,6 +560,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  backupNotice: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    gap: 6,
+  },
+  backupNoticeText: { fontSize: 15, fontWeight: '600' },
+  backupNoticeHint: { fontSize: 13, lineHeight: 18 },
+  backupNoticeActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 20,
+    marginTop: 6,
   },
   headerButtons: {
     flexDirection: 'row',

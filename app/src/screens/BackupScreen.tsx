@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
+import { useBackupPromptStore } from '../store/backupPromptStore';
 import { useAppTheme } from '../theme/ThemeProvider';
 import {
   createBackup,
@@ -55,6 +56,10 @@ export function BackupScreen() {
     if (!backup) return;
     try {
       await shareBackup(backup.fileUri);
+      // Recorded here rather than when the backup is created: a file made and
+      // never saved anywhere protects nobody, and the reminder should keep
+      // asking until it has actually left this phone.
+      useBackupPromptStore.getState().markBackedUp();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     }
@@ -67,7 +72,7 @@ export function BackupScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.intro, { color: colors.textSecondary }]}>{t('backup.intro')}</Text>
 

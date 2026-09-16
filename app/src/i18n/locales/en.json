@@ -53,7 +53,11 @@
     "voicePreview": "Voice message · {{duration}}",
     "youPrefix": "You: {{text}}",
     "noMessages": "No messages",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "backupPromptTitle": "You have no backup yet",
+    "backupPromptBody": "If you lose this phone, your account and your contacts go with it — there is no way to restore them, not even by us. The backup takes a minute.",
+    "backupPromptDismiss": "Not now",
+    "backupPromptAction": "Create backup"
   },
   "conversation": {
     "ttl": {
@@ -154,7 +158,8 @@
     "groupNameSent": "Name sent to the members.",
     "messageCopied": "Text copied.",
     "linkCopied": "Link copied.",
-    "copyFailed": "Could not copy."
+    "copyFailed": "Could not copy.",
+    "memberYou": "You"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
