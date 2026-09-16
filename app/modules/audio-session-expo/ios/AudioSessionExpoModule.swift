@@ -83,6 +83,12 @@ public class AudioSessionExpoModule: Module {
       // an invalid parameter (OSStatus -50), which is what broke recording.
       try session.setCategory(.playback, mode: .default)
       try session.setActive(true)
+
+      // Recording is over (this is the counterpart of configureForRecording),
+      // so let the screen sleep on its own schedule again.
+      DispatchQueue.main.async {
+        UIApplication.shared.isIdleTimerDisabled = false
+      }
     }
 
     /// For recording: `.playAndRecord` with the hands-free profile allowed,
@@ -114,6 +120,30 @@ public class AudioSessionExpoModule: Module {
         $0.portType == .bluetoothHFP || $0.portType == .bluetoothLE
       }) {
         try? session.setPreferredInput(headset)
+      }
+
+      // Hold the screen awake for as long as this lasts.
+      //
+      // Recording a voice message is the one thing this app does where the
+      // person is holding the phone and saying nothing to it for half a
+      // minute. iOS counts that as idleness, dims the screen and locks it --
+      // and a locked screen puts the app in the background, where the audio
+      // session is taken away and the recording stops. Touching the screen
+      // woke it and recording carried on, which is worse than stopping
+      // outright: the message came out with a hole in the middle that nobody
+      // was told about.
+      //
+      // The alternative would be the `audio` background mode, which keeps
+      // recording with the screen off. That is a far larger claim to make of
+      // an app -- it is reviewed as such, and it means the microphone can run
+      // when nobody can see that it is running. Keeping the screen lit while
+      // the finger is on the button says exactly what is happening.
+      //
+      // iOS clears this by itself when the app leaves the foreground, so a
+      // recording interrupted some other way cannot leave the screen pinned
+      // awake for ever.
+      DispatchQueue.main.async {
+        UIApplication.shared.isIdleTimerDisabled = true
       }
     }
 

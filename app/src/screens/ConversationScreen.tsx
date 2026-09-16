@@ -609,6 +609,10 @@ export function ConversationScreen({ route, navigation }: Props) {
       setRecording(true);
     } catch (error) {
       console.error('[ConversationScreen] failed to start recording', error);
+      // Puts the session back, which also releases the screen: configuring for
+      // recording pins it awake, and a start that failed half-way would
+      // otherwise leave it that way until the app went to the background.
+      await configureForPlayback();
       setSendError(t('conversation.recordingFailed'));
     }
   }, [t]);
