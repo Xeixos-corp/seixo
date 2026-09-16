@@ -46,6 +46,13 @@ export type ServerFootprint = {
   blockedPeers: number;
 };
 
+/** Turns the first reported failure into a thrown error naming what failed. */
+function failFast(results: Record<string, { message: string } | null>): void {
+  for (const [what, error] of Object.entries(results)) {
+    if (error) throw new Error(`${what}: ${error.message}`);
+  }
+}
+
 export async function fetchServerFootprint(userId: string): Promise<ServerFootprint> {
   const { data: identity, error: identityError } = await supabase
     .from('identities')
@@ -68,6 +75,20 @@ export async function fetchServerFootprint(userId: string): Promise<ServerFootpr
       .maybeSingle(),
   ]);
 
+  // Every failure is fatal here, and that is the whole design. A supabase
+  // query reports its failure in the result rather than by throwing, so a
+  // denied or dropped request would otherwise arrive as a count of zero --
+  // and this screen would calmly report "nothing blocked", "no keys", which
+  // is exactly the comfortable falsehood it exists to prevent. Better to show
+  // nothing and say why.
+  failFast({
+    'signed prekeys': signed.error,
+    'one-time prekeys': oneTime.error,
+    'blocked peers': blocked.error,
+    memberships: memberships.error,
+    'push token': pushTokens.error,
+  });
+
   const channelIds = (memberships.data ?? []).map((row) => row.channel_id as string);
   const mutedIds = new Set(
     (memberships.data ?? []).filter((row) => row.muted === true).map((row) => row.channel_id as string),
@@ -83,6 +104,12 @@ export async function fetchServerFootprint(userId: string): Promise<ServerFootpr
       // screen would be a waste and, on a slow connection, a long one.
       supabase.from('messages').select('channel_id, expires_at').in('channel_id', channelIds),
     ]);
+
+    failFast({
+      channels: channelRows.error,
+      members: memberRows.error,
+      messages: messageRows.error,
+    });
 
     const memberCounts = new Map<string, number>();
     for (const row of memberRows.data ?? []) {

@@ -110,6 +110,17 @@ export function ServerFootprintScreen() {
                 hint={t('serverFootprint.keysHint')}
                 value={`${footprint.signedPrekeys} + ${footprint.oneTimePrekeys}`}
               />
+              {/* A column from the first migration that this app has never
+                  written to, and which is empty on every account. Shown only
+                  if something is ever there -- a screen that claims to list
+                  everything cannot quietly skip a field just because it is
+                  usually blank. */}
+              {footprint.hasDisplayNameCiphertext ? (
+                <SettingsRow
+                  label={t('serverFootprint.displayName')}
+                  hint={t('serverFootprint.displayNameHint')}
+                />
+              ) : null}
             </SettingsGroup>
 
             <SettingsGroup
@@ -143,22 +154,25 @@ export function ServerFootprintScreen() {
             </SettingsGroup>
 
             <SettingsGroup title={t('serverFootprint.notificationsSection')}>
-              {footprint.pushToken ? (
-                <>
-                  <SettingsRow
-                    label={t('serverFootprint.notificationText')}
-                    hint={`«${footprint.pushToken.body}»`}
-                    value={soundLabel(footprint.pushToken.sound)}
-                  />
-                  <SettingsRow
-                    label={t('serverFootprint.tokenUpdated')}
-                    hint={t('serverFootprint.lastUseHint')}
-                    value={day(footprint.pushToken.updatedAt)}
-                  />
-                </>
-              ) : (
-                <SettingsRow label={t('serverFootprint.noToken')} />
-              )}
+              {/* An array rather than a fragment: the group counts its
+                  children to draw the dividers between them, and a fragment
+                  arrives as one child however many rows are inside it. */}
+              {footprint.pushToken
+                ? [
+                    <SettingsRow
+                      key="text"
+                      label={t('serverFootprint.notificationText')}
+                      hint={`«${footprint.pushToken.body}»`}
+                      value={soundLabel(footprint.pushToken.sound)}
+                    />,
+                    <SettingsRow
+                      key="updated"
+                      label={t('serverFootprint.tokenUpdated')}
+                      hint={t('serverFootprint.lastUseHint')}
+                      value={day(footprint.pushToken.updatedAt)}
+                    />,
+                  ]
+                : <SettingsRow label={t('serverFootprint.noToken')} />}
               <SettingsRow
                 label={t('serverFootprint.blocked')}
                 value={String(footprint.blockedPeers)}
