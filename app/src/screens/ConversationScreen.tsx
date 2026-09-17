@@ -1229,6 +1229,10 @@ export function ConversationScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
+        {/* A band of its own, a shade off the page, so the disappearing timer
+            reads as a setting that governs the conversation rather than as
+            the first thing in it. */}
+        <View style={[styles.ttlBar, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
         <Text style={[styles.ttlLabel, { color: colors.textSecondary }]}>
           {t('conversation.ttlLabel')}
         </Text>
@@ -1243,7 +1247,9 @@ export function ConversationScreen({ route, navigation }: Props) {
                 style={[
                   styles.ttlChip,
                   {
-                    backgroundColor: selected ? colors.accent : colors.surfaceAlt,
+                    // Surface, not surfaceAlt: that is the band's own colour
+                    // now, and a chip painted in it would vanish into it.
+                    backgroundColor: selected ? colors.accent : colors.surface,
                     borderColor: colors.border,
                   },
                 ]}
@@ -1254,6 +1260,7 @@ export function ConversationScreen({ route, navigation }: Props) {
               </Pressable>
             );
           })}
+        </View>
         </View>
 
         {/* Inverted, which is how chat lists solve "always show the newest".
@@ -1710,6 +1717,9 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  ttlBar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   ttlLabel: {
     fontSize: 12,
