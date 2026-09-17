@@ -118,7 +118,11 @@ type ConversationsState = {
   hasConversation: (channelId: string) => boolean;
   setConversationTtl: (channelId: string, ttlSeconds: number) => void;
   setConversationNickname: (channelId: string, nickname: string) => void;
-  markConversationRead: (channelId: string) => void;
+  /**
+   * `newestMessageAt` lets this do nothing when there is nothing to mark --
+   * see the implementation for why that matters more than it sounds.
+   */
+  markConversationRead: (channelId: string, newestMessageAt?: string) => void;
   /** Replaces a group's membership after the server confirms a change. */
   setGroupMembers: (channelId: string, memberIds: string[]) => void;
   setConversationMuted: (channelId: string, muted: boolean) => void;
@@ -178,7 +182,27 @@ export const useConversationsStore = create<ConversationsState>()(
       // Called when the conversation is opened, and again as messages arrive
       // while it is open (ConversationScreen) -- so a conversation the user is
       // actually looking at never accumulates an unread badge.
-      markConversationRead: (channelId) => {
+      //
+      // The early return is not an optimisation, it is a bug fix. This used to
+      // write a fresh timestamp every time it was called, including the dozens
+      // of times a catch-up burst calls it -- one per message ingested. Each
+      // write replaced the conversations array and re-rendered everything
+      // subscribed to it, and because the call comes from an effect, React
+      // counts each one as an update scheduled *during* a commit. Past fifty
+      // of those in a chain React gives up and throws "Maximum update depth
+      // exceeded", which is what people saw when they opened a notification
+      // with a pile of messages waiting. Writing only when the read mark
+      // actually moves ends the chain at one.
+      markConversationRead: (channelId, newestMessageAt) => {
+        const conversation = get().conversations.find((c) => c.channelId === channelId);
+        if (!conversation) return;
+        if (
+          newestMessageAt &&
+          conversation.lastReadAt &&
+          Date.parse(conversation.lastReadAt) >= Date.parse(newestMessageAt)
+        ) {
+          return;
+        }
         const now = new Date().toISOString();
         set((state) => ({
           conversations: state.conversations.map((c) =>

@@ -995,9 +995,19 @@ export function ConversationScreen({ route, navigation }: Props) {
   // Everything visible here is read by definition. Re-running as `messages`
   // changes covers the message that arrives while the user is looking at the
   // conversation, which must not leave an unread badge behind.
+  //
+  // The newest message's time is passed so the store can tell a call that
+  // changes something from one that does not. A catch-up burst calls this
+  // once per message ingested, and every write from inside an effect counts
+  // towards React's nested-update limit -- fifty of them in a chain is a
+  // crash, which is what a notification opened onto a pile of messages used
+  // to produce.
+  const newestMessageAt = messages.length
+    ? messages.reduce((latest, m) => (m.createdAt > latest ? m.createdAt : latest), messages[0].createdAt)
+    : undefined;
   useEffect(() => {
-    markConversationRead(channelId);
-  }, [channelId, messages, markConversationRead]);
+    markConversationRead(channelId, newestMessageAt);
+  }, [channelId, newestMessageAt, markConversationRead]);
 
   // A safety-net fetch, not the main delivery path: useMessageSync (App.tsx)
   // already subscribes to every conversation and ingests as messages arrive.

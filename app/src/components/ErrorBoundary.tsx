@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 /**
  * Catches render/lifecycle errors anywhere below it and shows what went
@@ -47,6 +47,18 @@ export class ErrorBoundary extends React.Component<Props, State> {
             The app hit an error it could not recover from. Please send this text to the developer.
           </Text>
 
+          {/* Until this existed, the only way out of this screen was to force
+              quit the app -- and not every error deserves that. Some are a
+              transient loop in one screen, and throwing away the boundary's
+              state remounts the tree and carries on. If the cause is still
+              there it simply lands back here, which is no worse. */}
+          <Pressable
+            style={styles.button}
+            onPress={() => this.setState({ error: null, componentStack: null })}
+          >
+            <Text style={styles.buttonText}>Try again</Text>
+          </Pressable>
+
           <Text style={styles.heading}>Error</Text>
           <Text style={styles.mono} selectable>
             {error.name}: {error.message}
@@ -77,6 +89,16 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F1EC' },
+  button: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#CC785C',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   content: { padding: 20, paddingTop: 64, gap: 8 },
   title: { fontSize: 20, fontWeight: '700', color: '#1F1E1D' },
   subtitle: { fontSize: 14, color: '#6B6660', marginBottom: 8, lineHeight: 20 },
