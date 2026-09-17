@@ -1,8 +1,15 @@
-# Plan: sending images
+# Deferred plans
+
+Work that is decided but not started. This file exists so the reasoning does
+not have to be rebuilt from scratch weeks later; each plan says what it costs
+and what was rejected, not only what to build.
+
+---
+
+# 1. Sending images
 
 **Written 2026-09-17. Not started.** Agreed to come after the first App Store
-release. This file exists so the reasoning does not have to be rebuilt from
-scratch weeks later.
+release.
 
 ## Why the obvious approach does not work
 
@@ -118,3 +125,78 @@ which is slow and memory-hungry at a megabyte. Finding the right way to do that
 is the kind of thing that costs an afternoon. The other two candidates are the
 photo-library permission behaving differently from expectation, and EXIF not
 actually being stripped by the chosen tool.
+
+---
+
+# 2. Forgetting conversations nobody uses
+
+**Written 2026-09-17. Not started.** Bruno's idea, and a good one, once the
+version that loses nothing is the one that gets built.
+
+## What it is for
+
+The server knows which accounts share a conversation, and now knows it for as
+long as both accounts exist. That became more durable on purpose in migration
+0026: the alternative was the bug it fixed, where a conversation in daily use
+was deleted the first time its messages all expired.
+
+So the pair outlives everything else. Two people who spoke once in March are
+still visibly connected in December. The goal here is to let that expire too --
+a month of silence and the server forgets they are connected.
+
+## Why the naive version is worse than nothing
+
+Deleting the channel deletes it from the phones as well. Reconciliation drops
+any conversation the server no longer lists, and the **nickname lives on that
+conversation** -- it is local, it is the only place it exists. So a month of
+silence would cost the person the conversation *and* the name they gave
+someone, leaving a 36-character id to find again from somewhere.
+
+"The app deleted my contacts" is what that feels like, and it would be right.
+
+## The version worth building
+
+Delete the channel on the server; keep the conversation on the phone.
+
+The phone already holds everything it needs: the peer's id and the name. A
+dormant conversation stays in the list, empty, and the first message sent
+creates a channel again -- `create_direct_channel` already reuses an existing
+one rather than duplicating, so whoever writes first makes it and the other
+side hears about it through the membership subscription it already runs.
+
+The server forgets the pair after a month; the person notices nothing.
+
+## The two hard parts
+
+**Telling "the channel is gone" from "I left".** Reconciliation currently
+removes any conversation missing from the server's list, and that is
+deliberate: a conversation hidden while its membership row still exists is a
+conversation the peer keeps writing into and the user never sees. The new
+behaviour has to apply to the first case and not the second, and getting it
+wrong produces either ghost conversations or silently deleted ones.
+
+**Rejoining the two sides.** Both phones hold a dormant conversation with the
+same person but the *old* channel id. When a new channel appears, each side has
+to recognise it as that person's conversation and adopt it, rather than adding
+a second entry for somebody already in the list. Two devices are needed to test
+it, and a wrong answer here shows up as duplicate conversations.
+
+## What it costs in metadata, stated plainly
+
+Knowing a channel has been empty for a month needs a date on the channel,
+written when a message arrives. That is a fact about people which outlives the
+messages: "these two last exchanged something on 3 October".
+
+Keep it to a **date, never a time**, the same restraint as `last_active_on` in
+0016. The trade is then: the server learns a coarse last-activity day, and in
+exchange forgets the pair entirely a month later, instead of remembering it for
+as long as both accounts live. Worth it, but it is a trade and not a pure win.
+
+## Open questions for whoever builds it
+
+- **Groups too, or only one-to-one?** Deleting a quiet group removes it for
+  everyone and the owner has to rebuild the membership. Starting with direct
+  conversations only is the cautious answer.
+- **Is a month right?** People go months without writing to someone. Long
+  enough that nothing is lost by accident matters more than shortening the
+  window.
