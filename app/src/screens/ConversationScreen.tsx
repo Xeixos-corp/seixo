@@ -1002,8 +1002,15 @@ export function ConversationScreen({ route, navigation }: Props) {
   // towards React's nested-update limit -- fifty of them in a chain is a
   // crash, which is what a notification opened onto a pile of messages used
   // to produce.
+  // Compared as instants, not as strings. Timestamps reach this app in two
+  // shapes -- the server's "+00:00" and this device's "Z" -- and "+" sorts
+  // before "Z", so comparing the text would call an older message the newest
+  // one and leave a conversation you are looking at marked unread.
   const newestMessageAt = messages.length
-    ? messages.reduce((latest, m) => (m.createdAt > latest ? m.createdAt : latest), messages[0].createdAt)
+    ? messages.reduce(
+        (latest, m) => (Date.parse(m.createdAt) > Date.parse(latest) ? m.createdAt : latest),
+        messages[0].createdAt,
+      )
     : undefined;
   useEffect(() => {
     markConversationRead(channelId, newestMessageAt);
