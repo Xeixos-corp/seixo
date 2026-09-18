@@ -91,6 +91,54 @@ public class SignalNativeExpoModule: Module {
       try decryptBackup(phrase: phrase, blob: blob)
     }
 
+    // Images, file to file. React Native has no usable Blob or File, so a
+    // photo passed through JavaScript would have to become a base64 string
+    // a third larger than itself, twice over. Here JS only ever holds paths
+    // and a key; the bytes go from disk to Rust to disk without crossing.
+    //
+    // Async because a photo is up to two megabytes of reading, sealing and
+    // writing -- not something to do on the thread that draws the screen.
+    AsyncFunction("sealAttachmentFile") { (inputUri: String) -> [String: Any] in
+      let plaintext = try Data(contentsOf: try Self.fileURL(inputUri))
+      let result = try sealAttachment(plaintext: plaintext)
+      let output = try Self.attachmentDirectory("sealed")
+        .appendingPathComponent(UUID().uuidString + ".bin")
+      // Sealed already, so ordinary protection is enough; it exists only
+      // until the upload finishes.
+      try result.sealed.write(to: output, options: [.atomic])
+      return [
+        "sealedUri": output.absoluteString,
+        "keyBase64": result.key.base64EncodedString(),
+        "size": result.sealed.count,
+      ]
+    }
+
+    AsyncFunction("openAttachmentFile") { (sealedUri: String, keyBase64: String) -> String in
+      guard let key = Data(base64Encoded: keyBase64) else {
+        throw SignalNativeExpoError.invalidEnvelope
+      }
+      let sealed = try Data(contentsOf: try Self.fileURL(sealedUri))
+      let plaintext = try openAttachment(key: key, sealed: sealed)
+      let output = try Self.attachmentDirectory("opened")
+        .appendingPathComponent(UUID().uuidString + ".jpg")
+      // The decrypted picture is the one file here worth protecting: complete
+      // protection makes it unreadable whenever the phone is locked, not only
+      // before the first unlock after boot.
+      try plaintext.write(to: output, options: [.atomic, .completeFileProtection])
+      return output.absoluteString
+    }
+
+    // Everything in both directories, for the app to call when it clears its
+    // caches. Decrypted pictures must not outlive the messages they came from,
+    // and a crash between opening one and its message expiring would
+    // otherwise leave it behind.
+    Function("clearAttachmentFiles") {
+      for name in ["sealed", "opened"] {
+        let directory = try Self.attachmentDirectory(name)
+        try? FileManager.default.removeItem(at: directory)
+      }
+    }
+
     // Plants a restored identity so the next createDevice() adopts it. Rust
     // refuses if a store is already present, so this cannot quietly replace a
     // working identity with a different one.
@@ -289,6 +337,37 @@ enum SignalNativeExpoError: Error {
   case notInitialized
   case invalidBundle
   case invalidEnvelope
+  case invalidFileUri
+}
+
+extension SignalNativeExpoModule {
+  /// Accepts either a `file://` URI, which is what the image tools hand to
+  /// JavaScript, or a bare path. Anything else is refused rather than guessed
+  /// at: this must only ever read files the app itself put there.
+  static func fileURL(_ uriOrPath: String) throws -> URL {
+    if uriOrPath.hasPrefix("file://") {
+      guard let url = URL(string: uriOrPath), url.isFileURL else {
+        throw SignalNativeExpoError.invalidFileUri
+      }
+      return url
+    }
+    guard uriOrPath.hasPrefix("/") else {
+      throw SignalNativeExpoError.invalidFileUri
+    }
+    return URL(fileURLWithPath: uriOrPath)
+  }
+
+  /// A subdirectory of Caches. Caches rather than Documents on purpose: iOS
+  /// never backs it up to iCloud, and may empty it under storage pressure --
+  /// both right for files that are meant to disappear anyway.
+  static func attachmentDirectory(_ name: String) throws -> URL {
+    let caches = try FileManager.default.url(
+      for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true
+    )
+    let directory = caches.appendingPathComponent("seixo-attachments/\(name)", isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    return directory
+  }
 }
 
 class UntrustedIdentityException: Exception {

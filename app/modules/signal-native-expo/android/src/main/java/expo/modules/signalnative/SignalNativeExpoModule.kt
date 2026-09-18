@@ -18,6 +18,9 @@ import uniffi.signal_native.encryptBackup
 import uniffi.signal_native.generateRecoveryPhrase
 import uniffi.signal_native.isValidRecoveryPhrase
 import uniffi.signal_native.restoreIdentity
+import uniffi.signal_native.openAttachment
+import uniffi.signal_native.sealAttachment
+import java.util.UUID
 
 // Surfaced to JS as `error.code === "ERR_UNTRUSTED_IDENTITY"` (Expo Modules'
 // CodedException convention) so the UI can show a specific "this contact's
@@ -106,6 +109,37 @@ class SignalNativeExpoModule : Module() {
 
     Function("readRecoveryBackup") { phrase: String, blob: String ->
       decryptBackup(phrase, blob)
+    }
+
+    // Images, file to file -- see the iOS module for why JavaScript never
+    // touches the bytes. Mirrors it exactly, including the directory names,
+    // so the two platforms clear the same things.
+    AsyncFunction("sealAttachmentFile") { inputUri: String ->
+      val plaintext = attachmentFile(inputUri).readBytes()
+      val result = sealAttachment(plaintext)
+      val output = File(attachmentDirectory("sealed"), UUID.randomUUID().toString() + ".bin")
+      output.writeBytes(result.sealed)
+      mapOf(
+        "sealedUri" to "file://" + output.absolutePath,
+        "keyBase64" to Base64.encodeToString(result.key, Base64.NO_WRAP),
+        "size" to result.sealed.size,
+      )
+    }
+
+    AsyncFunction("openAttachmentFile") { sealedUri: String, keyBase64: String ->
+      val key = try {
+        Base64.decode(keyBase64, Base64.NO_WRAP)
+      } catch (e: IllegalArgumentException) {
+        throw CodedException("ERR_INVALID_KEY", "the image key is not valid base64", e)
+      }
+      val plaintext = openAttachment(key, attachmentFile(sealedUri).readBytes())
+      val output = File(attachmentDirectory("opened"), UUID.randomUUID().toString() + ".jpg")
+      output.writeBytes(plaintext)
+      "file://" + output.absolutePath
+    }
+
+    Function("clearAttachmentFiles") {
+      listOf("sealed", "opened").forEach { attachmentDirectory(it).deleteRecursively() }
     }
 
     // Plants a restored identity so the next createDevice() adopts it. Rust
@@ -243,4 +277,20 @@ class SignalNativeExpoModule : Module() {
     messageType = (m["messageType"] as Number).toInt().toUByte(),
     ciphertextBase64 = m["ciphertextBase64"] as String,
   )
+
+  /** Only file:// URIs or absolute paths; anything else is refused, not guessed. */
+  private fun attachmentFile(uriOrPath: String): File {
+    val path = when {
+      uriOrPath.startsWith("file://") -> uriOrPath.removePrefix("file://")
+      uriOrPath.startsWith("/") -> uriOrPath
+      else -> throw CodedException("ERR_INVALID_FILE_URI", "not a local file: $uriOrPath", null)
+    }
+    return File(path)
+  }
+
+  /** A subdirectory of the cache dir, which the OS may clear and never backs up. */
+  private fun attachmentDirectory(name: String): File {
+    val cache = requireNotNull(appContext.reactContext?.cacheDir) { "no cache directory" }
+    return File(cache, "seixo-attachments/$name").apply { mkdirs() }
+  }
 }

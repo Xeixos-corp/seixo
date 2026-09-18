@@ -347,9 +347,19 @@ RustBuffer uniffi_signal_native_fn_func_generate_recovery_phrase(RustCallStatus 
 int8_t uniffi_signal_native_fn_func_is_valid_recovery_phrase(RustBuffer phrase, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_FN_FUNC_OPEN_ATTACHMENT
+#define UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_FN_FUNC_OPEN_ATTACHMENT
+RustBuffer uniffi_signal_native_fn_func_open_attachment(RustBuffer key, RustBuffer sealed, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_FN_FUNC_RESTORE_IDENTITY
 #define UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_FN_FUNC_RESTORE_IDENTITY
 void uniffi_signal_native_fn_func_restore_identity(RustBuffer master_key, RustBuffer storage_dir, RustBuffer secret, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_FN_FUNC_SEAL_ATTACHMENT
+#define UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_FN_FUNC_SEAL_ATTACHMENT
+RustBuffer uniffi_signal_native_fn_func_seal_attachment(RustBuffer plaintext, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_FFI_SIGNAL_NATIVE_RUSTBUFFER_ALLOC
@@ -662,9 +672,21 @@ uint16_t uniffi_signal_native_checksum_func_is_valid_recovery_phrase(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_CHECKSUM_FUNC_OPEN_ATTACHMENT
+#define UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_CHECKSUM_FUNC_OPEN_ATTACHMENT
+uint16_t uniffi_signal_native_checksum_func_open_attachment(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_CHECKSUM_FUNC_RESTORE_IDENTITY
 #define UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_CHECKSUM_FUNC_RESTORE_IDENTITY
 uint16_t uniffi_signal_native_checksum_func_restore_identity(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_CHECKSUM_FUNC_SEAL_ATTACHMENT
+#define UNIFFI_FFIDEF_UNIFFI_SIGNAL_NATIVE_CHECKSUM_FUNC_SEAL_ATTACHMENT
+uint16_t uniffi_signal_native_checksum_func_seal_attachment(void
     
 );
 #endif

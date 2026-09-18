@@ -5,6 +5,7 @@ import type {
   PreKeyBundleData,
   RotatedPrekeys,
   BackupCredentials,
+  SealedAttachmentFile,
 } from './SignalNativeExpo.types';
 
 declare class SignalNativeExpoModule extends NativeModule<{}> {
@@ -39,6 +40,14 @@ declare class SignalNativeExpoModule extends NativeModule<{}> {
   generateRecoveryPhrase(): string;
   isValidRecoveryPhrase(phrase: string): boolean;
   deriveBackupCredentials(phrase: string): BackupCredentials;
+
+  // --- Images (packages/signal-native/rust/src/attachment.rs) ---
+  // File to file: JavaScript passes paths and receives paths, and never holds
+  // the bytes. React Native has no usable Blob, and routing a photo through a
+  // base64 string would cost memory and time for nothing.
+  sealAttachmentFile(inputUri: string): Promise<SealedAttachmentFile>;
+  openAttachmentFile(sealedUri: string, keyBase64: string): Promise<string>;
+  clearAttachmentFiles(): void;
 }
 
 export default requireNativeModule<SignalNativeExpoModule>('SignalNativeExpo');

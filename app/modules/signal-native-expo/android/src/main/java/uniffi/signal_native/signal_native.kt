@@ -750,6 +750,10 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -807,8 +811,12 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_signal_native_fn_func_is_valid_recovery_phrase(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
+    fun uniffi_signal_native_fn_func_open_attachment(`key`: RustBuffer.ByValue,`sealed`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_signal_native_fn_func_restore_identity(`masterKey`: RustBuffer.ByValue,`storageDir`: RustBuffer.ByValue,`secret`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_signal_native_fn_func_seal_attachment(`plaintext`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun ffi_signal_native_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_signal_native_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -931,7 +939,11 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_signal_native_checksum_func_is_valid_recovery_phrase(
     ): Short
+    fun uniffi_signal_native_checksum_func_open_attachment(
+    ): Short
     fun uniffi_signal_native_checksum_func_restore_identity(
+    ): Short
+    fun uniffi_signal_native_checksum_func_seal_attachment(
     ): Short
     fun uniffi_signal_native_checksum_method_signaldevice_decrypt(
     ): Short
@@ -989,7 +1001,13 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_signal_native_checksum_func_is_valid_recovery_phrase() != 25580.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_signal_native_checksum_func_open_attachment() != 42668.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_signal_native_checksum_func_restore_identity() != 60680.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_signal_native_checksum_func_seal_attachment() != 64342.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_signal_native_checksum_method_signaldevice_decrypt() != 1868.toShort()) {
@@ -2174,6 +2192,45 @@ public object FfiConverterTypeRotatedPrekeys: FfiConverterRustBuffer<RotatedPrek
 
 
 
+/**
+ * A sealed image and the key that opens it.
+ *
+ * The key is the only thing that must stay secret, and it never goes to
+ * storage: it rides inside the encrypted message. The sealed bytes are
+ * useless without it.
+ */
+data class SealedAttachment (
+    var `key`: kotlin.ByteArray, 
+    var `sealed`: kotlin.ByteArray
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSealedAttachment: FfiConverterRustBuffer<SealedAttachment> {
+    override fun read(buf: ByteBuffer): SealedAttachment {
+        return SealedAttachment(
+            FfiConverterByteArray.read(buf),
+            FfiConverterByteArray.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SealedAttachment) = (
+            FfiConverterByteArray.allocationSize(value.`key`) +
+            FfiConverterByteArray.allocationSize(value.`sealed`)
+    )
+
+    override fun write(value: SealedAttachment, buf: ByteBuffer) {
+            FfiConverterByteArray.write(value.`key`, buf)
+            FfiConverterByteArray.write(value.`sealed`, buf)
+    }
+}
+
+
+
 
 
 sealed class SignalNativeException(message: String): kotlin.Exception(message) {
@@ -2402,6 +2459,22 @@ public object FfiConverterSequenceTypeOneTimePrekeyPublic: FfiConverterRustBuffe
     
 
         /**
+         * Opens bytes produced by `seal_attachment`.
+         *
+         * A wrong key, a truncated download and tampered bytes all fail the same
+         * way. The caller only needs to know the image cannot be shown.
+         */
+    @Throws(SignalNativeException::class) fun `openAttachment`(`key`: kotlin.ByteArray, `sealed`: kotlin.ByteArray): kotlin.ByteArray {
+            return FfiConverterByteArray.lift(
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_func_open_attachment(
+        FfiConverterByteArray.lower(`key`),FfiConverterByteArray.lower(`sealed`),_status)
+}
+    )
+    }
+    
+
+        /**
          * Plants a restored identity on a device that does not have one yet, so the
          * next `SignalDevice::new` picks it up instead of generating a fresh one.
          *
@@ -2416,6 +2489,19 @@ public object FfiConverterSequenceTypeOneTimePrekeyPublic: FfiConverterRustBuffe
         FfiConverterByteArray.lower(`masterKey`),FfiConverterString.lower(`storageDir`),FfiConverterTypeIdentitySecret.lower(`secret`),_status)
 }
     
+    
+
+        /**
+         * Seals `plaintext` under a fresh random key.
+         */
+    @Throws(SignalNativeException::class) fun `sealAttachment`(`plaintext`: kotlin.ByteArray): SealedAttachment {
+            return FfiConverterTypeSealedAttachment.lift(
+    uniffiRustCallWithError(SignalNativeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_signal_native_fn_func_seal_attachment(
+        FfiConverterByteArray.lower(`plaintext`),_status)
+}
+    )
+    }
     
 
 

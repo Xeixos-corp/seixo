@@ -26,6 +26,7 @@ use libsignal_protocol::{
 use libsignal_protocol::Fingerprint;
 use rand::TryRngCore as _;
 
+mod attachment;
 mod backup;
 mod store;
 use store::PersistentSignalProtocolStore;

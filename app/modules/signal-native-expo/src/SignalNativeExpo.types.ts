@@ -48,3 +48,17 @@ export type BackupCredentials = {
   email: string;
   password: string;
 };
+
+/**
+ * A photo sealed for upload.
+ *
+ * `keyBase64` is the only secret, and it must travel inside the encrypted
+ * message, never beside the file. `sealedUri` is a local file that can be
+ * uploaded as-is and deleted afterwards; `size` is its padded length, which
+ * is all the server will ever learn about the picture.
+ */
+export type SealedAttachmentFile = {
+  sealedUri: string;
+  keyBase64: string;
+  size: number;
+};

@@ -1512,6 +1512,79 @@ public func FfiConverterTypeRotatedPrekeys_lower(_ value: RotatedPrekeys) -> Rus
 }
 
 
+/**
+ * A sealed image and the key that opens it.
+ *
+ * The key is the only thing that must stay secret, and it never goes to
+ * storage: it rides inside the encrypted message. The sealed bytes are
+ * useless without it.
+ */
+public struct SealedAttachment {
+    public var key: Data
+    public var sealed: Data
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(key: Data, sealed: Data) {
+        self.key = key
+        self.sealed = sealed
+    }
+}
+
+
+
+extension SealedAttachment: Equatable, Hashable {
+    public static func ==(lhs: SealedAttachment, rhs: SealedAttachment) -> Bool {
+        if lhs.key != rhs.key {
+            return false
+        }
+        if lhs.sealed != rhs.sealed {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(key)
+        hasher.combine(sealed)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSealedAttachment: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SealedAttachment {
+        return
+            try SealedAttachment(
+                key: FfiConverterData.read(from: &buf), 
+                sealed: FfiConverterData.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SealedAttachment, into buf: inout [UInt8]) {
+        FfiConverterData.write(value.key, into: &buf)
+        FfiConverterData.write(value.sealed, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSealedAttachment_lift(_ buf: RustBuffer) throws -> SealedAttachment {
+    return try FfiConverterTypeSealedAttachment.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSealedAttachment_lower(_ value: SealedAttachment) -> RustBuffer {
+    return FfiConverterTypeSealedAttachment.lower(value)
+}
+
+
 public enum SignalNativeError {
 
     
@@ -1741,6 +1814,20 @@ public func isValidRecoveryPhrase(phrase: String) -> Bool {
 })
 }
 /**
+ * Opens bytes produced by `seal_attachment`.
+ *
+ * A wrong key, a truncated download and tampered bytes all fail the same
+ * way. The caller only needs to know the image cannot be shown.
+ */
+public func openAttachment(key: Data, sealed: Data)throws  -> Data {
+    return try  FfiConverterData.lift(try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_func_open_attachment(
+        FfiConverterData.lower(key),
+        FfiConverterData.lower(sealed),$0
+    )
+})
+}
+/**
  * Plants a restored identity on a device that does not have one yet, so the
  * next `SignalDevice::new` picks it up instead of generating a fresh one.
  *
@@ -1755,6 +1842,16 @@ public func restoreIdentity(masterKey: Data, storageDir: String, secret: Identit
         FfiConverterTypeIdentitySecret.lower(secret),$0
     )
 }
+}
+/**
+ * Seals `plaintext` under a fresh random key.
+ */
+public func sealAttachment(plaintext: Data)throws  -> SealedAttachment {
+    return try  FfiConverterTypeSealedAttachment.lift(try rustCallWithError(FfiConverterTypeSignalNativeError.lift) {
+    uniffi_signal_native_fn_func_seal_attachment(
+        FfiConverterData.lower(plaintext),$0
+    )
+})
 }
 
 private enum InitializationResult {
@@ -1787,7 +1884,13 @@ private var initializationResult: InitializationResult = {
     if (uniffi_signal_native_checksum_func_is_valid_recovery_phrase() != 25580) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_signal_native_checksum_func_open_attachment() != 42668) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_signal_native_checksum_func_restore_identity() != 60680) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_signal_native_checksum_func_seal_attachment() != 64342) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_signal_native_checksum_method_signaldevice_decrypt() != 1868) {
