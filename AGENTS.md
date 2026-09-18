@@ -16,7 +16,8 @@ transport, anonymous accounts with no phone number, email or password.
 
 **The Android `.so` libraries are stale.** They predate the recovery-backup
 Rust API (`generate_recovery_phrase`, `encrypt_backup`, `restore_identity`,
-`derive_backup_credentials`), which the Kotlin bridge already calls. An Android
+`derive_backup_credentials`) and the image API (`seal_attachment`,
+`open_attachment`), all of which the Kotlin bridge already calls. An Android
 build today compiles, links, installs, and then fails at runtime on the first
 call. Rebuild them with cargo-ndk before any Android build; iOS is unaffected
 because it compiles the Rust from source in the EAS pre-install hook.
