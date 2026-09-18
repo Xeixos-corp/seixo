@@ -56,9 +56,20 @@ randomness as the recovery backups.
 This is the decision the whole plan rests on.
 
 Naming the object `<message id>` lets the server delete it **without ever
-knowing what it is**: a trigger on `messages` deletes the matching object, so
-the purge that already runs every minute carries the blobs with it. No new
-scheduled job to fail silently, no second retention story to keep true.
+knowing what it is**: an object whose message no longer exists is, by
+definition, expired.
+
+*Revised 2026-09-18, before any of it was built.* The first version said a
+trigger on `messages` would delete the matching object. It cannot:
+`storage.objects` is guarded by Supabase's own `storage.protect_delete()`,
+because deleting the row there leaves the bytes behind in the object store —
+encrypted files nobody knows exist, which is the exact outcome this plan
+exists to prevent. Only the Storage API removes both, and it needs the
+service-role key. So deletion is an Edge Function (`purge-attachments`),
+called every minute by pg_cron through pg_net, which removes every object
+whose message is gone. Same promise, one more moving part. See migration
+0027 for how the function authenticates its caller without a secret ever
+leaving the database.
 
 A random path would live only inside the ciphertext, which the server cannot
 read — so it could never delete it, and encrypted files would outlive the
@@ -85,6 +96,12 @@ passes through the hosting layer's request log, which keeps the account id for
 24 hours (see the privacy policy) — so the sender is knowable for a day, not
 for the life of the message. That is the same exposure everything else already
 has.
+
+Found when building it, and not avoidable: `storage.objects.last_accessed_at`,
+written by the storage service on every download. It is close to a read
+receipt — roughly when the recipient fetched the image — in an app that has
+never had read receipts. It dies with the object, so at most a day, and it
+belongs in the privacy policy.
 
 ### Deliberately excluded
 
