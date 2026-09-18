@@ -4,6 +4,7 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import SignalNativeExpoModule from '../../modules/signal-native-expo/src/SignalNativeExpoModule';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../transport/supabaseClient';
 import { useMessagesStore } from '../store/messagesStore';
+import { base64ToBytes, inspectJpegMetadata } from './jpegMetadata';
 
 /**
  * Images: choosing, preparing, sealing, moving and forgetting them.
@@ -152,33 +153,36 @@ export async function prepareImage(picked: { uri: string; width: number; height:
 }
 
 export class ImageMetadataError extends Error {
-  constructor() {
-    super('The image still carries metadata after re-encoding, and was not sent.');
+  constructor(readonly findings: string[]) {
+    super(`The image still carries metadata after re-encoding, and was not sent: ${findings.join(', ')}`);
     this.name = 'ImageMetadataError';
   }
 }
 
 /**
- * Reads the start of the file and refuses it if an EXIF or XMP block is
- * there. Both live in APP1 segments near the top of a JPEG, well within the
- * first 64 KB; the pixels come after.
+ * Reads the JPEG's header segments and refuses anything that could say where,
+ * when or with what the picture was taken.
+ *
+ * Not "is there an EXIF block". iOS writes one into every JPEG it encodes,
+ * even from bare pixels, carrying things like orientation, resolution and
+ * colour space -- harmless, and refusing them refused every photo. So the
+ * block is walked tag by tag against a closed list of tags known to be
+ * harmless. Anything else is refused, including tags this code has never
+ * heard of: a picture that fails to send is a nuisance, a picture that leaks
+ * a home address is not recoverable.
+ *
+ * XMP and IPTC blocks are refused outright; they can carry location and
+ * captions and there is no short list of safe parts.
  */
 async function assertNoMetadata(uri: string): Promise<void> {
+  // Header segments are each at most 64 KB and come before the pixels.
   const head = await FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
     position: 0,
-    length: 64 * 1024,
+    length: 128 * 1024,
   });
-  const bytes = base64ToBytes(head);
-  const markers = [
-    // "Exif\0\0" -- location, camera, time.
-    [0x45, 0x78, 0x69, 0x66, 0x00, 0x00],
-    // "http://ns.adobe.com/xap" -- XMP, which can carry the same things.
-    [0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x6e, 0x73, 0x2e, 0x61, 0x64, 0x6f, 0x62, 0x65],
-  ];
-  if (markers.some((marker) => indexOf(bytes, marker) !== -1)) {
-    throw new ImageMetadataError();
-  }
+  const findings = inspectJpegMetadata(base64ToBytes(head));
+  if (findings.length > 0) throw new ImageMetadataError(findings);
 }
 
 // ── Sending ───────────────────────────────────────────────────────────────
@@ -430,34 +434,4 @@ function randomName(): string {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function indexOf(haystack: Uint8Array, needle: number[]): number {
-  outer: for (let i = 0; i <= haystack.length - needle.length; i++) {
-    for (let j = 0; j < needle.length; j++) {
-      if (haystack[i + j] !== needle[j]) continue outer;
-    }
-    return i;
-  }
-  return -1;
-}
-
-const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-/** Small and dependency-free: used only on the first 64 KB of a file. */
-function base64ToBytes(base64: string): Uint8Array {
-  const clean = base64.replace(/[^A-Za-z0-9+/]/g, '');
-  const bytes = new Uint8Array(Math.floor((clean.length * 3) / 4));
-  let buffer = 0;
-  let bits = 0;
-  let index = 0;
-  for (const char of clean) {
-    buffer = ((buffer << 6) | BASE64_ALPHABET.indexOf(char)) & 0xffffff;
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      bytes[index++] = (buffer >> bits) & 0xff;
-    }
-  }
-  return bytes.subarray(0, index);
 }
