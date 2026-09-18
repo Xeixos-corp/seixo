@@ -39,6 +39,15 @@ const EXPECTED = {
   'serial_mm.jpg': ['Exif 0xa431'],
   'xmp.jpg': ['XMP'],
   'camera_with_gps.jpg': ['IFD0 0x010f', 'IFD0 0x0110', 'Exif 0x9003', 'GPS'],
+  // IPTC, in the Photoshop block iOS writes. Version and character set are
+  // about the record, not the picture, and must pass -- refusing them refused
+  // every photo on a real phone.
+  'iptc_version_only.jpg': [],
+  'iptc_padded.jpg': [],
+  'iptc_city.jpg': ['IPTC 2:90'],
+  'iptc_caption.jpg': ['IPTC 2:120'],
+  'app13_thumbnail.jpg': ['APP13 0x040c'],
+  'iptc_extended.jpg': ['IPTC 2:120 extended'],
 };
 
 let failed = 0;
