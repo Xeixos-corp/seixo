@@ -58,7 +58,15 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Seixo usa a câmara só para ler o código QR de outra pessoa e iniciar uma conversa cifrada com ela."
+          "cameraPermission": "O Seixo usa a câmara para ler o código QR de um contacto e para tirares fotografias que decides enviar. As fotografias são cifradas no telemóvel antes de saírem."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Seixo só vê a fotografia que escolheres para enviar, nunca a tua galeria. A imagem é cifrada no telemóvel antes de sair, sem a localização nem outros dados da fotografia.",
+          "cameraPermission": "O Seixo usa a câmara para ler o código QR de um contacto e para tirares fotografias que decides enviar. As fotografias são cifradas no telemóvel antes de saírem.",
+          "microphonePermission": "O Seixo usa o microfone só para gravares mensagens de voz. A gravação é cifrada no telemóvel antes de sair, e nada é enviado sem seres tu a mandar."
         }
       ],
       [
