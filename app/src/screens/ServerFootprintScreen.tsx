@@ -153,6 +153,23 @@ export function ServerFootprintScreen() {
               )}
             </SettingsGroup>
 
+            <SettingsGroup
+              title={t('serverFootprint.imagesSection')}
+              footer={t('serverFootprint.imagesFooter')}
+            >
+              <SettingsRow
+                label={t('serverFootprint.images', { count: footprint.images.count })}
+                value={footprint.images.count ? formatBytes(footprint.images.bytes, i18n.language) : undefined}
+              />
+              {footprint.images.count ? (
+                <SettingsRow
+                  label={t('serverFootprint.imagesDownloaded')}
+                  hint={t('serverFootprint.imagesDownloadedHint')}
+                  value={`${footprint.images.downloaded} / ${footprint.images.count}`}
+                />
+              ) : null}
+            </SettingsGroup>
+
             <SettingsGroup title={t('serverFootprint.notificationsSection')}>
               {/* An array rather than a fragment: the group counts its
                   children to draw the dividers between them, and a fragment
@@ -209,3 +226,10 @@ const styles = StyleSheet.create({
   errorDetail: { fontSize: 12, lineHeight: 17 },
   footnote: { fontSize: 12, lineHeight: 17, marginTop: 16, marginLeft: 4 },
 });
+
+/** "340 KB", "1,2 MB" -- enough precision to be honest, not enough to be noise. */
+function formatBytes(bytes: number, language: string): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  const megabytes = (bytes / (1024 * 1024)).toLocaleString(language, { maximumFractionDigits: 1 });
+  return `${megabytes} MB`;
+}

@@ -1664,3 +1664,68 @@ backend, which moves the log to whoever runs it rather than removing it.
 the fields and the 24 hours, and the in-app "what the server knows" screen
 carries the same statement, because a screen that claims to show everything
 and stops at the database would be the most misleading thing in the app.
+
+### Images (2026-09-18)
+
+A photo is re-encoded on the phone, sealed once under a key made for it
+alone (`packages/signal-native/rust/src/attachment.rs`, AES-256-GCM), and
+stored as an opaque object in a private bucket, named after its message. Only
+the key -- with the dimensions and a tiny blurred preview -- travels, inside
+each member's ordinary Signal envelope. Plan and alternatives:
+`docs/plans-deferred.md`.
+
+**Why not inside the message, as voice is.** A group message is one row
+carrying a copy per member, and Postgres Changes drops every field over 64
+bytes from any record past 1024 KB. A photo times ten members does not fit.
+
+**What the server learns that it did not before:**
+
+- That a message has an image, from the object's existence. Its size, padded
+  to a 64 KiB unit so the stored length narrows the picture to a band.
+- `storage.objects.last_accessed_at`, written by the storage service on every
+  download: roughly when the recipient fetched the picture -- close to a read
+  receipt, in an app that deliberately has none. Cannot be suppressed from
+  this side. Dies with the object.
+- Not the uploader. `owner` and `owner_id` are nulled by a BEFORE trigger, so
+  a one-to-one image carries no sender, consistent with `messages`. The
+  upload request still passes through the hosting request log (24 hours,
+  account id included), like every other request.
+
+**Lifetime.** Capped at 24 hours on the server, like voice; the chosen timer
+travels inside the envelope and governs the phones. Deletion could not be a
+trigger on `messages`: `storage.protect_delete()` refuses SQL deletes on
+`storage.objects`, because removing the row leaves the bytes in the object
+store. An Edge Function (`purge-attachments`), called every minute by
+pg_cron via pg_net, deletes through the Storage API every object whose
+message is gone. It authenticates the call with a secret generated inside
+the vault that has never left the database. Observed on a real photo: message
+expired 17:09:23, object gone at 17:10:00.
+
+**Metadata.** The re-encode is necessary and not sufficient -- it is a claim
+about someone else's code. Every outgoing file is read back and its header
+walked: EXIF (IFD0, the Exif sub-IFD, the thumbnail IFD, either byte order)
+and the Photoshop/IPTC block, each against a closed list of structural tags.
+GPS, camera make and model, capture dates, serial numbers, captions,
+locations, XMP, unknown tags and unreadable headers all refuse the send.
+
+Both lists exist because the first version refused every photo. iOS writes a
+small EXIF block and an IPTC block into every JPEG it encodes, even from bare
+pixels, and a check that refused on the mere presence of either could not
+tell them from a location. Found on a phone, twice, and then covered by
+`app/scripts/test-jpeg-metadata.js` (seventeen cases).
+
+The picker's own copy of the original -- full size, location included -- is
+deleted as soon as the clean one exists.
+
+**Deliberately absent:** saving to the photo library (one tap past the timer),
+video and documents (containers that cannot be rebuilt from scratch), and any
+photo-library permission in practice: on iOS 14+ the picker runs outside the
+app and returns only the chosen photo.
+
+**Known gap: a member can spoil another member's upload.** Without a sender
+column the upload policy cannot tell which member sent a message, so any
+member could claim a message id first. Content cannot be injected -- the
+key is inside the envelope and AES-GCM rejects anything else -- so the worst
+case is an image shown as unavailable. Uploads are limited to two minutes
+after the message is created, which makes that a race against a sender who
+uploads in seconds.

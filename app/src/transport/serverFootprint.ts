@@ -44,6 +44,13 @@ export type ServerFootprint = {
     updatedAt: string | null;
   } | null;
   blockedPeers: number;
+  /**
+   * Encrypted pictures stored for this account's conversations. `downloaded`
+   * counts those the storage service has recorded a download for -- which it
+   * does on its own, and which is close to a read receipt. Shown so it is not
+   * a secret kept from the person it describes.
+   */
+  images: { count: number; bytes: number; downloaded: number };
 };
 
 /** Turns the first reported failure into a thrown error naming what failed. */
@@ -81,7 +88,15 @@ export async function fetchServerFootprint(userId: string): Promise<ServerFootpr
   // and this screen would calmly report "nothing blocked", "no keys", which
   // is exactly the comfortable falsehood it exists to prevent. Better to show
   // nothing and say why.
+  // Listed through the Storage API rather than queried: the storage schema is
+  // not exposed to clients, and listing goes through the same row-level
+  // security as a download -- only pictures in this account's conversations.
+  const listing = await supabase.storage
+    .from('attachments')
+    .list('', { limit: 1000, sortBy: { column: 'created_at', order: 'asc' } });
+
   failFast({
+    'stored images': listing.error,
     'signed prekeys': signed.error,
     'one-time prekeys': oneTime.error,
     'blocked peers': blocked.error,
@@ -163,5 +178,19 @@ export async function fetchServerFootprint(userId: string): Promise<ServerFootpr
         }
       : null,
     blockedPeers: blocked.count ?? 0,
+    images: summariseImages(listing.data ?? []),
+  };
+}
+
+function summariseImages(
+  objects: { id: string | null; metadata?: Record<string, unknown> | null; last_accessed_at?: string | null }[],
+): ServerFootprint['images'] {
+  // Folders come back with no id; there are none in this bucket, but a
+  // listing is not the place to assume so.
+  const files = objects.filter((object) => object.id);
+  return {
+    count: files.length,
+    bytes: files.reduce((sum, file) => sum + Number(file.metadata?.size ?? 0), 0),
+    downloaded: files.filter((file) => Boolean(file.last_accessed_at)).length,
   };
 }

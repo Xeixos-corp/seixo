@@ -349,7 +349,13 @@
     "noToken": "Sem token de notificações",
     "blocked": "Pessoas bloqueadas",
     "absentSection": "O que não está aqui",
-    "absentList": "O conteúdo das mensagens · quem enviou cada mensagem numa conversa a dois · os nomes que deste aos contactos · os nomes dos grupos",
-    "hostingNote": "Isto é a base de dados. Antes de um pedido lá chegar, a camada de entrada do alojamento regista-o e guarda durante 24 horas o teu IP, a cidade e o código postal aproximados, o teu fornecedor de internet e, na maioria dos casos, o identificador da tua conta. Não o controlamos nem o conseguimos apagar mais cedo. Está explicado na política de privacidade."
+    "absentList": "O conteúdo das mensagens · o que mostram as fotografias · quem enviou cada mensagem ou fotografia numa conversa a dois · os nomes que deste aos contactos · os nomes dos grupos",
+    "hostingNote": "Isto é a base de dados. Antes de um pedido lá chegar, a camada de entrada do alojamento regista-o e guarda durante 24 horas o teu IP, a cidade e o código postal aproximados, o teu fornecedor de internet e, na maioria dos casos, o identificador da tua conta. Não o controlamos nem o conseguimos apagar mais cedo. Está explicado na política de privacidade.",
+    "imagesSection": "Fotografias",
+    "images_one": "1 fotografia cifrada",
+    "images_other": "{{count}} fotografias cifradas",
+    "imagesFooter": "Cada uma apaga-se com a sua mensagem, no máximo 24 horas depois de enviada. O servidor vê o tamanho arredondado, nunca a imagem.",
+    "imagesDownloaded": "Descarregadas",
+    "imagesDownloadedHint": "O serviço de armazenamento regista quando cada fotografia é descarregada. Não o conseguimos impedir."
   }
 }

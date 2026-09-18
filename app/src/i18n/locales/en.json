@@ -349,7 +349,13 @@
     "noToken": "No notification token",
     "blocked": "People blocked",
     "absentSection": "What is not here",
-    "absentList": "The content of messages · who sent each message in a one-to-one conversation · the names you gave your contacts · the names of groups",
-    "hostingNote": "This is the database. Before a request reaches it, the hosting provider's entry layer records it and keeps, for 24 hours, your IP, the approximate city and postal code, your internet provider and, in most cases, your account id. We do not control it and cannot delete it sooner. It is explained in the privacy policy."
+    "absentList": "The content of messages · what photos show · who sent each message or photo in a one-to-one conversation · the names you gave your contacts · the names of groups",
+    "hostingNote": "This is the database. Before a request reaches it, the hosting provider's entry layer records it and keeps, for 24 hours, your IP, the approximate city and postal code, your internet provider and, in most cases, your account id. We do not control it and cannot delete it sooner. It is explained in the privacy policy.",
+    "imagesSection": "Photos",
+    "images_one": "1 encrypted photo",
+    "images_other": "{{count}} encrypted photos",
+    "imagesFooter": "Each one is deleted with its message, at most 24 hours after it was sent. The server sees its rounded size, never the picture.",
+    "imagesDownloaded": "Downloaded",
+    "imagesDownloadedHint": "The storage service records when each photo is downloaded. We cannot prevent it."
   }
 }

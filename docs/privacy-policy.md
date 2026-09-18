@@ -1,6 +1,6 @@
 # Política de privacidade — Seixo
 
-**Última atualização: 16 de setembro de 2026**
+**Última atualização: 18 de setembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -35,6 +35,13 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 - **Quem enviou:** numa conversa a dois, não é guardado. **Num grupo, o servidor consegue ver quem enviou cada mensagem** enquanto essa mensagem existir, porque quem a recebe precisa de saber com que chave a decifrar.
 - **Os nomes dos grupos e os nomes que dás aos contactos** nunca chegam ao servidor em texto legível.
 
+**Sobre as fotografias que envias:**
+
+- **Cada fotografia é cifrada no teu telemóvel** com uma chave feita só para ela, e guardada como um ficheiro com o nome da mensagem a que pertence. A chave viaja dentro da mensagem cifrada: o servidor nunca a tem e não consegue abrir o ficheiro.
+- **Do ficheiro, o servidor vê:** o tamanho — arredondado para cima, para não revelar o tamanho real da fotografia —, quando foi guardado e **quando foi descarregado** pela última vez. Esta última informação é quase um aviso de leitura: diz, aproximadamente, quando a outra pessoa recebeu a fotografia. Não a conseguimos impedir, porque é escrita pelo serviço de armazenamento; existe apenas enquanto o ficheiro existir.
+- **Não fica registado quem enviou o ficheiro.** O serviço de armazenamento tenta guardá-lo; nós apagamo-lo antes de ser gravado.
+- **Antes de sair do telemóvel, a fotografia é refeita** sem a localização, o modelo do telemóvel, a data e os outros dados que as fotografias costumam trazer. A app verifica o resultado e **recusa enviar** se algum desses dados tiver ficado.
+
 **Só se criares uma cópia de segurança:**
 
 - **Um endereço e uma palavra-passe derivados das tuas 12 palavras de recuperação**, para poderes voltar à mesma conta noutro telemóvel. O endereço termina em `@seixo.invalid`: não é um email real, não recebe correio e não revela nada sobre ti. A palavra-passe é guardada em forma irreversível.
@@ -65,7 +72,8 @@ A app não esconde o teu IP. Se isso for importante para ti, usa uma VPN ou Tor.
 
 ## Permissões do telemóvel
 
-- **Câmara**: só para ler o código QR de um contacto. A imagem é processada no telemóvel e nunca é enviada nem guardada.
+- **Câmara**: para ler o código QR de um contacto e para tirares fotografias que decides enviar. Um código QR é lido no telemóvel e nunca é enviado nem guardado; uma fotografia só sai se a enviares, cifrada.
+- **Fotografias**: nenhum acesso à tua galeria. Quando escolhes uma fotografia para enviar, é o próprio iPhone que te mostra a galeria e entrega à app apenas a que escolheste.
 - **Microfone**: só para gravares mensagens de voz, quando carregas no botão. A gravação é cifrada no telemóvel antes de sair.
 - **Face ID**: só para desbloquear a app, se ativares o bloqueio. É tratado pelo próprio sistema do telemóvel; nada sai do aparelho.
 - **Notificações**: para saberes que chegou uma mensagem.
@@ -78,7 +86,8 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 
 - **Mensagens**: apagadas do servidor quando acaba o temporizador que escolheres — entre 30 segundos e 1 semana, para a conversa ou só para uma mensagem — mesmo que ninguém abra a app.
 - **Mensagens de voz**: no servidor, no máximo **24 horas**, ou menos se o temporizador for mais curto. Quem não abrir a app nesse prazo não as recebe.
-- **Conversas**: uma conversa com mais de 7 dias é apagada do servidor, com a lista de membros, assim que deixa de ter mensagens por expirar.
+- **Fotografias**: no servidor, no máximo **24 horas**, ou menos se o temporizador for mais curto, e são apagadas cerca de um minuto depois da mensagem a que pertencem. Quem não abrir a app nesse prazo não as recebe. No telemóvel de quem as recebe, duram o tempo que o temporizador da conversa indicar.
+- **Conversas**: uma conversa que nunca chegou a ter uma mensagem é apagada ao fim de **7 dias**. Uma conversa que já foi usada fica no servidor enquanto existirem as contas de quem a tem — mesmo depois de todas as mensagens terem expirado — para não desaparecer só por ter estado em silêncio.
 - **Chaves temporárias nunca usadas**: 30 dias.
 - **Contas**: apagadas ao fim de **6 meses sem abrires a app**, com tudo o que lhes pertence. Uma cópia de segurança dessa conta deixa de funcionar.
 - **Lista de bloqueados, token de notificações e credenciais da cópia de segurança**: enquanto a conta existir.
@@ -87,7 +96,7 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 ## Quem mais tem acesso aos teus dados
 
 - **As pessoas da conversa** — só elas conseguem decifrar o conteúdo, nos telemóveis delas.
-- **Supabase Inc.**, que aloja a base de dados e o servidor na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política — texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
+- **Supabase Inc.**, que aloja a base de dados, o servidor e os ficheiros cifrados das fotografias na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política — texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
 - **Expo (650 Industries, Inc.) e Apple**, que encaminham as notificações até ao teu telemóvel. Recebem o token e o texto genérico da notificação — nunca o conteúdo nem o remetente.
 - **Proton AG**, só se nos escreveres para seixo.app@proton.me.
 - **Ninguém mais.** Não vendemos, alugamos nem partilhamos dados com publicidade, redes sociais ou quaisquer outros terceiros.
