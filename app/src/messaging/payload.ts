@@ -94,6 +94,29 @@ type Encoded = {
    * messages, which expire.
    */
   n?: string;
+  /**
+   * An image. Not the picture itself -- that is sealed and stored as its own
+   * object, named after this message (messaging/attachments.ts). What travels
+   * here, inside the encryption, is what opens it: the key, its size, and a
+   * tiny blurred preview to show while the real thing downloads.
+   */
+  i?: EncodedImage;
+};
+
+type EncodedImage = {
+  /** The key that opens the stored object. The one secret in the image. */
+  k: string;
+  w: number;
+  h: number;
+  /** A few hundred bytes of JPEG, blurred when drawn. */
+  b?: string;
+};
+
+export type ImagePayload = {
+  keyBase64: string;
+  width: number;
+  height: number;
+  previewBase64?: string;
 };
 
 export type MessagePayload = {
@@ -109,6 +132,7 @@ export type MessagePayload = {
   localTtlSeconds?: number;
   /** A group name being announced to the members. */
   groupName?: string;
+  image?: ImagePayload;
 };
 
 /**
@@ -125,7 +149,8 @@ export function encodePayload(payload: MessagePayload): string {
     !payload.reactsToMessageId &&
     !payload.audioBase64 &&
     !payload.localTtlSeconds &&
-    payload.groupName === undefined
+    payload.groupName === undefined &&
+    !payload.image
   ) {
     // Unchanged wire format for the overwhelmingly common case.
     return payload.text;
@@ -137,6 +162,14 @@ export function encodePayload(payload: MessagePayload): string {
   if (payload.audioDurationMs) encoded.d = payload.audioDurationMs;
   if (payload.localTtlSeconds) encoded.l = payload.localTtlSeconds;
   if (payload.groupName !== undefined) encoded.n = payload.groupName;
+  if (payload.image) {
+    encoded.i = {
+      k: payload.image.keyBase64,
+      w: payload.image.width,
+      h: payload.image.height,
+      b: payload.image.previewBase64,
+    };
+  }
 
   if (!payload.audioBase64) return JSON.stringify(encoded);
 
@@ -169,9 +202,35 @@ export function decodePayload(raw: string): MessagePayload {
       audioDurationMs: typeof parsed.d === 'number' ? parsed.d : undefined,
       localTtlSeconds: typeof parsed.l === 'number' ? parsed.l : undefined,
       groupName: typeof parsed.n === 'string' ? parsed.n : undefined,
+      image: decodeImage(parsed.i),
     };
   } catch {
     // Genuinely just a message that starts with a brace.
     return { text: raw };
   }
+}
+
+/**
+ * Accepts an image reference only if every field is the right kind of thing.
+ * Anything half-formed is treated as no image at all: a message that claims a
+ * picture and cannot say how to open it is better shown as its fallback text.
+ */
+function decodeImage(raw: unknown): ImagePayload | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const image = raw as Partial<EncodedImage>;
+  if (
+    typeof image.k !== 'string' ||
+    typeof image.w !== 'number' ||
+    typeof image.h !== 'number' ||
+    image.w <= 0 ||
+    image.h <= 0
+  ) {
+    return undefined;
+  }
+  return {
+    keyBase64: image.k,
+    width: image.w,
+    height: image.h,
+    previewBase64: typeof image.b === 'string' ? image.b : undefined,
+  };
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { BellOffIcon, MicIcon, PeopleIcon } from './icons';
+import { BellOffIcon, ImageIcon, MicIcon, PeopleIcon } from './icons';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { avatarColorFor, initialsFor } from '../theme/avatarColors';
@@ -74,13 +74,20 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
     }
     const previewColor = isUnread ? colors.textPrimary : colors.textSecondary;
     const isVoice = Boolean(last.audioBase64 || last.audioDurationMs);
-    const body = isVoice
-      ? t('conversationList.voicePreview', { duration: formatDuration(last.audioDurationMs) })
-      : last.plaintext.replace(/\s+/g, ' ').trim();
+    const isImage = Boolean(last.image);
+    const body = isImage
+      ? t('conversationList.imagePreview')
+      : isVoice
+        ? t('conversationList.voicePreview', { duration: formatDuration(last.audioDurationMs) })
+        : last.plaintext.replace(/\s+/g, ' ').trim();
     const text = last.isMine ? t('conversationList.youPrefix', { text: body }) : body;
     return (
       <View style={styles.previewLine}>
-        {isVoice ? <MicIcon size={14} color={previewColor} /> : null}
+        {isImage ? (
+          <ImageIcon size={14} color={previewColor} />
+        ) : isVoice ? (
+          <MicIcon size={14} color={previewColor} />
+        ) : null}
         <Text style={[styles.preview, styles.previewText, { color: previewColor }]} numberOfLines={1}>
           {text}
         </Text>

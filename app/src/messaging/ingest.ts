@@ -1,4 +1,5 @@
 import { decryptMessage, isUntrustedIdentityError } from '../crypto';
+import { fetchImageInBackground } from './attachments';
 import { useMessagesStore } from '../store/messagesStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
@@ -124,7 +125,7 @@ export function ingestFetchedMessage(
 
   try {
     const raw = decryptMessage(sender, REMOTE_DEVICE_ID, envelope);
-    const { text, replyToId, editsMessageId, reactsToMessageId, audioBase64, audioDurationMs, localTtlSeconds, groupName } =
+    const { text, replyToId, editsMessageId, reactsToMessageId, audioBase64, audioDurationMs, localTtlSeconds, groupName, image } =
       decodePayload(raw);
 
     // The row's expires_at is only how long the *server* held it. When the
@@ -191,13 +192,28 @@ export function ingestFetchedMessage(
       id: fetched.id,
       createdAt: fetched.createdAt,
       expiresAt,
-      plaintext: text,
+      // An image's text is only a fallback for builds that predate images;
+      // here the picture speaks for itself.
+      plaintext: image ? '' : text,
       isMine: false,
       replyToId,
       audioBase64,
       audioDurationMs,
       senderUserId: sender,
+      image: image
+        ? {
+            keyBase64: image.keyBase64,
+            width: image.width,
+            height: image.height,
+            previewBase64: image.previewBase64,
+          }
+        : undefined,
     });
+
+    // Fetched straight away rather than when the conversation is opened. The
+    // server keeps the picture for a day at most, and a message someone
+    // received and only looked at the next evening should still have it.
+    if (image) fetchImageInBackground(channelId, fetched.id, image.keyBase64);
   } catch (error) {
     failedThisSession.add(fetched.id);
     if (isUntrustedIdentityError(error)) {

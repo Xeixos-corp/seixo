@@ -57,7 +57,8 @@
     "backupPromptTitle": "You have no backup yet",
     "backupPromptBody": "If you lose this phone, your account and your contacts go with it — there is no way to restore them, not even by us. The backup takes a minute.",
     "backupPromptDismiss": "Not now",
-    "backupPromptAction": "Create backup"
+    "backupPromptAction": "Create backup",
+    "imagePreview": "Photo"
   },
   "conversation": {
     "ttl": {
@@ -159,7 +160,23 @@
     "messageCopied": "Text copied.",
     "linkCopied": "Link copied.",
     "copyFailed": "Could not copy.",
-    "memberYou": "You"
+    "memberYou": "You",
+    "attachImage": "Send image",
+    "attachTitle": "Send image",
+    "attachCamera": "Take photo",
+    "attachLibrary": "Choose from library",
+    "imageFallback": "Photo",
+    "imageQuote": "Photo",
+    "imageLabel": "Photo",
+    "imageSending": "Sending…",
+    "imageNotSent": "Not sent",
+    "imageUnavailable": "Image unavailable",
+    "imageClose": "Close",
+    "imageTapToClose": "Tap to close",
+    "imagePickFailed": "Could not open the camera or the library.",
+    "imagePrepareFailed": "Could not prepare the image. Nothing was sent.",
+    "imageMetadataRefused": "This image still carried photo data (such as its location) after being cleaned, so it was not sent.",
+    "cameraDenied": "Without camera access, a photo cannot be taken."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
@@ -291,7 +308,9 @@
   "permissions": {
     "openSettings": "Open Settings",
     "microphoneBlockedTitle": "Microphone off",
-    "microphoneBlockedBody": "You turned off microphone access. To record voice messages, turn it on in iPhone Settings, under Seixo."
+    "microphoneBlockedBody": "You turned off microphone access. To record voice messages, turn it on in iPhone Settings, under Seixo.",
+    "cameraBlockedTitle": "Camera turned off",
+    "cameraBlockedBody": "You declined camera access. To take photos, turn it on in the phone’s Settings. Choosing from the library still works without it."
   },
   "share": {
     "intro": "Choose a conversation. The content goes into the text box and is only sent when you press send.",

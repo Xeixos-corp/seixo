@@ -57,7 +57,8 @@
     "backupPromptTitle": "Ainda não tens cópia de segurança",
     "backupPromptBody": "Se perderes este telemóvel, a tua conta e os teus contactos perdem-se com ele — não há forma de os repor, nem por nós. A cópia leva um minuto.",
     "backupPromptDismiss": "Agora não",
-    "backupPromptAction": "Criar cópia"
+    "backupPromptAction": "Criar cópia",
+    "imagePreview": "Fotografia"
   },
   "conversation": {
     "ttl": {
@@ -159,7 +160,23 @@
     "messageCopied": "Texto copiado.",
     "linkCopied": "Link copiado.",
     "copyFailed": "Não foi possível copiar.",
-    "memberYou": "Tu"
+    "memberYou": "Tu",
+    "attachImage": "Enviar imagem",
+    "attachTitle": "Enviar imagem",
+    "attachCamera": "Tirar fotografia",
+    "attachLibrary": "Escolher da galeria",
+    "imageFallback": "Fotografia",
+    "imageQuote": "Fotografia",
+    "imageLabel": "Fotografia",
+    "imageSending": "A enviar…",
+    "imageNotSent": "Não enviada",
+    "imageUnavailable": "Imagem indisponível",
+    "imageClose": "Fechar",
+    "imageTapToClose": "Toca para fechar",
+    "imagePickFailed": "Não foi possível abrir a câmara ou a galeria.",
+    "imagePrepareFailed": "Não foi possível preparar a imagem. Nada foi enviado.",
+    "imageMetadataRefused": "Esta imagem continuava a ter dados da fotografia (como a localização) depois de limpa, por isso não foi enviada.",
+    "cameraDenied": "Sem acesso à câmara, não é possível tirar uma fotografia."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -291,7 +308,9 @@
   "permissions": {
     "openSettings": "Abrir Definições",
     "microphoneBlockedTitle": "Microfone desligado",
-    "microphoneBlockedBody": "Recusaste o acesso ao microfone. Para gravares mensagens de voz, liga-o nas Definições do iPhone, em Seixo."
+    "microphoneBlockedBody": "Recusaste o acesso ao microfone. Para gravares mensagens de voz, liga-o nas Definições do iPhone, em Seixo.",
+    "cameraBlockedTitle": "Câmara desligada",
+    "cameraBlockedBody": "Recusaste o acesso à câmara. Para tirares fotografias, liga-a nas Definições do telemóvel. Escolher da galeria continua a funcionar sem isso."
   },
   "share": {
     "intro": "Escolhe a conversa. O conteúdo fica na caixa de texto e só é enviado quando carregares em enviar.",

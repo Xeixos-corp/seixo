@@ -52,3 +52,14 @@ export function ChevronIcon({ size, color }: IconProps) {
     </Svg>
   );
 }
+
+/** A framed landscape: an image, either to send or in a message. */
+export function ImageIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={3} y={4} width={18} height={16} rx={2.5} />
+      <Circle cx={9} cy={9.5} r={1.6} />
+      <Path d="M21 16l-5.2-5.2a1.4 1.4 0 0 0-2 0L5 19.5" />
+    </Svg>
+  );
+}

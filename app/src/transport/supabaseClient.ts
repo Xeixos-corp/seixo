@@ -41,6 +41,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Exported for the one place that talks to Supabase without supabase-js:
+// images, which stream from and to disk through expo-file-system so the bytes
+// never pass through JavaScript (messaging/attachments.ts). Neither is a
+// secret -- both already ship inside the app -- they only need spelling out
+// once instead of being read from the environment in two places.
+export const SUPABASE_URL: string = supabaseUrl;
+export const SUPABASE_ANON_KEY: string = supabaseAnonKey;
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,

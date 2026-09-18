@@ -57,7 +57,8 @@
     "backupPromptTitle": "Aún no tienes copia de seguridad",
     "backupPromptBody": "Si pierdes este teléfono, tu cuenta y tus contactos se pierden con él: no hay forma de recuperarlos, ni siquiera por nuestra parte. La copia lleva un minuto.",
     "backupPromptDismiss": "Ahora no",
-    "backupPromptAction": "Crear copia"
+    "backupPromptAction": "Crear copia",
+    "imagePreview": "Foto"
   },
   "conversation": {
     "ttl": {
@@ -159,7 +160,23 @@
     "messageCopied": "Texto copiado.",
     "linkCopied": "Enlace copiado.",
     "copyFailed": "No se pudo copiar.",
-    "memberYou": "Tú"
+    "memberYou": "Tú",
+    "attachImage": "Enviar imagen",
+    "attachTitle": "Enviar imagen",
+    "attachCamera": "Hacer foto",
+    "attachLibrary": "Elegir de la galería",
+    "imageFallback": "Foto",
+    "imageQuote": "Foto",
+    "imageLabel": "Foto",
+    "imageSending": "Enviando…",
+    "imageNotSent": "No enviada",
+    "imageUnavailable": "Imagen no disponible",
+    "imageClose": "Cerrar",
+    "imageTapToClose": "Toca para cerrar",
+    "imagePickFailed": "No se pudo abrir la cámara ni la galería.",
+    "imagePrepareFailed": "No se pudo preparar la imagen. No se envió nada.",
+    "imageMetadataRefused": "Esta imagen seguía teniendo datos de la foto (como la ubicación) después de limpiarla, así que no se envió.",
+    "cameraDenied": "Sin acceso a la cámara no se puede hacer una foto."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -291,7 +308,9 @@
   "permissions": {
     "openSettings": "Abrir Ajustes",
     "microphoneBlockedTitle": "Micrófono desactivado",
-    "microphoneBlockedBody": "Denegaste el acceso al micrófono. Para grabar mensajes de voz, actívalo en los Ajustes del iPhone, en Seixo."
+    "microphoneBlockedBody": "Denegaste el acceso al micrófono. Para grabar mensajes de voz, actívalo en los Ajustes del iPhone, en Seixo.",
+    "cameraBlockedTitle": "Cámara desactivada",
+    "cameraBlockedBody": "Rechazaste el acceso a la cámara. Para hacer fotos, actívala en los Ajustes del teléfono. Elegir de la galería sigue funcionando sin eso."
   },
   "share": {
     "intro": "Elige la conversación. El contenido queda en el cuadro de texto y solo se envía cuando pulses enviar.",

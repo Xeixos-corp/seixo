@@ -16,6 +16,7 @@ import { clearVoiceCache } from './src/audio/voiceFiles';
 import { ShareIntentProvider } from 'expo-share-intent';
 import { SharedContentListener } from './src/components/SharedContentListener';
 import { useAppBadge } from './src/notifications/useAppBadge';
+import { startImageJanitor } from './src/messaging/attachments';
 
 // Called before the component tree exists, which is the point: the native
 // splash must be told to stay up before React has a chance to render a blank
@@ -39,6 +40,10 @@ export default function App() {
   useAppBadge();
 
   const [splashVisible, setSplashVisible] = useState(true);
+
+  // Deletes a decrypted picture the moment its message goes, by whatever
+  // route, and picks up any fetch the last session left unfinished.
+  useEffect(() => startImageJanitor(), []);
 
   useEffect(() => {
     // Decrypted audio is written to disk only while it is playing, and

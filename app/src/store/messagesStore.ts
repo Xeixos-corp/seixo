@@ -2,6 +2,26 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type StoredImage = {
+  /**
+   * What opens the stored object. Dropped the moment the picture is on disk:
+   * after that it opens nothing that still exists, and a key kept for no
+   * reason is a key that can leak for no reason.
+   */
+  keyBase64?: string;
+  width: number;
+  height: number;
+  previewBase64?: string;
+  /** Name of the decrypted picture in the attachments cache, once there. */
+  fileName?: string;
+  /**
+   * 'uploading' while this device is sending it; 'failed' if that upload did
+   * not happen; 'unavailable' when a received picture could not be fetched or
+   * opened. Undefined means fine -- present, or on its way.
+   */
+  state?: 'uploading' | 'failed' | 'unavailable';
+};
+
 export type DecryptedMessage = {
   id: string;
   createdAt: string;
@@ -76,6 +96,16 @@ export type DecryptedMessage = {
   audioBase64?: string;
   audioDurationMs?: number;
   /**
+   * An image. `plaintext` is empty for these, as for voice.
+   *
+   * The picture itself is never stored here -- only a reference to a file in
+   * the attachments cache, by name rather than path. iOS moves an app's
+   * container when it is updated, so an absolute path saved today can point
+   * nowhere tomorrow; a name is resolved against the cache directory each time
+   * (messaging/attachments.ts).
+   */
+  image?: StoredImage;
+  /**
    * Who sent it, in a group. Undefined in a one-to-one conversation, where
    * `isMine` already says everything there is to say.
    */
@@ -93,6 +123,8 @@ type MessagesState = {
    */
   replaceMessage: (channelId: string, localId: string, message: DecryptedMessage) => void;
   setMessageStatus: (channelId: string, id: string, status: DecryptedMessage['status']) => void;
+  /** Merges into a message's image, for the download and upload to report on. */
+  updateMessageImage: (channelId: string, id: string, patch: Partial<StoredImage>) => void;
   /**
    * Rewrites a message's text in place, keeping its id, position and -- most
    * importantly -- its original expiry. Editing must not restart the
@@ -170,6 +202,16 @@ export const useMessagesStore = create<MessagesState>()(
             ...state.messagesByChannel,
             [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) =>
               m.id === id ? { ...m, status } : m,
+            ),
+          },
+        }));
+      },
+      updateMessageImage: (channelId, id, patch) => {
+        set((state) => ({
+          messagesByChannel: {
+            ...state.messagesByChannel,
+            [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) =>
+              m.id === id && m.image ? { ...m, image: { ...m.image, ...patch } } : m,
             ),
           },
         }));

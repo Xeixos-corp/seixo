@@ -60,6 +60,17 @@ import {
   onAudioInterruption,
 } from '../../modules/audio-session-expo/src';
 import { VoiceMessage } from '../components/VoiceMessage';
+import { ImageMessage } from '../components/ImageMessage';
+import { ImageIcon } from '../components/icons';
+import {
+  IMAGE_SERVER_TTL_SECONDS,
+  ImageMetadataError,
+  keepOwnCopy,
+  pickImage,
+  prepareImage,
+  sealImage,
+  uploadSealed,
+} from '../messaging/attachments';
 import * as Clipboard from 'expo-clipboard';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
@@ -94,6 +105,7 @@ const REACTION_EMOJIS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
 function quotePreview(message: DecryptedMessage | undefined, t: TFunction): string {
   if (!message) return t('conversation.quoteUnavailable');
   if (message.audioBase64) return t('conversation.voiceMessage');
+  if (message.image) return t('conversation.imageQuote');
   return message.plaintext;
 }
 
@@ -166,6 +178,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const addMessage = useMessagesStore((state) => state.addMessage);
   const replaceMessage = useMessagesStore((state) => state.replaceMessage);
   const setMessageStatus = useMessagesStore((state) => state.setMessageStatus);
+  const updateMessageImage = useMessagesStore((state) => state.updateMessageImage);
   const applyEdit = useMessagesStore((state) => state.applyEdit);
   const removeMessage = useMessagesStore((state) => state.removeMessage);
   const ttlSeconds = useConversationsStore(
@@ -576,6 +589,151 @@ export function ConversationScreen({ route, navigation }: Props) {
     [channelId, transmit, ttlSeconds, addMessage, replaceMessage, setMessageStatus, scheduleExpiry],
   );
 
+  /**
+   * Sends a photo: chooses it, strips it, seals it, then inserts the message
+   * and uploads the sealed file under that message's id.
+   *
+   * The order is fixed by the server. The storage policy only accepts an
+   * object whose message already exists, so the message goes first and the
+   * upload follows; the other phone may see the message a moment before the
+   * picture is there, and waits for it (messaging/attachments.ts).
+   *
+   * Everything that can fail before the message exists fails quietly back to
+   * the conversation with a reason and nothing sent. Once the message exists,
+   * a failed upload is shown on the picture itself rather than hidden.
+   */
+  const sendImage = useCallback(
+    async (source: 'camera' | 'library') => {
+      setSendError(null);
+
+      let picked: Awaited<ReturnType<typeof pickImage>>;
+      try {
+        picked = await pickImage(source);
+      } catch (error) {
+        console.error('[ConversationScreen] could not open the picker', error);
+        setSendError(t('conversation.imagePickFailed'));
+        return;
+      }
+      if (picked.kind === 'cancelled') return;
+      if (picked.kind === 'denied') {
+        if (!picked.canAskAgain) {
+          // Same rule as the microphone: the way to Settings is offered only
+          // after an earlier refusal, never in answer to one just given.
+          Alert.alert(t('permissions.cameraBlockedTitle'), t('permissions.cameraBlockedBody'), [
+            { text: t('conversation.cancel'), style: 'cancel' },
+            { text: t('permissions.openSettings'), onPress: () => void Linking.openSettings() },
+          ]);
+        } else {
+          setSendError(t('conversation.cameraDenied'));
+        }
+        return;
+      }
+
+      let prepared: Awaited<ReturnType<typeof prepareImage>>;
+      let sealed: Awaited<ReturnType<typeof sealImage>>;
+      let fileName: string;
+      try {
+        prepared = await prepareImage(picked);
+        // Sealed before the copy is kept: keeping it moves the file.
+        sealed = await sealImage(prepared.uri);
+        fileName = await keepOwnCopy(prepared.uri);
+      } catch (error) {
+        console.error('[ConversationScreen] could not prepare the image', error);
+        setSendError(
+          error instanceof ImageMetadataError
+            ? t('conversation.imageMetadataRefused')
+            : t('conversation.imagePrepareFailed'),
+        );
+        return;
+      }
+
+      const shown = {
+        width: prepared.width,
+        height: prepared.height,
+        previewBase64: prepared.previewBase64,
+        fileName,
+      };
+      const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      addMessage(channelId, {
+        id: localId,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+        plaintext: '',
+        isMine: true,
+        status: 'sending',
+        image: { ...shown, state: 'uploading' },
+      });
+
+      let messageId: string;
+      try {
+        const { id, createdAt } = await transmit(
+          encodePayload({
+            // Only for builds that predate images, which would otherwise show
+            // an empty bubble. Newer ones draw the picture and ignore this.
+            text: t('conversation.imageFallback'),
+            image: {
+              keyBase64: sealed.keyBase64,
+              width: prepared.width,
+              height: prepared.height,
+              previewBase64: prepared.previewBase64,
+            },
+            // The lifetime on the phones rides inside the encryption; the
+            // server's copy is capped at a day whatever was chosen.
+            localTtlSeconds: ttlSeconds,
+          }),
+          { serverTtlSeconds: IMAGE_SERVER_TTL_SECONDS },
+        );
+        messageId = id;
+        const expiresAt = new Date(Date.parse(createdAt) + ttlSeconds * 1000).toISOString();
+        replaceMessage(channelId, localId, {
+          id,
+          createdAt,
+          expiresAt,
+          plaintext: '',
+          isMine: true,
+          status: 'sent',
+          image: { ...shown, state: 'uploading' },
+        });
+        scheduleExpiry(id, expiresAt);
+      } catch (error) {
+        console.error('[ConversationScreen] failed to send image message', error);
+        setMessageStatus(channelId, localId, 'failed');
+        updateMessageImage(channelId, localId, { state: 'failed' });
+        return;
+      }
+
+      try {
+        await uploadSealed(messageId, sealed.sealedUri);
+        updateMessageImage(channelId, messageId, { state: undefined });
+      } catch (error) {
+        // The message is out there and will show the other side a picture it
+        // cannot fetch -- which their app reports as unavailable after its
+        // retries. Said here too, so the sender is not the last to know.
+        console.error('[ConversationScreen] failed to upload image', error);
+        updateMessageImage(channelId, messageId, { state: 'failed' });
+      }
+    },
+    [
+      channelId,
+      transmit,
+      ttlSeconds,
+      addMessage,
+      replaceMessage,
+      setMessageStatus,
+      updateMessageImage,
+      scheduleExpiry,
+      t,
+    ],
+  );
+
+  const chooseImageSource = useCallback(() => {
+    Alert.alert(t('conversation.attachTitle'), undefined, [
+      { text: t('conversation.attachCamera'), onPress: () => void sendImage('camera') },
+      { text: t('conversation.attachLibrary'), onPress: () => void sendImage('library') },
+      { text: t('conversation.cancel'), style: 'cancel' },
+    ]);
+  }, [sendImage, t]);
+
   const startRecording = useCallback(async () => {
     // Checked before asking, to tell "never asked" from "already refused".
     // iOS shows its prompt once; after a refusal, asking again returns denied
@@ -934,7 +1092,12 @@ export function ConversationScreen({ route, navigation }: Props) {
       // Not offered for voice: there is no way to edit a recording, and the
       // edit path would replace it with empty text.
       const canEdit =
-        message?.isMine === true && !messageId.startsWith('local-') && !message.audioBase64;
+        message?.isMine === true &&
+        !messageId.startsWith('local-') &&
+        !message.audioBase64 &&
+        // Nor for images: there is no text to change, and an edit would
+        // replace the picture with an empty message.
+        !message.image;
 
       Alert.alert(t('conversation.messageActionsTitle'), undefined, [
         {
@@ -1334,7 +1497,15 @@ export function ConversationScreen({ route, navigation }: Props) {
                 </Pressable>
               ) : null}
 
-              {item.audioBase64 ? (
+              {item.image ? (
+                <ImageMessage
+                  channelId={channelId}
+                  messageId={item.id}
+                  image={item.image}
+                  tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
+                  onLongPress={() => handleMessageActions(item.id)}
+                />
+              ) : item.audioBase64 ? (
                 <VoiceMessage
                   messageId={item.id}
                   audioBase64={item.audioBase64}
@@ -1379,7 +1550,11 @@ export function ConversationScreen({ route, navigation }: Props) {
                 </View>
               ) : null}
 
-              {item.status === 'failed' ? (
+              {/* Not for an image: retrying resends the message's text, and an
+                  image's text is empty -- it would go out as a blank message.
+                  A failed picture says so on itself; sending it again is
+                  choosing it again. */}
+              {item.status === 'failed' && !item.image ? (
                 <Pressable onPress={() => handleRetry(item)} hitSlop={8}>
                   <Text style={[styles.retryText, { color: colors.onAccent }]}>
                     {t('conversation.retrySend')}
@@ -1461,6 +1636,19 @@ export function ConversationScreen({ route, navigation }: Props) {
         ) : null}
 
         <View style={[styles.inputBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {/* Hidden while recording, when it could only interrupt, and while
+              editing, when a picture cannot replace the text being edited. */}
+          {!recording && !editingId ? (
+            <Pressable
+              onPress={chooseImageSource}
+              hitSlop={8}
+              style={styles.attachButton}
+              accessibilityRole="button"
+              accessibilityLabel={t('conversation.attachImage')}
+            >
+              <ImageIcon size={22} color={colors.textSecondary} />
+            </Pressable>
+          ) : null}
           <TextInput
             ref={inputRef}
             style={[styles.input, { color: colors.textPrimary }]}
@@ -1926,6 +2114,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingHorizontal: 16,
     paddingBottom: 4,
+  },
+  attachButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 4,
+    paddingBottom: 9,
   },
   inputBar: {
     flexDirection: 'row',
