@@ -2,13 +2,13 @@
   "expo": {
     "name": "Seixo",
     "slug": "seixo",
-    "version": "1.13.1",
+    "version": "1.13.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.xeixos.seixo",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
