@@ -1838,3 +1838,13 @@ from the recovery backup afterwards signed back into the same account and
 republished its prekeys. The one failure was human: the welcome screen's
 restore option was a line of grey text, the tester created a new account
 instead, and restoring meant deleting that one first. It is now a button.
+
+### Voice messages jumping to the earpiece while typing, second attempt (2026-09-21)
+
+Reported again on 1.13.0: typing while a voice message played sometimes moved
+it to the earpiece. The keyboard observers and half-second watchdog put it
+back, but only after it had been heard. The route is now carried by the
+category (`.defaultToSpeaker` in its options while away from the ear, taken
+away at the ear) rather than by an output override, so the reset iOS applies
+to overrides lands on the speaker. Not a security change; recorded because the
+first fix was claimed and did not hold.

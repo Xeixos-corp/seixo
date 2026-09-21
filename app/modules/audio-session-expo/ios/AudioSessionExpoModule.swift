@@ -62,12 +62,24 @@ public class AudioSessionExpoModule: Module {
   /// Headphones win over everything. This is the rule 1.7.1 broke: it asked
   /// for the speaker unconditionally at the start of every message, and
   /// `overrideOutputAudioPort(.speaker)` beats a Bluetooth route -- so with
-  /// AirPods in, voice messages came out of the phone. The override is now
-  /// only ever applied when there is no external output to respect, and
-  /// `.none` is used otherwise, which leaves iOS on the headphones.
+  /// AirPods in, voice messages came out of the phone.
   ///
   /// Without headphones: the receiver while the phone is at the ear, the
-  /// speaker otherwise.
+  /// speaker otherwise -- and the speaker is chosen by the *category*, not by
+  /// an override. That is the fix for the bug that survived 1.13.0: typing
+  /// while a message played still sent it to the earpiece now and then. An
+  /// output override is fragile by design -- iOS resets it to `.none` whenever
+  /// something disturbs the session, and the keyboard does, apparently on
+  /// some keystrokes and not others -- and in this category `.none` means the
+  /// earpiece. The half-second watchdog put it back, but only after the
+  /// person had already heard it jump. With `.defaultToSpeaker` in the
+  /// category's options, `.none` *means* the speaker, so a reset has nowhere
+  /// wrong to go. At the ear the option is taken away, which is what moves
+  /// the sound to the earpiece.
+  ///
+  /// The category is only set when the options actually need to change:
+  /// setting it is itself a route change, and this runs from the route-change
+  /// observer and the watchdog.
   private static func applyPlaybackRoute() {
     let session = AVAudioSession.sharedInstance()
     let external = hasExternalOutput()
@@ -77,14 +89,22 @@ public class AudioSessionExpoModule: Module {
     // is near anything.
     UIDevice.current.isProximityMonitoringEnabled = !external
 
+    let nearEar = !external && UIDevice.current.proximityState
+    var wanted: AVAudioSession.CategoryOptions = [.allowBluetoothA2DP]
+    if !external && !nearEar {
+      wanted.insert(.defaultToSpeaker)
+    }
+    if session.category != .playAndRecord || session.categoryOptions != wanted {
+      try? session.setCategory(.playAndRecord, mode: .default, options: wanted)
+    }
+
     if external {
       try? session.overrideOutputAudioPort(.none)
       return
     }
-    let nearEar = UIDevice.current.proximityState
+    // Belt and braces, and only when the route is still wrong after the
+    // category has had its say: every override is itself a route change.
     let onSpeaker = session.currentRoute.outputs.contains { $0.portType == .builtInSpeaker }
-    // Asked only when the route is wrong: every override is itself a route
-    // change, and the watchdog below calls this every half second.
     if nearEar == onSpeaker {
       try? session.overrideOutputAudioPort(nearEar ? .none : .speaker)
     }
@@ -215,12 +235,16 @@ public class AudioSessionExpoModule: Module {
     /// the second one's start and switch everything off while it played.
     AsyncFunction("startEarpieceRouting") { [weak self] in
       let session = AVAudioSession.sharedInstance()
-      // No `.defaultToSpeaker`: that option redefines the category's default
-      // route as the speaker, which makes `overrideOutputAudioPort(.none)`
-      // mean "back to the speaker" rather than "back to the receiver", and
-      // the earpiece becomes unreachable. The speaker is asked for explicitly
-      // in applyPlaybackRoute instead, and only when no headphones are in use.
-      try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothA2DP])
+      // Started with the speaker as the default route; applyPlaybackRoute,
+      // straight after, takes `.defaultToSpeaker` away again if the phone is
+      // already at the ear or headphones are in. (It used to be left out here
+      // and the speaker asked for by an override, which the keyboard could
+      // knock back to the earpiece -- see applyPlaybackRoute.)
+      try session.setCategory(
+        .playAndRecord,
+        mode: .default,
+        options: [.allowBluetoothA2DP, .defaultToSpeaker]
+      )
       try session.setActive(true)
 
       DispatchQueue.main.async {
