@@ -1,6 +1,6 @@
 # Perguntas frequentes — Seixo
 
-**Última atualização: 18 de setembro de 2026**
+**Última atualização: 21 de setembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -109,7 +109,7 @@ O que ele **vê**, e que dizemos por inteiro na [política de privacidade](index
 
 - Que conversas existem e quem pertence a cada uma — é o mínimo para saber a quem entregar cada mensagem.
 - De cada mensagem: a que conversa pertence, a hora e o tamanho. Nunca o conteúdo.
-- Numa conversa a dois, **não guarda quem enviou**. **Num grupo, guarda** — quem recebe precisa de saber com que chave decifrar. Dizemos isto porque é verdade, não porque nos agrade.
+- Numa conversa a dois, **não guarda quem enviou na base de dados** — mas os registos do alojamento permitem sabê-lo durante **24 horas**. **Num grupo, guarda** — quem recebe precisa de saber com que chave decifrar. Dizemos isto porque é verdade, não porque nos agrade.
 - Das fotografias: um ficheiro cifrado por fotografia, com o tamanho arredondado, e **quando foi descarregado**. Isto último é quase um aviso de leitura, e não o conseguimos impedir — mas existe só enquanto o ficheiro existir, no máximo um dia.
 - O teu endereço IP. Aqui há uma distinção que vale a pena: na nossa base de dados o IP é apagado a cada minuto, mas os registos de entrada do alojamento — que não controlamos — guardam durante **24 horas** o IP, a cidade e o código postal aproximados, o teu fornecedor de internet e, na maioria dos casos, o identificador da tua conta. Ao fim desse dia desaparecem. A app não esconde o teu IP; se isso te importa, usa uma VPN.
 
