@@ -113,14 +113,20 @@ export function OnboardingScreen({ navigation }: Props) {
         )}
       </Pressable>
 
-      {/* Second, and quieter: most people arriving here are new. Someone
-          restoring knows they are restoring, and looks for it. */}
+      {/* Second, but a button rather than a line of grey text. It used to be
+          the quiet option on the reasoning that anyone restoring knows to look
+          for it -- and the first person to use the panic code looked straight
+          past it, created a new account, and was left with no way back from
+          inside the app. Someone restoring is often doing it under stress. */}
       <Pressable
         disabled={status === 'loading'}
         onPress={() => navigation.navigate('RestoreBackup')}
-        style={styles.restoreLink}
+        style={({ pressed }) => [
+          styles.restoreButton,
+          { borderColor: colors.accent, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' },
+        ]}
       >
-        <Text style={[styles.restoreLinkText, { color: colors.textSecondary }]}>
+        <Text style={[styles.restoreButtonText, { color: colors.accent }]}>
           {t('onboarding.restoreBackup')}
         </Text>
       </Pressable>
@@ -129,12 +135,15 @@ export function OnboardingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  restoreLink: {
+  restoreButton: {
+    borderRadius: 12,
+    borderWidth: 1.5,
+    paddingVertical: 15,
     alignItems: 'center',
-    paddingVertical: 16,
+    marginBottom: 8,
   },
-  restoreLinkText: {
-    fontSize: 14,
+  restoreButtonText: {
+    fontSize: 16,
     fontWeight: '600',
   },
   container: {

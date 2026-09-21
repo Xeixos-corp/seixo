@@ -18,7 +18,7 @@
     "subtitle": "End-to-end encrypted. No phone number. Minimal, temporary metadata.",
     "createIdentity": "Create identity",
     "retry": "Try again",
-    "restoreBackup": "I already have a backup"
+    "restoreBackup": "Restore an account from a backup"
   },
   "conversationList": {
     "peerIdPlaceholder": "the other person's user_id",

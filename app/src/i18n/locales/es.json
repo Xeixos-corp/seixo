@@ -18,7 +18,7 @@
     "subtitle": "Cifrado de extremo a extremo. Sin número de teléfono. Metadatos mínimos y temporales.",
     "createIdentity": "Crear identidad",
     "retry": "Intentar de nuevo",
-    "restoreBackup": "Ya tengo una copia de seguridad"
+    "restoreBackup": "Recuperar una cuenta desde una copia de seguridad"
   },
   "conversationList": {
     "peerIdPlaceholder": "user_id de la otra persona",

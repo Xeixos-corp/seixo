@@ -1800,7 +1800,8 @@ Entering the panic code is indistinguishable on screen from the right one: the
 same pause, then the app opens -- at the welcome screen, because by then it is
 a fresh install. Wipe order: withdraw the push token on the server (1.5 s
 grace, then carry on), unregister from APNs on the phone (no network needed),
-remove delivered notifications and the badge, sign out locally, wipe the
+remove delivered notifications and the badge, end this phone's session
+(`scope: local`: the server revokes that one refresh token if reachable), wipe the
 Signal store and master key, the codes, every store and all of AsyncStorage,
 the cache directory (decrypted pictures, recordings, backup files) and the
 App Group. Every step runs even if another fails.
@@ -1830,3 +1831,10 @@ taken while a conversation is in front sends a silent control message
 a second phone's camera is never detected, and the notice claims no more.
 The server learns that a small silent message was sent -- the same as for a
 reaction.
+
+First real test, 2026-09-21 (dev build): the hosting log shows the push token
+row deleted and `logout?scope=local` within 200 ms of the code; restoring
+from the recovery backup afterwards signed back into the same account and
+republished its prekeys. The one failure was human: the welcome screen's
+restore option was a line of grey text, the tester created a new account
+instead, and restoring meant deleting that one first. It is now a button.

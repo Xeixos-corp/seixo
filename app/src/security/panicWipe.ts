@@ -68,8 +68,10 @@ export async function panicWipe(): Promise<void> {
   await attempt('delivered notifications', () => Notifications.dismissAllNotificationsAsync());
   await attempt('badge', () => setBadgeCount(0, APP_GROUP));
 
-  // Local only: no request to the server, which may be unreachable, and no
-  // revoking of the session there -- the account is being kept, not closed.
+  // `local`: ends this phone's session only -- supabase-js asks the server to
+  // revoke that one refresh token (POST /logout?scope=local, seen in the
+  // hosting log on the first real test) and forgets it here whether or not
+  // the server answers. The account itself is kept, not closed.
   await attempt('session', () => supabase.auth.signOut({ scope: 'local' }).then(() => undefined));
 
   await attempt('signal store', async () => wipeLocalSignalStore());

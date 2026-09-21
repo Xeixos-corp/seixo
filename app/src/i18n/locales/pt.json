@@ -18,7 +18,7 @@
     "subtitle": "Cifra ponta-a-ponta. Sem número de telefone. Metadados mínimos e temporários.",
     "createIdentity": "Criar identidade",
     "retry": "Tentar novamente",
-    "restoreBackup": "Já tenho uma cópia de segurança"
+    "restoreBackup": "Recuperar conta de uma cópia de segurança"
   },
   "conversationList": {
     "peerIdPlaceholder": "user_id da outra pessoa",
