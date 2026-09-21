@@ -69,6 +69,12 @@ Dois pormenores que ninguém descobre sozinho:
 
 Quando o tempo acaba, a mensagem desaparece dos telemóveis e do servidor. O que não podemos prometer é o que está fora da app: quem tiver a mensagem à frente pode fotografá-la ou copiá-la, aqui como em qualquer lado.
 
+## Posso apagar uma mensagem que já enviei?
+
+Sim: mantém o dedo sobre a mensagem e escolhe «Apagar agora». Desaparece do servidor, do teu telemóvel e do telemóvel da outra pessoa — logo, se ela tiver a app aberta, ou da próxima vez que a abrir. Numa fotografia, o ficheiro vai com ela.
+
+Qualquer pessoa da conversa pode apagar qualquer mensagem, sua ou dos outros. O que nenhuma app consegue desfazer é o que já foi visto: a outra pessoa pode já ter lido a mensagem, ou ter feito uma captura de ecrã.
+
 ## As fotografias que envio revelam onde estou?
 
 Não. É a pergunta certa a fazer, porque normalmente revelam.
@@ -79,9 +85,15 @@ Por isso, antes de sair, a fotografia é **refeita a partir dos píxeis**: sai u
 
 Três coisas mais que convém saberes:
 
-- **A app nunca vê a tua galeria.** Quando escolhes uma fotografia, é o próprio iPhone que te mostra a galeria e entrega à app só a que escolheste.
+- **A app nunca vê a tua galeria.** Quando escolhes uma fotografia, é o próprio iPhone que te mostra a galeria e entrega à app só a que escolheste. O mesmo quando partilhas uma fotografia a partir de outra app: o Seixo recebe só essa, e trata-a exactamente da mesma forma.
 - **As fotografias desaparecem como as mensagens.** No servidor ficam no máximo 24 horas, e são apagadas cerca de um minuto depois da mensagem a que pertencem.
-- **Não há botão para guardar uma fotografia recebida.** Seria a forma mais fácil de a tirar do alcance do temporizador. Quem quiser mesmo guardá-la pode tirar uma captura de ecrã — mas aí é uma decisão, não um toque por engano.
+- **Não há botão para guardar uma fotografia recebida.** Seria a forma mais fácil de a tirar do alcance do temporizador. Quem quiser mesmo guardá-la pode tirar uma captura de ecrã — mas aí é uma decisão, não um toque por engano, e a outra pessoa fica a saber.
+
+## A outra pessoa sabe se eu fizer uma captura de ecrã?
+
+Sim. Se fizeres uma captura de ecrã dentro de uma conversa, aparece nessa conversa, para todos, uma linha a dizer que o fizeste. Não gera notificação.
+
+É uma cortesia, não uma protecção. O iPhone só avisa a app depois de a captura estar feita, e uma fotografia tirada ao ecrã com outro telemóvel não é detectada de todo. O que o aviso muda é que uma captura aqui deixa de ser silenciosa.
 
 ## Porque é que a notificação não diz quem escreveu nem o que dizia?
 
@@ -114,6 +126,7 @@ O que ele **vê**, e que dizemos por inteiro na [política de privacidade](index
 - O teu endereço IP. Aqui há uma distinção que vale a pena: na nossa base de dados o IP é apagado a cada minuto, mas os registos de entrada do alojamento — que não controlamos — guardam durante **24 horas** o IP, a cidade e o código postal aproximados, o teu fornecedor de internet e, na maioria dos casos, o identificador da tua conta. Ao fim desse dia desaparecem. A app não esconde o teu IP; se isso te importa, usa uma VPN.
 
 Os nomes que dás aos contactos e os nomes dos grupos nunca chegam ao servidor em texto legível.
+E não tens de acreditar só no que aqui escrevemos. Em qualquer mensagem, mantém o dedo e escolhe **«O que o servidor viu»**: a app lê essa mensagem no servidor nesse momento e mostra-te exactamente o que lá está. Em Definições, **«O que o servidor sabe»** faz o mesmo para a tua conta inteira.
 
 ## Alguém me está a incomodar. O que faço?
 
@@ -122,6 +135,20 @@ Os nomes que dás aos contactos e os nomes dos grupos nunca chegam ao servidor e
 - **Para nos dizeres:** **«Denunciar»**, no topo da conversa, abre um email para nós. Descreve o que aconteceu e cola o texto em causa — não conseguimos ler as mensagens, por isso sem isso não temos como saber o que se passou.
 
 Quem bloqueaste fica em **Definições → Bloqueados**, e podes desfazer.
+
+## E se alguém me obrigar a abrir a app?
+
+Podes definir um **código de pânico**. Em **Definições → Bloqueio da app**, escolhe «Código do Seixo»: a app passa a pedir um código de seis dígitos, verificado por ela própria. Aí podes definir um segundo código, o de pânico.
+
+Se alguém te obrigar a abrir o Seixo, escreves o de pânico em vez do verdadeiro. A app abre como se tivesse acabado de ser instalada — e é isso que passa a ser: tudo o que estava neste telemóvel é apagado nesse instante, conversas, fotografias, chaves e definições, e deixa de receber notificações.
+
+A tua conta continua no servidor. Com a cópia de segurança e as 12 palavras, podes recuperá-la mais tarde, neste ou noutro telemóvel, e voltar a falar com os mesmos contactos. As mensagens antigas não voltam.
+
+- **Não há forma de desfazer.** Escolhe um código de pânico que não confundas com o verdadeiro.
+- **Um código errado nunca apaga nada** — só obriga a esperar. Só o código de pânico apaga, e só de propósito.
+- **O código do Seixo não usa Face ID.** Se usasse, bastava alguém encostar o telemóvel à tua cara. Se te esqueceres dele, a única saída é reinstalar a app.
+
+O que não protege: quem já tiver copiado o conteúdo do telemóvel antes de escreveres o código.
 
 ## Como apago a minha conta, e o que é que desaparece?
 
