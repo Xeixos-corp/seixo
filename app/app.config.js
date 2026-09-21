@@ -52,11 +52,15 @@ module.exports = () => ({
     [
       'expo-share-intent',
       {
-        // Links and plain text only. Photos and files would need their own
-        // decision about how they are encrypted and sent; not part of this.
+        // Links, plain text, and one photo at a time -- the same one-at-a-time
+        // as the attach button. A photo goes through the same re-encode, check
+        // and sealing as one chosen in the app (SharedContentListener.tsx).
+        // Videos and other files are not accepted: they would need their own
+        // decision about how they are encrypted and sent.
         iosActivationRules: {
           NSExtensionActivationSupportsWebURLWithMaxCount: 1,
           NSExtensionActivationSupportsText: true,
+          NSExtensionActivationSupportsImageWithMaxCount: 1,
         },
         iosAppGroupIdentifier: appGroup,
         // iOS only for now: the Android native libraries are out of date with

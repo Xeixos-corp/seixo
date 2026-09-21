@@ -9,7 +9,9 @@
     "restoreBackup": "Restore account",
     "shareTarget": "Share to…",
     "notificationSound": "Notification sound",
-    "serverFootprint": "What the server knows"
+    "serverFootprint": "What the server knows",
+    "messageServerView": "What the server saw",
+    "appLockSettings": "App lock"
   },
   "onboarding": {
     "title": "Private messaging",
@@ -58,7 +60,8 @@
     "backupPromptBody": "If you lose this phone, your account and your contacts go with it — there is no way to restore them, not even by us. The backup takes a minute.",
     "backupPromptDismiss": "Not now",
     "backupPromptAction": "Create backup",
-    "imagePreview": "Photo"
+    "imagePreview": "Photo",
+    "screenshotPreview": "Screenshot"
   },
   "conversation": {
     "ttl": {
@@ -88,7 +91,7 @@
     "expiresInHours": "disappears in {{count}}h",
     "expiresInDays": "disappears in {{count}}d",
     "deleteTitle": "Delete message?",
-    "deleteMessageBody": "The message is deleted from the server and from this phone. If the other person has the app open it disappears from theirs too — but if they are offline, their copy may remain. Nothing prevents a screenshot.",
+    "deleteMessageBody": "The message is deleted from the server, from this phone and from the other person's — straight away, or the next time they open the app. But they may already have seen it, and nothing prevents a screenshot.",
     "deleteConfirm": "Delete now",
     "deleteFailed": "Could not delete the message from the server. It was removed from this phone.",
     "sendFailed": "Could not send. Check your connection and try again — your text is still here.",
@@ -176,7 +179,17 @@
     "imagePickFailed": "Could not open the camera or the library.",
     "imagePrepareFailed": "Could not prepare the image. Nothing was sent.",
     "imageMetadataRefused": "This image still carried photo data (such as its location) after being cleaned, so it was not sent.",
-    "cameraDenied": "Without camera access, a photo cannot be taken."
+    "cameraDenied": "Without camera access, a photo cannot be taken.",
+    "sharedImageTitle": "Shared photo",
+    "sharedImageHint": "Sent without its location or camera details.",
+    "sharedImageSend": "Send",
+    "sharedImageDiscard": "Discard the photo",
+    "deletedFallback": "Message deleted",
+    "screenshotNoticeMine": "You took a screenshot",
+    "screenshotNoticeTheirs": "{{name}} took a screenshot",
+    "screenshotSomeone": "Someone",
+    "screenshotFallback": "📸 I took a screenshot of this conversation.",
+    "serverView": "What the server saw"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
@@ -202,8 +215,6 @@
       "hint": "The sound plays when a notification arrives. The sounds ship inside the app — the server never sends audio, only the name of the one you chose. If the phone is on silent, iOS plays none.",
       "saveFailed": "Your choice is saved on this phone, but the server could not be told. It will be sent next time you open the app."
     },
-    "appLockLabel": "Require Face ID to open the app",
-    "appLockHint": "When on, Seixo asks for Face ID (or your device passcode) every time you come back to it. Messages still arrive while it's locked.",
     "appLockUnavailable": "This device has no Face ID, Touch ID or passcode set, so there is nothing for Seixo to check against.",
     "appearanceSection": "Appearance",
     "theme": {
@@ -223,7 +234,9 @@
     "serverFootprintHint": "See, right now, everything that exists about you on the server.",
     "soundRow": "Sound",
     "contact": "Contact",
-    "version": "Version"
+    "version": "Version",
+    "appLockRow": "App lock",
+    "appLockRowHint": "Face ID, or a Seixo-only code with a panic code."
   },
   "screenshotWarning": {
     "title": "Screenshot",
@@ -250,7 +263,11 @@
     "lockedBody": "Use Face ID or your device passcode to open your conversations.",
     "failedBody": "Couldn't confirm it's you. Try again.",
     "unlockButton": "Unlock",
-    "unlocking": "Unlocking…"
+    "unlocking": "Unlocking…",
+    "codeBody": "Enter your Seixo code.",
+    "codeWrong": "Wrong code.",
+    "codePaused_one": "Too many attempts. Try again in {{count}} second.",
+    "codePaused_other": "Too many attempts. Try again in {{count}} seconds."
   },
   "notifications": {
     "title": "Seixo",
@@ -314,7 +331,8 @@
   },
   "share": {
     "intro": "Choose a conversation. The content goes into the text box and is only sent when you press send.",
-    "empty": "You have no conversations yet. Start one and share again."
+    "empty": "You have no conversations yet. Start one and share again.",
+    "introImage": "Choose the conversation. The photo is ready to send and only leaves when you press send."
   },
   "serverFootprint": {
     "intro": "This is everything that exists about you in the database, read just now. None of it is stored on the phone: close this and come back, and it is asked for again.",
@@ -349,7 +367,7 @@
     "noToken": "No notification token",
     "blocked": "People blocked",
     "absentSection": "What is not here",
-    "absentList": "The content of messages · what photos show · who sent each message or photo in a one-to-one conversation · the names you gave your contacts · the names of groups",
+    "absentList": "The content of messages · what photos show · who sent each message or photo in a one-to-one conversation (in the database) · the names you gave your contacts · the names of groups",
     "hostingNote": "This is the database. Before a request reaches it, the hosting provider's entry layer records it and keeps, for 24 hours, your IP, the approximate city and postal code, your internet provider and, in most cases, your account id. We do not control it and cannot delete it sooner. It is explained in the privacy policy.",
     "imagesSection": "Photos",
     "images_one": "1 encrypted photo",
@@ -357,5 +375,81 @@
     "imagesFooter": "Each one is deleted with its message, at most 24 hours after it was sent. The server sees its rounded size, never the picture.",
     "imagesDownloaded": "Downloaded",
     "imagesDownloadedHint": "The storage service records when each photo is downloaded. We cannot prevent it."
+  },
+  "messageServerView": {
+    "intro": "This message as it is on the server, read just now. It is everything that exists of it there — plus the hosting logs, at the end, which the app cannot read but which exist.",
+    "databaseSection": "In the database",
+    "content": "Content",
+    "unreadable": "Unreadable",
+    "size": "Size",
+    "sizeHint": "Exact. Text is not rounded, so the size gives an idea of how long the message is. Voice messages are rounded.",
+    "sizeGroupHint": "Exact. In a group it includes one encrypted copy per member, so it grows with the group.",
+    "conversation": "Conversation",
+    "createdAt": "Exact time",
+    "expiresAt": "Deleted from the server at",
+    "expiresAtHint": "When the server deletes it, even if nobody has read it.",
+    "notified": "Sent a notification",
+    "yes": "Yes",
+    "no": "No",
+    "sender": "Who sent it",
+    "senderDirectHint": "In a one-to-one conversation, the message does not say who sent it.",
+    "senderGroupHint_one": "In a group it is visible: the server sees who sent it and that there is a copy for {{count}} member.",
+    "senderGroupHint_other": "In a group it is visible: the server sees who sent it and that there are copies for {{count}} members.",
+    "senderYou": "You",
+    "notStored": "Not stored",
+    "fileSection": "Photo file",
+    "fileFooter": "Encrypted with a key that exists only inside the message. The server cannot open it.",
+    "fileSize": "Size",
+    "fileSizeHint": "Rounded up, so as not to reveal the photo's real size.",
+    "fileDownloaded": "Last downloaded",
+    "fileDownloadedHint": "Written by the storage service. It says, roughly, when it was received.",
+    "fileNotDownloaded": "Not downloaded yet",
+    "fileOwner": "Who sent it",
+    "gone": "The server no longer has this message",
+    "goneFooter": "It was deleted from the server — by its timer, because someone deleted the message, or because it is a voice message or photo, which the server keeps for 24 hours at most. The copy you see exists only on the phones.",
+    "hostingSection": "In the hosting logs",
+    "hostingMine": "Your send was logged with your account, your IP and your approximate location.",
+    "hostingTheirs": "The send was logged with the account of whoever sent it. When you received it, your request was logged the same way, with your account.",
+    "hostingUntil": "Until {{time}}. We cannot read it or delete it sooner.",
+    "hostingGone": "More than 24 hours have passed: that log entry is already gone."
+  },
+  "codePad": {
+    "entered_one": "{{count}} digit entered",
+    "entered_other": "{{count}} digits entered",
+    "erase": "Delete digit"
+  },
+  "lockSettings": {
+    "methodSection": "Ask before opening the app",
+    "methodFooter": "Messages keep arriving while the app is locked.",
+    "off": "Don't ask",
+    "offShort": "Off",
+    "device": "Face ID or iPhone passcode",
+    "deviceShort": "Face ID",
+    "deviceHint": "The iPhone checks; Seixo only learns whether it passed.",
+    "code": "Seixo code",
+    "codeShort": "Code",
+    "codeHint": "Six digits, checked by the app itself. Allows a panic code. No Face ID: with it, anyone could just hold the phone up to your face.",
+    "changeCode": "Change the code",
+    "panicLabel": "Panic code",
+    "panicHint": "A second code that erases everything on this phone and opens the app as new.",
+    "panicFooter": "If you forget your Seixo code, the only way back in is to delete the app and install it again, and you lose the conversations on this phone.",
+    "on": "On",
+    "panicExplainTitle": "Panic code",
+    "panicExplainBody": "It is a second code. If someone forces you to open Seixo, you type this one instead of the real one.\n\nThe app opens as if it had just been installed, and that is what it becomes: everything on this phone is erased at that moment, for good. Conversations, photos, keys and settings.\n\nYour account stays on the server. If you have a backup (the 12 words), you can restore it later and talk to the same contacts again. Old messages do not come back.\n\nThere is no undo. Choose a code you will not mix up with the real one.",
+    "panicExplainContinue": "Set the panic code",
+    "panicChange": "Change the panic code",
+    "panicTurnOff": "Turn off the panic code",
+    "panicEnterTitle": "Panic code",
+    "panicEnterBody": "It must be different from the code that opens the app.",
+    "panicConfirmTitle": "Repeat the panic code",
+    "panicSameAsUnlock": "That is the code that opens the app. Choose another.",
+    "codeEnterTitle": "Choose a code",
+    "codeEnterBody": "Six digits. You will be asked for it every time you come back to the app.",
+    "codeConfirmTitle": "Repeat the code",
+    "mismatch": "The codes do not match. Start again.",
+    "saveFailed": "Could not save. The code that opens the app and the panic code must be different.",
+    "leaveCodeTitle": "Turn off the panic code?",
+    "leaveCodeBody": "The panic code only exists with the Seixo code. If you switch, it is gone.",
+    "leaveCodeConfirm": "Switch anyway"
   }
 }

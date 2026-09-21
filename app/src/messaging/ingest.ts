@@ -41,7 +41,7 @@ const failedThisSession = new Set<string>();
  * rendered row is enough to be recognised, and it expires with everything
  * else.
  */
-function rememberControlMessage(channelId: string, fetched: FetchedMessage): void {
+function rememberControlMessage(channelId: string, fetched: FetchedMessage, deletesId?: string): void {
   useMessagesStore.getState().addMessage(channelId, {
     id: fetched.id,
     createdAt: fetched.createdAt,
@@ -49,6 +49,7 @@ function rememberControlMessage(channelId: string, fetched: FetchedMessage): voi
     plaintext: '',
     isMine: false,
     isControl: true,
+    deletesId,
   });
 }
 
@@ -125,8 +126,19 @@ export function ingestFetchedMessage(
 
   try {
     const raw = decryptMessage(sender, REMOTE_DEVICE_ID, envelope);
-    const { text, replyToId, editsMessageId, reactsToMessageId, audioBase64, audioDurationMs, localTtlSeconds, groupName, image } =
-      decodePayload(raw);
+    const {
+      text,
+      replyToId,
+      editsMessageId,
+      reactsToMessageId,
+      deletesMessageId,
+      screenshot,
+      audioBase64,
+      audioDurationMs,
+      localTtlSeconds,
+      groupName,
+      image,
+    } = decodePayload(raw);
 
     // The row's expires_at is only how long the *server* held it. When the
     // sender asked for a longer life on the devices, that travels inside the
@@ -142,6 +154,31 @@ export function ingestFetchedMessage(
       // same thing to the rest of the app, and neither ever leaves the phone.
       useConversationsStore.getState().setConversationNickname(channelId, groupName);
       rememberControlMessage(channelId, fetched);
+      return;
+    }
+
+    if (deletesMessageId) {
+      // The same thing the realtime DELETE does for a phone that is online,
+      // for one that was not. Any member may delete any message on the server
+      // (migration 0001's policy), so this asks for nothing that deleting the
+      // row did not already do -- it only makes it reach every phone. A
+      // photo's file goes with it: the image janitor removes files no message
+      // refers to.
+      store.removeMessage(channelId, deletesMessageId);
+      rememberControlMessage(channelId, fetched, deletesMessageId);
+      return;
+    }
+
+    if (screenshot) {
+      store.addMessage(channelId, {
+        id: fetched.id,
+        createdAt: fetched.createdAt,
+        expiresAt,
+        plaintext: '',
+        isMine: false,
+        senderUserId: sender,
+        notice: 'screenshot',
+      });
       return;
     }
 
@@ -183,8 +220,18 @@ export function ingestFetchedMessage(
 
     // A message that some already-received edit replaced. Adding it now would
     // show the superseded text below the corrected one.
+    // Nothing to show: no text, no recording, no picture. Only ever produced
+    // by a bug -- retrying a failed voice message used to send exactly this --
+    // and a blank bubble helps nobody. Remembered, so it is not decrypted
+    // again on the next fetch.
+    if (!text.trim() && !audioBase64 && !image) {
+      rememberControlMessage(channelId, fetched);
+      return;
+    }
+
+    // Likewise one whose deletion arrived first.
     const alreadySuperseded = (store.messagesByChannel[channelId] ?? []).some(
-      (message) => message.supersedesId === fetched.id,
+      (message) => message.supersedesId === fetched.id || message.deletesId === fetched.id,
     );
     if (alreadySuperseded) return;
 

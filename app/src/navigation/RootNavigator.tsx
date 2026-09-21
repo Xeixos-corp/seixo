@@ -14,21 +14,33 @@ import { ScanQrScreen } from '../screens/ScanQrScreen';
 import { BackupScreen } from '../screens/BackupScreen';
 import { NotificationSoundScreen } from '../screens/NotificationSoundScreen';
 import { ServerFootprintScreen } from '../screens/ServerFootprintScreen';
+import { MessageServerViewScreen } from '../screens/MessageServerViewScreen';
+import { AppLockSettingsScreen } from '../screens/AppLockSettingsScreen';
 import { RestoreBackupScreen } from '../screens/RestoreBackupScreen';
 import { ShareTargetScreen } from '../screens/ShareTargetScreen';
+import type { SharedImage } from '../store/pendingShareStore';
 
 export type RootStackParamList = {
   Onboarding: undefined;
   ConversationList: undefined;
   /**
    * `initialDraft` pre-fills the input box -- used by sharing from another app,
-   * which places text without ever sending it.
+   * which places text without ever sending it. `initialImage` does the same
+   * for a shared photo: it is offered above the input box, not sent.
    */
-  Conversation: { channelId: string; peerUserId: string; initialDraft?: string };
+  Conversation: {
+    channelId: string;
+    peerUserId: string;
+    initialDraft?: string;
+    initialImage?: SharedImage;
+  };
   BlockedPeers: undefined;
   Settings: undefined;
   NotificationSound: undefined;
   ServerFootprint: undefined;
+  AppLockSettings: undefined;
+  /** One message as the server holds it. `sentAt` for when the row is already gone. */
+  MessageServerView: { messageId: string; isMine: boolean; sentAt: string };
   ScanQr: undefined;
   Backup: undefined;
   RestoreBackup: undefined;
@@ -93,6 +105,16 @@ export function RootNavigator() {
           name="ServerFootprint"
           component={ServerFootprintScreen}
           options={{ title: t('navigation.serverFootprint') }}
+        />
+        <Stack.Screen
+          name="AppLockSettings"
+          component={AppLockSettingsScreen}
+          options={{ title: t('navigation.appLockSettings') }}
+        />
+        <Stack.Screen
+          name="MessageServerView"
+          component={MessageServerViewScreen}
+          options={{ title: t('navigation.messageServerView') }}
         />
         <Stack.Screen name="ScanQr" component={ScanQrScreen} options={{ title: t('navigation.scanQr') }} />
         <Stack.Screen name="Backup" component={BackupScreen} options={{ title: t('navigation.backup') }} />

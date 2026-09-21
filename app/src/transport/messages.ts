@@ -129,12 +129,12 @@ export async function fetchMessages(channelId: string): Promise<FetchedMessage[]
  * ("messages are deletable by channel members (manual delete / burn)",
  * supabase/migrations/0001_init.sql), which was written for exactly this.
  *
- * This reliably removes the server's copy. Whether it also disappears from
- * the peer's phone is best-effort: they only drop their local copy if their
- * client is subscribed when the delete lands (see subscribeToChannelMessages
- * below). If they were offline at that moment, their copy survives — and no
- * deletion of any kind can undo a screenshot. The UI must not promise more
- * than that.
+ * This reliably removes the server's copy. On its own it reaches only the
+ * phones subscribed when the delete lands (see subscribeToChannelMessages
+ * below); a phone that was offline kept its copy. So the screen also sends an
+ * encrypted deletion (`deletesMessageId` in messaging/payload.ts) that waits
+ * for those phones. No deletion of any kind can undo a screenshot, or reach a
+ * phone that already saw the message -- the UI must not promise more.
  */
 export async function deleteMessage(messageId: string): Promise<void> {
   const { error } = await supabase.from('messages').delete().eq('id', messageId);

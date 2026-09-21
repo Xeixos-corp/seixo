@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ShareTarget'>;
  *
  * Choosing does not send. It opens the conversation with the shared text in
  * the input box, where the person can add to it, change it or delete it, and
- * it leaves only when they press send. Anything else -- a share that went
+ * it leaves only when they press send. A shared photo is offered above the
+ * input box the same way, with its own send and discard. Anything else -- a share that went
  * straight out -- would put a message in someone's conversation that the
  * sender never saw in context.
  */
@@ -25,6 +26,7 @@ export function ShareTargetScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
   const text = usePendingShareStore((state) => state.text);
+  const image = usePendingShareStore((state) => state.image);
   const conversations = useConversationsStore((state) => state.conversations);
   const blockedPeerIds = useBlockedPeersStore((state) => state.blockedPeerIds);
   const visible = conversations.filter((conversation) => !blockedPeerIds.includes(conversation.peerUserId));
@@ -45,7 +47,10 @@ export function ShareTargetScreen({ navigation }: Props) {
   }, [navigation, colors.accent, t]);
 
   const choose = (channelId: string, peerUserId: string) => {
-    navigation.replace('Conversation', { channelId, peerUserId, initialDraft: text ?? '' });
+    // Taken out of the store first: leaving this screen deletes whatever is
+    // still in it, and the photo now belongs to the conversation.
+    const initialImage = usePendingShareStore.getState().takeImage() ?? undefined;
+    navigation.replace('Conversation', { channelId, peerUserId, initialDraft: text ?? '', initialImage });
   };
 
   return (
@@ -57,7 +62,15 @@ export function ShareTargetScreen({ navigation }: Props) {
           </Text>
         </View>
       ) : null}
-      <Text style={[styles.intro, { color: colors.textSecondary }]}>{t('share.intro')}</Text>
+      {image ? (
+        <Image
+          source={{ uri: image.uri }}
+          style={[styles.imagePreview, { borderColor: colors.border }]}
+          resizeMode="cover"
+          accessibilityLabel={t('conversation.imageLabel')}
+        />
+      ) : null}
+      <Text style={[styles.intro, { color: colors.textSecondary }]}>{t(image ? 'share.introImage' : 'share.intro')}</Text>
 
       <FlatList
         data={visible}
@@ -86,6 +99,13 @@ export function ShareTargetScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16 },
   preview: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 16 },
+  imagePreview: {
+    width: 96,
+    height: 96,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: 16,
+  },
   intro: { fontSize: 13, lineHeight: 18, marginVertical: 12 },
   empty: { fontSize: 14, textAlign: 'center', marginTop: 32 },
   row: { paddingVertical: 16, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth },

@@ -60,6 +60,23 @@ type Encoded = {
    * (supabase/migrations/0015_silent_messages.sql).
    */
   x?: string;
+  /**
+   * Deletes a message from every phone in the conversation: the id of the
+   * message to remove.
+   *
+   * Deleting the row on the server only reached the phones that happened to
+   * be connected at that moment (the realtime DELETE event). A phone that was
+   * closed kept its copy until its own timer ran out -- which, for a photo,
+   * could be days. This travels like any other message, so it waits on the
+   * server for a phone that is offline and is applied when it comes back.
+   */
+  z?: string;
+  /**
+   * A notice that the sender took a screenshot of this conversation. Shown to
+   * everyone in it as a line of its own, not as a message bubble. A courtesy,
+   * not a protection: another phone's camera is never detected.
+   */
+  s?: 1;
   /** Voice message: the recording, base64. */
   a?: string;
   /** Voice message: duration in milliseconds, so it can be shown before playing. */
@@ -125,6 +142,10 @@ export type MessagePayload = {
   editsMessageId?: string;
   /** Id of the message being reacted to; `text` is then the emoji, or ''. */
   reactsToMessageId?: string;
+  /** Id of the message to remove from every phone. */
+  deletesMessageId?: string;
+  /** The sender took a screenshot of the conversation. */
+  screenshot?: boolean;
   /** Base64 audio for a voice message. `text` is empty for these. */
   audioBase64?: string;
   audioDurationMs?: number;
@@ -147,6 +168,8 @@ export function encodePayload(payload: MessagePayload): string {
     !payload.replyToId &&
     !payload.editsMessageId &&
     !payload.reactsToMessageId &&
+    !payload.deletesMessageId &&
+    !payload.screenshot &&
     !payload.audioBase64 &&
     !payload.localTtlSeconds &&
     payload.groupName === undefined &&
@@ -159,6 +182,8 @@ export function encodePayload(payload: MessagePayload): string {
   if (payload.replyToId) encoded.r = payload.replyToId;
   if (payload.editsMessageId) encoded.e = payload.editsMessageId;
   if (payload.reactsToMessageId) encoded.x = payload.reactsToMessageId;
+  if (payload.deletesMessageId) encoded.z = payload.deletesMessageId;
+  if (payload.screenshot) encoded.s = 1;
   if (payload.audioDurationMs) encoded.d = payload.audioDurationMs;
   if (payload.localTtlSeconds) encoded.l = payload.localTtlSeconds;
   if (payload.groupName !== undefined) encoded.n = payload.groupName;
@@ -198,6 +223,8 @@ export function decodePayload(raw: string): MessagePayload {
       replyToId: typeof parsed.r === 'string' ? parsed.r : undefined,
       editsMessageId: typeof parsed.e === 'string' ? parsed.e : undefined,
       reactsToMessageId: typeof parsed.x === 'string' ? parsed.x : undefined,
+      deletesMessageId: typeof parsed.z === 'string' ? parsed.z : undefined,
+      screenshot: parsed.s === 1 ? true : undefined,
       audioBase64: typeof parsed.a === 'string' ? parsed.a : undefined,
       audioDurationMs: typeof parsed.d === 'number' ? parsed.d : undefined,
       localTtlSeconds: typeof parsed.l === 'number' ? parsed.l : undefined,

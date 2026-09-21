@@ -4,8 +4,10 @@ import {
   Animated,
   AppState,
   FlatList,
+  Image,
   Modal,
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -72,11 +74,13 @@ import {
   uploadSealed,
 } from '../messaging/attachments';
 import * as Clipboard from 'expo-clipboard';
+import * as ScreenCapture from 'expo-screen-capture';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
 import { encryptMessage, isUntrustedIdentityError } from '../crypto';
 import { SUPPORT_CONTACT_EMAIL } from '../config/support';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { discardSharedImage, type SharedImage } from '../store/pendingShareStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
 
@@ -154,7 +158,7 @@ function formatSentAt(createdAt: string): string {
 }
 
 export function ConversationScreen({ route, navigation }: Props) {
-  const { channelId, peerUserId, initialDraft } = route.params;
+  const { channelId, peerUserId, initialDraft, initialImage } = route.params;
   const { colors } = useAppTheme();
   const keyboardSpacer = useKeyboardSpacer();
   const { t } = useTranslation();
@@ -349,6 +353,24 @@ export function ConversationScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (initialDraft) setInputText(initialDraft);
   }, [initialDraft]);
+
+  // A photo shared from another app, waiting above the input box for the
+  // person to send or discard. Until then it is the extension's untouched
+  // copy -- the original, location and all -- so every way of letting go of
+  // it deletes it, including leaving the conversation without deciding.
+  const [sharedImage, setSharedImage] = useState<SharedImage | null>(initialImage ?? null);
+  const sharedImageRef = useRef<SharedImage | null>(sharedImage);
+  const replaceSharedImage = useCallback((next: SharedImage | null) => {
+    if (sharedImageRef.current && sharedImageRef.current.uri !== next?.uri) {
+      discardSharedImage(sharedImageRef.current);
+    }
+    sharedImageRef.current = next;
+    setSharedImage(next);
+  }, []);
+  useEffect(() => {
+    if (initialImage) replaceSharedImage(initialImage);
+  }, [initialImage, replaceSharedImage]);
+  useEffect(() => () => discardSharedImage(sharedImageRef.current), []);
   const [sending, setSending] = useState(false);
   // Sending used to fail silently: the catch below only wrote to the
   // console, so pressing send with no connection did visibly nothing at
@@ -508,7 +530,18 @@ export function ConversationScreen({ route, navigation }: Props) {
    * so none of them has to repeat the decision or risk getting it wrong.
    */
   const transmit = useCallback(
-    async (payload: string, options: { silent?: boolean; serverTtlSeconds?: number } = {}) => {
+    async (
+      payload: string,
+      {
+        lifetimeSeconds = ttlSeconds,
+        ...options
+      }: {
+        silent?: boolean;
+        serverTtlSeconds?: number;
+        /** Instead of the conversation's timer -- for a deletion, see below. */
+        lifetimeSeconds?: number;
+      } = {},
+    ) => {
       if (isGroup) {
         const selfUserId = getCurrentUserId();
         if (!selfUserId) throw new Error('Group membership not loaded yet');
@@ -532,29 +565,38 @@ export function ConversationScreen({ route, navigation }: Props) {
           selfUserId,
           members,
           payload,
-          ttlSeconds,
+          lifetimeSeconds,
           options,
         );
       }
       const envelope = encryptMessage(peerUserId, REMOTE_DEVICE_ID, payload);
-      return sendMessage(channelId, envelope, ttlSeconds, options);
+      return sendMessage(channelId, envelope, lifetimeSeconds, options);
     },
     [isGroup, groupMemberIds, channelId, peerUserId, ttlSeconds],
   );
 
   const sendVoiceMessage = useCallback(
-    async (audioBase64: string, durationMs: number) => {
-      const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-      addMessage(channelId, {
-        id: localId,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
-        plaintext: '',
-        isMine: true,
-        status: 'sending',
-        audioBase64,
-        audioDurationMs: durationMs,
-      });
+    async (
+      audioBase64: string,
+      durationMs: number,
+      /** A failed voice message being sent again, in its own place. */
+      retryOfLocalId?: string,
+    ) => {
+      const localId = retryOfLocalId ?? `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      if (retryOfLocalId) {
+        setMessageStatus(channelId, localId, 'sending');
+      } else {
+        addMessage(channelId, {
+          id: localId,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+          plaintext: '',
+          isMine: true,
+          status: 'sending',
+          audioBase64,
+          audioDurationMs: durationMs,
+        });
+      }
 
       try {
         const { id, createdAt, expiresAt } = await transmit(
@@ -590,8 +632,10 @@ export function ConversationScreen({ route, navigation }: Props) {
   );
 
   /**
-   * Sends a photo: chooses it, strips it, seals it, then inserts the message
-   * and uploads the sealed file under that message's id.
+   * Sends a photo already chosen -- from the picker, or shared from another
+   * app: strips it, seals it, then inserts the message and uploads the sealed
+   * file under that message's id. The file it is given is deleted either way
+   * (the re-encode deletes its source).
    *
    * The order is fixed by the server. The storage policy only accepts an
    * object whose message already exists, so the message goes first and the
@@ -602,32 +646,9 @@ export function ConversationScreen({ route, navigation }: Props) {
    * the conversation with a reason and nothing sent. Once the message exists,
    * a failed upload is shown on the picture itself rather than hidden.
    */
-  const sendImage = useCallback(
-    async (source: 'camera' | 'library') => {
+  const sendPickedImage = useCallback(
+    async (picked: { uri: string; width: number; height: number }) => {
       setSendError(null);
-
-      let picked: Awaited<ReturnType<typeof pickImage>>;
-      try {
-        picked = await pickImage(source);
-      } catch (error) {
-        console.error('[ConversationScreen] could not open the picker', error);
-        setSendError(t('conversation.imagePickFailed'));
-        return;
-      }
-      if (picked.kind === 'cancelled') return;
-      if (picked.kind === 'denied') {
-        if (!picked.canAskAgain) {
-          // Same rule as the microphone: the way to Settings is offered only
-          // after an earlier refusal, never in answer to one just given.
-          Alert.alert(t('permissions.cameraBlockedTitle'), t('permissions.cameraBlockedBody'), [
-            { text: t('conversation.cancel'), style: 'cancel' },
-            { text: t('permissions.openSettings'), onPress: () => void Linking.openSettings() },
-          ]);
-        } else {
-          setSendError(t('conversation.cameraDenied'));
-        }
-        return;
-      }
 
       let prepared: Awaited<ReturnType<typeof prepareImage>>;
       let sealed: Awaited<ReturnType<typeof sealImage>>;
@@ -725,6 +746,48 @@ export function ConversationScreen({ route, navigation }: Props) {
       t,
     ],
   );
+
+  /** Takes a photo, or lets the person choose one, and sends it. */
+  const sendImage = useCallback(
+    async (source: 'camera' | 'library') => {
+      setSendError(null);
+
+      let picked: Awaited<ReturnType<typeof pickImage>>;
+      try {
+        picked = await pickImage(source);
+      } catch (error) {
+        console.error('[ConversationScreen] could not open the picker', error);
+        setSendError(t('conversation.imagePickFailed'));
+        return;
+      }
+      if (picked.kind === 'cancelled') return;
+      if (picked.kind === 'denied') {
+        if (!picked.canAskAgain) {
+          // Same rule as the microphone: the way to Settings is offered only
+          // after an earlier refusal, never in answer to one just given.
+          Alert.alert(t('permissions.cameraBlockedTitle'), t('permissions.cameraBlockedBody'), [
+            { text: t('conversation.cancel'), style: 'cancel' },
+            { text: t('permissions.openSettings'), onPress: () => void Linking.openSettings() },
+          ]);
+        } else {
+          setSendError(t('conversation.cameraDenied'));
+        }
+        return;
+      }
+      await sendPickedImage(picked);
+    },
+    [sendPickedImage, t],
+  );
+
+  const sendSharedImage = useCallback(() => {
+    const image = sharedImageRef.current;
+    if (!image) return;
+    // Handed over before sending, so the cleanup above does not delete the
+    // file the send is still reading. The send deletes it itself.
+    sharedImageRef.current = null;
+    setSharedImage(null);
+    void sendPickedImage(image);
+  }, [sendPickedImage]);
 
   const chooseImageSource = useCallback(() => {
     Alert.alert(t('conversation.attachTitle'), undefined, [
@@ -1055,27 +1118,119 @@ export function ConversationScreen({ route, navigation }: Props) {
             text: t('conversation.deleteConfirm'),
             style: 'destructive',
             onPress: async () => {
-              // Drop it locally first: the server delete is what the peer
-              // reacts to, but this user asked for it gone and shouldn't
-              // watch it linger while the round trip happens.
+              const target = messages.find((m) => m.id === messageId);
+              // Drop it locally first: this user asked for it gone and
+              // shouldn't watch it linger while the round trip happens.
               dropMessage(messageId);
               // A message that never reached the server has no row to delete,
               // and its local id is not even a uuid -- asking Postgres to
               // delete it would fail on the type, not on the lookup.
               if (messageId.startsWith('local-')) return;
+              let failed = false;
+              try {
+                // Tell the other phones, encrypted, as a message of its
+                // own: deleting the row below only reaches phones that are
+                // connected right now, and one that was closed used to keep
+                // its copy. This waits on the server for as long as the
+                // message could still be on a phone -- its own remaining life
+                // -- and no longer: after that there is nothing left to
+                // delete. Silent, so nobody's phone buzzes for a deletion.
+                const remaining = target ? Math.ceil((Date.parse(target.expiresAt) - Date.now()) / 1000) : 0;
+                if (remaining > 0) {
+                  const sent = await transmit(
+                    encodePayload({
+                      // Only for builds that predate this, which would
+                      // otherwise show it as an empty message.
+                      text: t('conversation.deletedFallback'),
+                      deletesMessageId: messageId,
+                    }),
+                    { silent: true, lifetimeSeconds: Math.max(60, remaining) },
+                  );
+                  // Remembered so its echo from the server is recognised and
+                  // not decrypted -- this phone cannot decrypt what it sent.
+                  useMessagesStore.getState().addMessage(channelId, {
+                    id: sent.id,
+                    createdAt: sent.createdAt,
+                    expiresAt: sent.expiresAt,
+                    plaintext: '',
+                    isMine: true,
+                    isControl: true,
+                    deletesId: messageId,
+                  });
+                }
+              } catch (error) {
+                console.error('[ConversationScreen] failed to announce a deletion', messageId, error);
+                failed = true;
+              }
+              // Attempted either way: the server's copy should go even if the
+              // phones could not be told.
               try {
                 await deleteMessage(messageId);
               } catch (error) {
                 console.error('[ConversationScreen] failed to delete message', messageId, error);
-                setLoadError(t('conversation.deleteFailed'));
+                failed = true;
               }
+              if (failed) setLoadError(t('conversation.deleteFailed'));
             },
           },
         ],
       );
     },
-    [dropMessage, t],
+    [channelId, dropMessage, messages, transmit, t],
   );
+
+  // A screenshot taken while this conversation is on screen is announced to
+  // everyone in it, as a line of its own. Deliberately a courtesy rather than
+  // a protection, and the notice says no more than it can: iOS reports a
+  // screenshot only after it has been taken, and a second phone's camera is
+  // never detected at all. What it does give people is the knowledge that a
+  // screenshot here is not silent -- which is most of the deterrent.
+  //
+  // iOS only: Android blocks screenshots outright (useScreenshotProtection),
+  // and its listener would need a storage permission.
+  //
+  // Only while this screen is the one in front and the app is active, so a
+  // screenshot of something else never lands in this conversation. At most
+  // one notice per few seconds: a burst of screenshots is one fact.
+  const lastScreenshotNoticeAt = useRef(0);
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const subscription = ScreenCapture.addScreenshotListener(() => {
+      if (!navigation.isFocused() || AppState.currentState !== 'active') return;
+      const now = Date.now();
+      if (now - lastScreenshotNoticeAt.current < 5000) return;
+      lastScreenshotNoticeAt.current = now;
+
+      const localId = `local-${now}-${Math.random().toString(36).slice(2, 10)}`;
+      addMessage(channelId, {
+        id: localId,
+        createdAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + ttlSeconds * 1000).toISOString(),
+        plaintext: '',
+        isMine: true,
+        notice: 'screenshot',
+      });
+      // Silent: it waits in the conversation rather than buzzing anyone.
+      transmit(encodePayload({ text: t('conversation.screenshotFallback'), screenshot: true }), { silent: true })
+        .then((sent) =>
+          replaceMessage(channelId, localId, {
+            id: sent.id,
+            createdAt: sent.createdAt,
+            expiresAt: new Date(Date.parse(sent.createdAt) + ttlSeconds * 1000).toISOString(),
+            plaintext: '',
+            isMine: true,
+            notice: 'screenshot',
+          }),
+        )
+        .catch((error) => {
+          // Not sent, so not shown: a notice here claiming the others were
+          // told, when they were not, would be the one dishonest outcome.
+          console.error('[ConversationScreen] could not announce a screenshot', error);
+          removeMessage(channelId, localId);
+        });
+    });
+    return () => subscription.remove();
+  }, [navigation, channelId, ttlSeconds, addMessage, replaceMessage, removeMessage, transmit, t]);
 
   // Long-press used to delete outright. Now that there are two things you can
   // do to a message it opens a menu instead -- deleting is destructive and
@@ -1136,6 +1291,21 @@ export function ConversationScreen({ route, navigation }: Props) {
               },
             ]
           : []),
+        // Only for a message that reached the server; a local one has
+        // nothing there to show.
+        ...(message && !messageId.startsWith('local-')
+          ? [
+              {
+                text: t('conversation.serverView'),
+                onPress: () =>
+                  navigation.navigate('MessageServerView', {
+                    messageId,
+                    isMine: message.isMine === true,
+                    sentAt: message.createdAt,
+                  }),
+              },
+            ]
+          : []),
         {
           text: t('conversation.deleteConfirm'),
           style: 'destructive',
@@ -1144,7 +1314,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         { text: t('conversation.cancel'), style: 'cancel' },
       ]);
     },
-    [copyToClipboard, handleDeleteMessage, handleReact, messages, t],
+    [copyToClipboard, handleDeleteMessage, handleReact, messages, navigation, t],
   );
 
   // Lets an arriving notification know it has nothing to announce while this
@@ -1355,10 +1525,21 @@ export function ConversationScreen({ route, navigation }: Props) {
 
   const handleRetry = useCallback(
     (message: DecryptedMessage) => {
+      // A voice message goes again as a voice message. Retrying used to
+      // resend `plaintext`, which is empty for a recording -- so it went out,
+      // to both phones, as a blank bubble, and the recording was never sent.
+      if (message.audioBase64) {
+        void sendVoiceMessage(message.audioBase64, message.audioDurationMs ?? 0, message.id);
+        return;
+      }
+      // Nothing to resend. Never reached today (images have no retry, and
+      // every other failed message has text), but an empty message must not
+      // be the thing that goes out if that ever changes.
+      if (!message.plaintext.trim()) return;
       setMessageStatus(channelId, message.id, 'sending');
       void deliver(message.id, message.plaintext, message.replyToId, ttlSeconds);
     },
-    [channelId, deliver, ttlSeconds, setMessageStatus],
+    [channelId, deliver, sendVoiceMessage, ttlSeconds, setMessageStatus],
   );
 
   return (
@@ -1460,7 +1641,23 @@ export function ConversationScreen({ route, navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
-          renderItem={({ item }) => (
+          renderItem={({ item }) =>
+            item.notice === 'screenshot' ? (
+              <View style={styles.noticeRow}>
+                <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
+                  {item.isMine === true
+                    ? t('conversation.screenshotNoticeMine')
+                    : t('conversation.screenshotNoticeTheirs', {
+                        name:
+                          (isGroup
+                            ? item.senderUserId && peerNickname(allConversations, item.senderUserId)
+                            : conversationName) || t('conversation.screenshotSomeone'),
+                      })}
+                  {' · '}
+                  {formatSentAt(item.createdAt)}
+                </Text>
+              </View>
+            ) : (
             <Pressable
               onLongPress={() => handleMessageActions(item.id)}
               delayLongPress={350}
@@ -1562,7 +1759,8 @@ export function ConversationScreen({ route, navigation }: Props) {
                 </Pressable>
               ) : null}
             </Pressable>
-          )}
+            )
+          }
         />
         )}
 
@@ -1613,6 +1811,41 @@ export function ConversationScreen({ route, navigation }: Props) {
               </Text>
             </View>
             <Pressable onPress={() => setOneOffTtlSeconds(null)} hitSlop={12}>
+              <Text style={{ color: colors.textSecondary, fontSize: 18 }}>×</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {sharedImage ? (
+          <View style={[styles.replyBar, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+            <Image
+              source={{ uri: sharedImage.uri }}
+              style={styles.sharedImageThumb}
+              resizeMode="cover"
+              accessibilityLabel={t('conversation.imageLabel')}
+            />
+            <View style={styles.replyBarTextWrapper}>
+              <Text style={[styles.replyBarLabel, { color: colors.accent }]}>{t('conversation.sharedImageTitle')}</Text>
+              <Text numberOfLines={2} style={{ color: colors.textSecondary, fontSize: 13 }}>
+                {t('conversation.sharedImageHint')}
+              </Text>
+            </View>
+            <Pressable
+              onPress={sendSharedImage}
+              style={({ pressed }) => [
+                styles.sharedImageSend,
+                { backgroundColor: pressed ? colors.accentPressed : colors.accent },
+              ]}
+              accessibilityRole="button"
+            >
+              <Text style={{ color: colors.onAccent, fontWeight: '600' }}>{t('conversation.sharedImageSend')}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => replaceSharedImage(null)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={t('conversation.sharedImageDiscard')}
+            >
               <Text style={{ color: colors.textSecondary, fontSize: 18 }}>×</Text>
             </Pressable>
           </View>
@@ -2087,10 +2320,30 @@ const styles = StyleSheet.create({
   replyBarTextWrapper: {
     flex: 1,
   },
+  noticeRow: {
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginVertical: 4,
+  },
+  noticeText: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
   replyBarLabel: {
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 2,
+  },
+  sharedImageThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+  },
+  sharedImageSend: {
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   messageBubble: {
     borderRadius: 12,

@@ -75,12 +75,16 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
     const previewColor = isUnread ? colors.textPrimary : colors.textSecondary;
     const isVoice = Boolean(last.audioBase64 || last.audioDurationMs);
     const isImage = Boolean(last.image);
-    const body = isImage
+    const body = last.notice === 'screenshot'
+      ? last.isMine
+        ? t('conversation.screenshotNoticeMine')
+        : t('conversationList.screenshotPreview')
+      : isImage
       ? t('conversationList.imagePreview')
       : isVoice
         ? t('conversationList.voicePreview', { duration: formatDuration(last.audioDurationMs) })
         : last.plaintext.replace(/\s+/g, ' ').trim();
-    const text = last.isMine ? t('conversationList.youPrefix', { text: body }) : body;
+    const text = last.isMine && !last.notice ? t('conversationList.youPrefix', { text: body }) : body;
     return (
       <View style={styles.previewLine}>
         {isImage ? (

@@ -76,6 +76,18 @@ export type DecryptedMessage = {
    */
   supersedesId?: string;
   /**
+   * Set on the remembered copy of a deletion (see `isControl`): the id of the
+   * message it deleted. Keeps that message from being added if it turns up
+   * after the deletion -- a catch-up fetch and a realtime insert can arrive
+   * in either order.
+   */
+  deletesId?: string;
+  /**
+   * Not a message but a line about the conversation: someone took a
+   * screenshot of it. `senderUserId` says who, when it was not this phone.
+   */
+  notice?: 'screenshot';
+  /**
    * Emoji reactions on this message, keyed by who reacted: 'mine' for this
    * device, 'theirs' for the other person. One reaction each, replaced rather
    * than accumulated, which matches how people actually use them and keeps

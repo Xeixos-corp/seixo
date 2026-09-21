@@ -1729,3 +1729,104 @@ key is inside the envelope and AES-GCM rejects anything else -- so the worst
 case is an image shown as unavailable. Uploads are limited to two minutes
 after the message is created, which makes that a race against a sender who
 uploads in seconds.
+
+### Sharing a photo into Seixo (2026-09-21)
+
+The share extension from 2026-09-11 now also accepts one image
+(`NSExtensionActivationSupportsImageWithMaxCount: 1`). Videos and other files
+are still refused by the activation rule.
+
+What changes is that the shared item is now a file, and an unsafe one: the
+extension copies the original into the App Group container as `UUID.ext`,
+EXIF and location included. The app parks only its path
+(`store/pendingShareStore.ts`, memory only), and every way of letting go of it
+deletes the file -- choosing another share, cancelling "Share to...", pressing
+× above the input box, leaving the conversation without deciding. Sending
+deletes it too, because the re-encode in `prepareImage` deletes its source.
+A shared photo takes exactly the path of one chosen with the picker: resized,
+re-encoded, checked by `jpegMetadata.ts`, sealed, capped at a day on the
+server. Nothing is sent until the person presses "Send" above the input box.
+
+The gap is a crash, or the app being killed, between the share and that
+decision. `clearSharedFiles` (modules/shared-badge-expo) runs at every start
+and deletes top-level `UUID.*` files in the App Group older than ten minutes,
+so an orphan outlives at most one launch. It touches nothing else there: the
+badge count and the extension's hand-over lives in UserDefaults, not in files.
+
+One copy is out of reach: when the shared item is an in-memory `UIImage`
+(a screenshot shared from the markup editor) rather than a file, the library's
+extension writes it to `screenshot.png` in the extension's *own* Documents
+directory before copying it on. The app cannot see that container. The file is
+overwritten by the next such share, and a screenshot carries no location, but
+it does linger -- recorded here rather than claimed away.
+
+### Deleting a message now reaches phones that were offline (2026-09-21)
+
+Deleting a message used to rely on the realtime DELETE event, so it reached
+only the phones connected at that moment. A phone that was closed -- the usual
+state of an iPhone app -- kept its copy until its own timer ran out, which for
+a photo on a week-long timer meant a week. Reported by the owner after
+deleting photos that stayed on the other phone.
+
+The deleting phone now also sends an encrypted control message
+(`deletesMessageId`, wire field `z`, `silent` so it does not notify) before
+deleting the row. It lives on the server for the target's remaining lifetime
+on the devices and no longer, since after that nothing is left to delete. The
+receiving phone removes the target and remembers the deletion's id with
+`deletesId`, so a target that arrives after its deletion is not added.
+
+What the server learns: that a small silent message was sent at the moment a
+row was deleted -- which the delete itself already told it. No new right is
+created: RLS has always let any member delete any message in a channel
+(0001), and the control message only carries that to the phones. In a group
+that means any member can remove any message for everyone, as the server
+delete already did for connected phones; worth revisiting if groups grow
+beyond people who trust each other.
+
+### Panic code, per-message server view, screenshot notices (2026-09-21)
+
+**Panic code** (`security/lockCode.ts`, `security/panicWipe.ts`,
+`components/AppLockGate.tsx`). A new lock method, a six-digit code checked by
+the app, exists so that a second code can mean "wipe". It offers no Face ID:
+with Face ID in front of it, coercion would simply use the person's face and
+the panic code would never be reached. Both codes are salted SHA-256 hashes in
+the Keychain (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`). Six digits hashed are
+trivially brute-forced by anyone who can read the Keychain; that person
+already holds the phone, so the hash only keeps the codes out of casual dumps
+and anything that syncs. A forensic extraction can tell that a panic code is
+configured -- it is not hidden, only unannounced.
+
+Entering the panic code is indistinguishable on screen from the right one: the
+same pause, then the app opens -- at the welcome screen, because by then it is
+a fresh install. Wipe order: withdraw the push token on the server (1.5 s
+grace, then carry on), unregister from APNs on the phone (no network needed),
+remove delivered notifications and the badge, sign out locally, wipe the
+Signal store and master key, the codes, every store and all of AsyncStorage,
+the cache directory (decrypted pictures, recordings, backup files) and the
+App Group. Every step runs even if another fails.
+
+The server account is kept on purpose: deleting it needs the network and would
+destroy the recovery path. With a recovery backup the person can restore the
+same account later; without one it is abandoned and purged like any other
+(0016). Contacts see nothing change.
+
+Limits, stated: nothing protects against someone who already copied the phone
+before the code was typed; a keyboard-logging attacker on the device sees both
+codes; and wrong codes never wipe -- only pauses that double after five -- so a
+child or a shaking hand cannot erase anything by accident.
+
+**What the server saw** (`screens/MessageServerViewScreen.tsx`,
+`transport/messageServerView.ts`). Reads one message row and its file back
+through RLS, measures the ciphertext actually returned, and for group messages
+reads the sender and recipient count out of the packed ciphertext -- the
+fields the server can read. States the hosting log link (24 h) that the app
+cannot see. Adds no server capability and no new query shape beyond a select
+by id and a storage listing by name.
+
+**Screenshot notices.** Reverses the 2026 decision recorded in
+`hooks/useScreenshotProtection.ts` not to tell the other side. A screenshot
+taken while a conversation is in front sends a silent control message
+(payload `s: 1`) and shows a line to everyone. A courtesy, not a protection:
+a second phone's camera is never detected, and the notice claims no more.
+The server learns that a small silent message was sent -- the same as for a
+reaction.

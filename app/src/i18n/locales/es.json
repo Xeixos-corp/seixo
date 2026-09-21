@@ -9,7 +9,9 @@
     "restoreBackup": "Recuperar cuenta",
     "shareTarget": "Compartir en…",
     "notificationSound": "Sonido de las notificaciones",
-    "serverFootprint": "Lo que sabe el servidor"
+    "serverFootprint": "Lo que sabe el servidor",
+    "messageServerView": "Lo que vio el servidor",
+    "appLockSettings": "Bloqueo de la app"
   },
   "onboarding": {
     "title": "Mensajería privada",
@@ -58,7 +60,8 @@
     "backupPromptBody": "Si pierdes este teléfono, tu cuenta y tus contactos se pierden con él: no hay forma de recuperarlos, ni siquiera por nuestra parte. La copia lleva un minuto.",
     "backupPromptDismiss": "Ahora no",
     "backupPromptAction": "Crear copia",
-    "imagePreview": "Foto"
+    "imagePreview": "Foto",
+    "screenshotPreview": "Captura de pantalla"
   },
   "conversation": {
     "ttl": {
@@ -88,7 +91,7 @@
     "expiresInHours": "desaparece en {{count}} h",
     "expiresInDays": "desaparece en {{count}} d",
     "deleteTitle": "¿Borrar mensaje?",
-    "deleteMessageBody": "El mensaje se borra del servidor y de este teléfono. Si la otra persona tiene la app abierta, también desaparece del suyo, pero si está sin conexión su copia puede permanecer. Nada impide una captura de pantalla.",
+    "deleteMessageBody": "El mensaje se borra del servidor, de este teléfono y del de la otra persona: enseguida, o la próxima vez que abra la app. Pero puede que ya lo haya visto, y nada impide una captura de pantalla.",
     "deleteConfirm": "Borrar ahora",
     "deleteFailed": "No se pudo borrar el mensaje del servidor. Se eliminó de este teléfono.",
     "sendFailed": "No se pudo enviar. Comprueba la conexión e inténtalo de nuevo: tu texto sigue aquí.",
@@ -176,7 +179,17 @@
     "imagePickFailed": "No se pudo abrir la cámara ni la galería.",
     "imagePrepareFailed": "No se pudo preparar la imagen. No se envió nada.",
     "imageMetadataRefused": "Esta imagen seguía teniendo datos de la foto (como la ubicación) después de limpiarla, así que no se envió.",
-    "cameraDenied": "Sin acceso a la cámara no se puede hacer una foto."
+    "cameraDenied": "Sin acceso a la cámara no se puede hacer una foto.",
+    "sharedImageTitle": "Foto compartida",
+    "sharedImageHint": "Se envía sin ubicación ni datos de la cámara.",
+    "sharedImageSend": "Enviar",
+    "sharedImageDiscard": "Descartar la foto",
+    "deletedFallback": "Mensaje borrado",
+    "screenshotNoticeMine": "Hiciste una captura de pantalla",
+    "screenshotNoticeTheirs": "{{name}} hizo una captura de pantalla",
+    "screenshotSomeone": "Alguien",
+    "screenshotFallback": "📸 Hice una captura de pantalla de esta conversación.",
+    "serverView": "Lo que vio el servidor"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -202,8 +215,6 @@
       "hint": "El sonido suena cuando llega una notificación. Los sonidos vienen dentro de la app: el servidor nunca envía audio, solo el nombre del que elegiste. Si el teléfono está en silencio, iOS no reproduce ninguno.",
       "saveFailed": "Tu elección queda guardada en este teléfono, pero no se pudo avisar al servidor. Se enviará la próxima vez que abras la app."
     },
-    "appLockLabel": "Pedir Face ID para abrir la app",
-    "appLockHint": "Cuando está activado, Seixo pide Face ID (o el código del dispositivo) cada vez que vuelves a la app. Los mensajes siguen llegando mientras está bloqueada.",
     "appLockUnavailable": "Este dispositivo no tiene Face ID, Touch ID ni código configurado, así que no hay nada que Seixo pueda comprobar.",
     "appearanceSection": "Aspecto",
     "theme": {
@@ -223,7 +234,9 @@
     "serverFootprintHint": "Mira, ahora mismo, todo lo que existe sobre ti en el servidor.",
     "soundRow": "Sonido",
     "contact": "Contacto",
-    "version": "Versión"
+    "version": "Versión",
+    "appLockRow": "Bloqueo de la app",
+    "appLockRowHint": "Face ID, o un código solo de Seixo con código de pánico."
   },
   "screenshotWarning": {
     "title": "Captura de pantalla",
@@ -250,7 +263,11 @@
     "lockedBody": "Usa Face ID o el código del dispositivo para abrir tus conversaciones.",
     "failedBody": "No se pudo confirmar tu identidad. Inténtalo de nuevo.",
     "unlockButton": "Desbloquear",
-    "unlocking": "Desbloqueando…"
+    "unlocking": "Desbloqueando…",
+    "codeBody": "Escribe el código de Seixo.",
+    "codeWrong": "Código incorrecto.",
+    "codePaused_one": "Demasiados intentos. Vuelve a intentarlo dentro de {{count}} segundo.",
+    "codePaused_other": "Demasiados intentos. Vuelve a intentarlo dentro de {{count}} segundos."
   },
   "notifications": {
     "title": "Seixo",
@@ -314,7 +331,8 @@
   },
   "share": {
     "intro": "Elige la conversación. El contenido queda en el cuadro de texto y solo se envía cuando pulses enviar.",
-    "empty": "Todavía no tienes conversaciones. Empieza una y vuelve a compartir."
+    "empty": "Todavía no tienes conversaciones. Empieza una y vuelve a compartir.",
+    "introImage": "Elige la conversación. La foto queda lista para enviar y solo sale cuando pulses enviar."
   },
   "serverFootprint": {
     "intro": "Esto es todo lo que existe sobre ti en la base de datos, leído ahora mismo. Nada se guarda en el teléfono: si cierras y vuelves, se pide otra vez.",
@@ -349,7 +367,7 @@
     "noToken": "Sin token de notificaciones",
     "blocked": "Personas bloqueadas",
     "absentSection": "Lo que no está aquí",
-    "absentList": "El contenido de los mensajes · lo que muestran las fotos · quién envió cada mensaje o foto en una conversación entre dos · los nombres que diste a tus contactos · los nombres de los grupos",
+    "absentList": "El contenido de los mensajes · lo que muestran las fotos · quién envió cada mensaje o foto en una conversación entre dos (en la base de datos) · los nombres que diste a tus contactos · los nombres de los grupos",
     "hostingNote": "Esto es la base de datos. Antes de que una petición llegue, la capa de entrada del alojamiento la registra y guarda durante 24 horas tu IP, la ciudad y el código postal aproximados, tu proveedor de internet y, en la mayoría de los casos, el identificador de tu cuenta. No lo controlamos ni podemos borrarlo antes. Está explicado en la política de privacidad.",
     "imagesSection": "Fotos",
     "images_one": "1 foto cifrada",
@@ -357,5 +375,81 @@
     "imagesFooter": "Cada una se borra con su mensaje, como mucho 24 horas después de enviarla. El servidor ve el tamaño redondeado, nunca la imagen.",
     "imagesDownloaded": "Descargadas",
     "imagesDownloadedHint": "El servicio de almacenamiento registra cuándo se descarga cada foto. No podemos impedirlo."
+  },
+  "messageServerView": {
+    "intro": "Este mensaje tal como está en el servidor, leído ahora mismo. Es todo lo que existe de él allí, más los registros del alojamiento, al final, que la app no puede leer pero que existen.",
+    "databaseSection": "En la base de datos",
+    "content": "Contenido",
+    "unreadable": "Ilegible",
+    "size": "Tamaño",
+    "sizeHint": "Exacto. El texto no se redondea, así que el tamaño da una idea de la longitud del mensaje. Los mensajes de voz se redondean.",
+    "sizeGroupHint": "Exacto. En un grupo incluye una copia cifrada por miembro, así que crece con el grupo.",
+    "conversation": "Conversación",
+    "createdAt": "Hora exacta",
+    "expiresAt": "Se borra del servidor el",
+    "expiresAtHint": "Cuándo lo borra el servidor, aunque nadie lo haya leído.",
+    "notified": "Generó notificación",
+    "yes": "Sí",
+    "no": "No",
+    "sender": "Quién lo envió",
+    "senderDirectHint": "En una conversación entre dos, el mensaje no dice quién lo envió.",
+    "senderGroupHint_one": "En un grupo es visible: el servidor ve quién lo envió y que hay una copia para {{count}} miembro.",
+    "senderGroupHint_other": "En un grupo es visible: el servidor ve quién lo envió y que hay copias para {{count}} miembros.",
+    "senderYou": "Tú",
+    "notStored": "No guardado",
+    "fileSection": "Archivo de la foto",
+    "fileFooter": "Cifrado con una clave que solo está dentro del mensaje. El servidor no puede abrirlo.",
+    "fileSize": "Tamaño",
+    "fileSizeHint": "Redondeado hacia arriba, para no revelar el tamaño real de la foto.",
+    "fileDownloaded": "Última descarga",
+    "fileDownloadedHint": "Lo escribe el servicio de almacenamiento. Indica, aproximadamente, cuándo se recibió.",
+    "fileNotDownloaded": "Aún no descargado",
+    "fileOwner": "Quién lo envió",
+    "gone": "El servidor ya no tiene este mensaje",
+    "goneFooter": "Se borró del servidor: por su temporizador, porque alguien borró el mensaje, o por ser voz o foto, que el servidor guarda como máximo 24 horas. La copia que ves solo existe en los teléfonos.",
+    "hostingSection": "En los registros del alojamiento",
+    "hostingMine": "Tu envío quedó registrado con tu cuenta, tu IP y tu ubicación aproximada.",
+    "hostingTheirs": "El envío quedó registrado con la cuenta de quien lo envió. Cuando lo recibiste, tu petición quedó registrada igual, con tu cuenta.",
+    "hostingUntil": "Hasta el {{time}}. No podemos leerlo ni borrarlo antes.",
+    "hostingGone": "Ya pasaron 24 horas: ese registro ya desapareció."
+  },
+  "codePad": {
+    "entered_one": "{{count}} dígito escrito",
+    "entered_other": "{{count}} dígitos escritos",
+    "erase": "Borrar dígito"
+  },
+  "lockSettings": {
+    "methodSection": "Pedir para abrir la app",
+    "methodFooter": "Los mensajes siguen llegando mientras la app está bloqueada.",
+    "off": "No pedir",
+    "offShort": "Desactivado",
+    "device": "Face ID o código del iPhone",
+    "deviceShort": "Face ID",
+    "deviceHint": "El iPhone lo comprueba; Seixo solo sabe si pasó.",
+    "code": "Código de Seixo",
+    "codeShort": "Código",
+    "codeHint": "Seis dígitos, comprobados por la propia app. Permite un código de pánico. No usa Face ID: si lo usara, bastaría con acercar el teléfono a tu cara.",
+    "changeCode": "Cambiar el código",
+    "panicLabel": "Código de pánico",
+    "panicHint": "Un segundo código que borra todo lo de este teléfono y abre la app como nueva.",
+    "panicFooter": "Si olvidas el código de Seixo, la única forma de volver a entrar es borrar la app e instalarla de nuevo, y pierdes las conversaciones de este teléfono.",
+    "on": "Activado",
+    "panicExplainTitle": "Código de pánico",
+    "panicExplainBody": "Es un segundo código. Si alguien te obliga a abrir Seixo, escribes este en lugar del verdadero.\n\nLa app se abre como si se acabara de instalar, y eso es lo que pasa a ser: todo lo que hay en este teléfono se borra en ese instante y para siempre. Conversaciones, fotos, claves y ajustes.\n\nTu cuenta sigue en el servidor. Si tienes una copia de seguridad (las 12 palabras), puedes recuperarla más tarde y volver a hablar con los mismos contactos. Los mensajes antiguos no vuelven.\n\nNo se puede deshacer. Elige un código que no confundas con el verdadero.",
+    "panicExplainContinue": "Definir el código de pánico",
+    "panicChange": "Cambiar el código de pánico",
+    "panicTurnOff": "Desactivar el código de pánico",
+    "panicEnterTitle": "Código de pánico",
+    "panicEnterBody": "Tiene que ser distinto del código que abre la app.",
+    "panicConfirmTitle": "Repite el código de pánico",
+    "panicSameAsUnlock": "Ese es el código que abre la app. Elige otro.",
+    "codeEnterTitle": "Elige un código",
+    "codeEnterBody": "Seis dígitos. Se te pedirá cada vez que vuelvas a la app.",
+    "codeConfirmTitle": "Repite el código",
+    "mismatch": "Los códigos no coinciden. Empieza de nuevo.",
+    "saveFailed": "No se pudo guardar. El código que abre la app y el código de pánico tienen que ser distintos.",
+    "leaveCodeTitle": "¿Desactivar el código de pánico?",
+    "leaveCodeBody": "El código de pánico solo existe con el código de Seixo. Si cambias, desaparece.",
+    "leaveCodeConfirm": "Cambiar de todos modos"
   }
 }

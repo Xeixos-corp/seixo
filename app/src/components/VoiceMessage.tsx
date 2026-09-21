@@ -87,6 +87,10 @@ export function VoiceMessage({
       return;
     }
     busyRef.current = true;
+    // Before the routing below, not after: stopping the message already
+    // playing switches routing and the screen timer off, and it has to do so
+    // before this one switches them on, not in the middle of it playing.
+    claimPlayback(stop);
     try {
       // Recording puts iOS into a mode that routes playback to the earpiece at
       // low volume; leaving it there after a recording makes every later
@@ -103,7 +107,6 @@ export function VoiceMessage({
       player.addListener('playbackStatusUpdate', (status) => {
         if (status.didJustFinish) stop();
       });
-      claimPlayback(stop);
       player.play();
       setPlaying(true);
     } catch (error) {

@@ -24,6 +24,24 @@ public class AudioSessionExpoModule: Module {
   private var proximityObserver: NSObjectProtocol?
   private var routeObserver: NSObjectProtocol?
   private var interruptionObserver: NSObjectProtocol?
+  private var keyboardObservers: [NSObjectProtocol] = []
+  private var routeWatchdog: Timer?
+
+  /// Who currently needs the screen kept on. Recording and playing a voice
+  /// message both do, for the same reason (see keepScreenOn), and they are
+  /// switched on and off by different calls -- so one ending must not turn the
+  /// screen timer back on while the other is still going.
+  private static var recordingKeepsScreenOn = false
+  private static var playbackKeepsScreenOn = false
+
+  /// Main thread only (UIApplication). iOS also clears it by itself when the
+  /// app leaves the foreground, so nothing interrupted can pin the screen on
+  /// for ever.
+  private static func updateIdleTimer() {
+    DispatchQueue.main.async {
+      UIApplication.shared.isIdleTimerDisabled = recordingKeepsScreenOn || playbackKeepsScreenOn
+    }
+  }
 
   /// Outputs that mean the person is listening through something other than
   /// the phone itself. When one is active, the phone's own routing -- speaker,
@@ -64,7 +82,12 @@ public class AudioSessionExpoModule: Module {
       return
     }
     let nearEar = UIDevice.current.proximityState
-    try? session.overrideOutputAudioPort(nearEar ? .none : .speaker)
+    let onSpeaker = session.currentRoute.outputs.contains { $0.portType == .builtInSpeaker }
+    // Asked only when the route is wrong: every override is itself a route
+    // change, and the watchdog below calls this every half second.
+    if nearEar == onSpeaker {
+      try? session.overrideOutputAudioPort(nearEar ? .none : .speaker)
+    }
   }
 
   public func definition() -> ModuleDefinition {
@@ -93,10 +116,10 @@ public class AudioSessionExpoModule: Module {
       try session.setActive(true)
 
       // Recording is over (this is the counterpart of configureForRecording),
-      // so let the screen sleep on its own schedule again.
-      DispatchQueue.main.async {
-        UIApplication.shared.isIdleTimerDisabled = false
-      }
+      // so let the screen sleep on its own schedule again -- unless a voice
+      // message is playing, which keeps it on for its own reasons.
+      AudioSessionExpoModule.recordingKeepsScreenOn = false
+      AudioSessionExpoModule.updateIdleTimer()
 
       if let observer = self?.interruptionObserver {
         NotificationCenter.default.removeObserver(observer)
@@ -155,9 +178,8 @@ public class AudioSessionExpoModule: Module {
       // iOS clears this by itself when the app leaves the foreground, so a
       // recording interrupted some other way cannot leave the screen pinned
       // awake for ever.
-      DispatchQueue.main.async {
-        UIApplication.shared.isIdleTimerDisabled = true
-      }
+      AudioSessionExpoModule.recordingKeepsScreenOn = true
+      AudioSessionExpoModule.updateIdleTimer()
 
       if self?.interruptionObserver == nil {
         self?.interruptionObserver = NotificationCenter.default.addObserver(
@@ -186,6 +208,11 @@ public class AudioSessionExpoModule: Module {
     /// A record-capable category is needed because `.playback` cannot address
     /// the receiver at all. `.allowBluetoothA2DP` keeps Bluetooth output at
     /// full quality.
+    ///
+    /// Both this and stopEarpieceRouting run on the main queue, so they happen
+    /// in the order JavaScript called them. Starting a second message stops
+    /// the first; on a concurrent queue the first one's stop could land after
+    /// the second one's start and switch everything off while it played.
     AsyncFunction("startEarpieceRouting") { [weak self] in
       let session = AVAudioSession.sharedInstance()
       // No `.defaultToSpeaker`: that option redefines the category's default
@@ -199,6 +226,18 @@ public class AudioSessionExpoModule: Module {
       DispatchQueue.main.async {
         AudioSessionExpoModule.applyPlaybackRoute()
       }
+
+      // The screen stays on while a voice message plays, for the reason it
+      // does while recording: iOS sees someone listening without touching
+      // anything as idle, turns the screen off and locks the phone, and a
+      // locked phone sends the app to the background, where the message
+      // stops. Reported exactly so: the screen went dark, the message went
+      // quiet, and a touch brought both back. Keeping it on is also the
+      // honest alternative to the `audio` background mode, for the same
+      // reasons given in configureForRecording. At the ear the proximity
+      // sensor still turns the screen off -- that does not lock the phone.
+      AudioSessionExpoModule.playbackKeepsScreenOn = true
+      AudioSessionExpoModule.updateIdleTimer()
 
       guard let self else { return }
 
@@ -224,7 +263,39 @@ public class AudioSessionExpoModule: Module {
           AudioSessionExpoModule.applyPlaybackRoute()
         }
       }
-    }
+
+      // Tapping the text box mid-message moved it from the speaker to the
+      // earpiece. The keyboard coming up disturbs the audio session, and iOS
+      // resets an output override to `.none` whenever the session is
+      // disturbed -- which, in this category, means the receiver. Whether a
+      // route-change notification comes with it is not something to rely on,
+      // so the route is put back when the keyboard moves, and a watchdog
+      // checks it twice a second while the message plays. It only acts when
+      // the route is actually wrong (see applyPlaybackRoute).
+      if self.keyboardObservers.isEmpty {
+        let names: [Notification.Name] = [
+          UIResponder.keyboardWillShowNotification,
+          UIResponder.keyboardDidShowNotification,
+          UIResponder.keyboardDidHideNotification,
+        ]
+        self.keyboardObservers = names.map { name in
+          NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { _ in
+            AudioSessionExpoModule.applyPlaybackRoute()
+          }
+        }
+      }
+      DispatchQueue.main.async {
+        if self.routeWatchdog == nil {
+          let timer = Timer(timeInterval: 0.5, repeats: true) { _ in
+            AudioSessionExpoModule.applyPlaybackRoute()
+          }
+          // `.common`, so it keeps running while the conversation is being
+          // scrolled, which is exactly when someone listens and reads.
+          RunLoop.main.add(timer, forMode: .common)
+          self.routeWatchdog = timer
+        }
+      }
+    }.runOnQueue(.main)
 
     /// Stops playback routing and turns the proximity sensor off. Leaving it
     /// on blanks the screen whenever anything comes near the phone, which is
@@ -238,13 +309,21 @@ public class AudioSessionExpoModule: Module {
         NotificationCenter.default.removeObserver(observer)
         self?.routeObserver = nil
       }
+      if let observers = self?.keyboardObservers {
+        observers.forEach { NotificationCenter.default.removeObserver($0) }
+        self?.keyboardObservers = []
+      }
       DispatchQueue.main.async {
+        self?.routeWatchdog?.invalidate()
+        self?.routeWatchdog = nil
         UIDevice.current.isProximityMonitoringEnabled = false
       }
+      AudioSessionExpoModule.playbackKeepsScreenOn = false
+      AudioSessionExpoModule.updateIdleTimer()
       // `.none`, not `.speaker`: nothing is playing any more, and forcing the
       // speaker here would override headphones for whatever uses the session
       // next.
       try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
-    }
+    }.runOnQueue(.main)
   }
 }

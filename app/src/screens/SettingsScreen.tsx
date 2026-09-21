@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,7 +17,6 @@ import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
 import { useNotificationSoundStore } from '../store/notificationSoundStore';
 import { NOTIFICATION_SOUNDS } from '../notifications/sounds';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
-import { isAppLockAvailable } from '../security/appLock';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -43,25 +42,11 @@ export function SettingsScreen({ navigation }: Props) {
   const themePreference = useThemeStore((state) => state.preference);
   const setThemePreference = useThemeStore((state) => state.setPreference);
   const appLockEnabled = useAppLockStore((state) => state.enabled);
-  const setAppLockEnabled = useAppLockStore((state) => state.setEnabled);
+  const appLockMethod = useAppLockStore((state) => state.method);
   const showMessagePreviews = usePrivacyPreferencesStore((state) => state.showMessagePreviews);
   const setShowMessagePreviews = usePrivacyPreferencesStore((state) => state.setShowMessagePreviews);
   const sound = useNotificationSoundStore((state) => state.sound);
   const blockedCount = useBlockedPeersStore((state) => state.blockedPeerIds.length);
-  // null while the check is in flight -- the toggle stays disabled until we
-  // know, rather than letting the user turn on a lock the device can't honour.
-  const [lockAvailable, setLockAvailable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    isAppLockAvailable().then((available) => {
-      if (!cancelled) setLockAvailable(available);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const handleDelete = async () => {
     setDeleting(true);
     setErrorMessage(null);
@@ -97,14 +82,20 @@ export function SettingsScreen({ navigation }: Props) {
         </View>
 
         <SettingsGroup title={t('settings.privacySection')}>
+          {/* A screen of its own now that there are two kinds of lock and a
+              panic code: a switch could only ever say on or off. */}
           <SettingsRow
-            label={t('settings.appLockLabel')}
-            hint={lockAvailable === false ? t('settings.appLockUnavailable') : t('settings.appLockHint')}
-            toggle={{
-              value: appLockEnabled,
-              onValueChange: setAppLockEnabled,
-              disabled: lockAvailable !== true,
-            }}
+            label={t('settings.appLockRow')}
+            hint={t('settings.appLockRowHint')}
+            value={
+              !appLockEnabled
+                ? t('lockSettings.offShort')
+                : appLockMethod === 'code'
+                  ? t('lockSettings.codeShort')
+                  : t('lockSettings.deviceShort')
+            }
+            onPress={() => navigation.navigate('AppLockSettings')}
+            opensScreen
           />
           <SettingsRow
             label={t('settings.showPreviewsLabel')}

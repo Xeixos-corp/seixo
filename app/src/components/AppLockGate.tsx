@@ -6,6 +6,13 @@ import { useAppTheme } from '../theme/ThemeProvider';
 import { useAppLockStore } from '../store/appLockStore';
 import { unlock } from '../security/appLock';
 import { tryOpenPendingConversation } from '../notifications/notificationRouting';
+import { CodePad } from './CodePad';
+import { checkCode } from '../security/lockCode';
+import { panicWipe } from '../security/panicWipe';
+
+/** Wrong codes allowed before a pause, and how long the first pause is. */
+const FREE_ATTEMPTS = 5;
+const FIRST_PAUSE_SECONDS = 30;
 
 /**
  * Hides the app behind Face ID (or the device passcode) until the user proves
@@ -22,6 +29,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
   const enabled = useAppLockStore((state) => state.enabled);
+  const method = useAppLockStore((state) => state.method);
   const unlocked = useAppLockStore((state) => state.unlocked);
   const setUnlocked = useAppLockStore((state) => state.setUnlocked);
   const [prompting, setPrompting] = useState(false);
@@ -62,6 +70,8 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   // it, you're in" with nothing to tap.
   const askedRef = useRef(false);
   useEffect(() => {
+    // A code is typed, not prompted for.
+    if (method === 'code') return;
     if (!enabled || unlocked) {
       askedRef.current = false;
       return;
@@ -69,9 +79,14 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     if (askedRef.current) return;
     askedRef.current = true;
     void attemptUnlock();
-  }, [enabled, unlocked, attemptUnlock]);
+  }, [enabled, unlocked, attemptUnlock, method]);
 
   if (!enabled || unlocked) return <>{children}</>;
+
+  if (method === 'code') return <CodeLock onUnlocked={() => {
+    setUnlocked(true);
+    tryOpenPendingConversation();
+  }} />;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -123,3 +138,79 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+/**
+ * The lock for 'code': the app's own keypad, and nothing else on screen.
+ *
+ * The panic code is handled here and looks exactly like the right code: the
+ * same pause while it is checked, then the app opens -- as a fresh install,
+ * welcome screen and all, because by then that is what it is
+ * (security/panicWipe.ts). Nothing announces what happened. Someone standing
+ * over the person sees a code typed and an app open.
+ *
+ * Wrong codes are allowed a few times, then cost a pause that doubles each
+ * time. Never a wipe: a phone in a child's hands, or a shaking one, must not
+ * be able to erase anyone's conversations by accident. Only the panic code
+ * erases, and only on purpose.
+ */
+function CodeLock({ onUnlocked }: { onUnlocked: () => void }) {
+  const { colors } = useAppTheme();
+  const { t } = useTranslation();
+  const [wrong, setWrong] = useState(0);
+  const [pausedUntil, setPausedUntil] = useState(0);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (pausedUntil <= Date.now()) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [pausedUntil]);
+
+  const secondsLeft = Math.max(0, Math.ceil((pausedUntil - now) / 1000));
+
+  const submit = useCallback(
+    async (code: string) => {
+      const result = await checkCode(code);
+      if (result === 'panic') {
+        await panicWipe();
+        onUnlocked();
+        return;
+      }
+      // 'missing': the codes are gone from the Keychain (restored phone,
+      // cleared Keychain). Refusing would lock the person out of their own
+      // conversations for good; there is nothing left to check against.
+      if (result === 'unlock' || result === 'missing') {
+        setWrong(0);
+        onUnlocked();
+        return;
+      }
+      const count = wrong + 1;
+      setWrong(count);
+      if (count >= FREE_ATTEMPTS) {
+        const pause = FIRST_PAUSE_SECONDS * 2 ** (count - FREE_ATTEMPTS);
+        setPausedUntil(Date.now() + pause * 1000);
+        setNow(Date.now());
+      }
+    },
+    [wrong, onUnlocked],
+  );
+
+  const message =
+    secondsLeft > 0
+      ? t('appLock.codePaused', { count: secondsLeft })
+      : wrong > 0
+        ? t('appLock.codeWrong')
+        : t('appLock.codeBody');
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <CodePad
+        title={t('appLock.lockedTitle')}
+        message={message}
+        error={wrong > 0}
+        disabled={secondsLeft > 0}
+        onComplete={submit}
+      />
+    </View>
+  );
+}

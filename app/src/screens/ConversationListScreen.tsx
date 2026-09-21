@@ -61,7 +61,7 @@ export function ConversationListScreen({ navigation }: Props) {
   // Something shared from another app is waiting for a conversation. This
   // screen is the first one behind the lock, the terms and an identity,
   // so the choice is offered here and never earlier.
-  const pendingShare = usePendingShareStore((state) => state.text);
+  const pendingShare = usePendingShareStore((state) => state.text ?? state.image);
   useEffect(() => {
     if (pendingShare) navigation.navigate('ShareTarget');
   }, [pendingShare, navigation]);
