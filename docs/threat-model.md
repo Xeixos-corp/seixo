@@ -1848,3 +1848,7 @@ category (`.defaultToSpeaker` in its options while away from the ear, taken
 away at the ear) rather than by an output override, so the reset iOS applies
 to overrides lands on the speaker. Not a security change; recorded because the
 first fix was claimed and did not hold.
+
+Confirmed on 1.13.1 (22) by the owner on 2026-09-21: typing through a voice message
+keeps it on the speaker, and holding the phone to the ear still moves it to the
+earpiece.
