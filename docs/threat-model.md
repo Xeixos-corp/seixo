@@ -1877,3 +1877,27 @@ the conversation hidden until the app was closed and reopened. They now
 subscribe to the array. Not a security fault -- the server enforces blocking
 (`create_direct_channel`) regardless of what the list shows -- but it made a
 privacy control look broken, which is its own kind of harm.
+
+### A group of two people was treated as a direct conversation (2026-09-22)
+
+Reported the same evening: in a two-person group, one side received the
+other's messages and the other received only the notifications.
+
+`subscribeToMyNewMemberships` (identity/registerIdentity.ts) decided whether a
+new channel was a group by counting members: more than two, or none besides
+oneself. A group with exactly two people fails that test, so the phone added
+it as a direct conversation. `transmit` then sent a single envelope where the
+recipients expect one encrypted copy per member (groupEnvelope.ts), and on the
+other phone `isGroupMessage` was false, so ingest tried the direct path,
+failed to decrypt, and dropped the message -- while the server, which knows
+nothing of either format, still sent the push. Hence "notifications but no
+messages", in one direction only.
+
+Two fixes: the kind now comes from the server (`fetchChannelKind`), and the
+startup reconcile repairs a conversation already stored with the wrong kind
+(`setConversationKind`) -- `addConversation` ignores channels it already
+knows, so without that the phones would have stayed wrong for ever.
+
+Nothing was exposed: the undecryptable copies were ordinary ciphertext, and
+the server saw what it always sees. What was lost was messages, silently,
+which is its own kind of failure in a messenger.

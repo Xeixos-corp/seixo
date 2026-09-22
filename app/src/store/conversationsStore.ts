@@ -117,6 +117,19 @@ type ConversationsState = {
   addConversation: (conversation: Conversation) => void;
   hasConversation: (channelId: string) => boolean;
   setConversationTtl: (channelId: string, ttlSeconds: number) => void;
+  /**
+   * Corrects a conversation this device recorded as the wrong kind.
+   *
+   * `addConversation` ignores a channel it already knows, which is right for
+   * everything it carries locally (nickname, timer) -- but it also meant a
+   * conversation once stored as direct when it is really a group stayed
+   * wrong for ever, on every launch. Only the server knows the answer, so
+   * the reconcile on startup applies it here.
+   */
+  setConversationKind: (
+    channelId: string,
+    kind: { isGroup: boolean; peerUserId: string; ownerId?: string },
+  ) => void;
   setConversationNickname: (channelId: string, nickname: string) => void;
   /**
    * `newestMessageAt` lets this do nothing when there is nothing to mark --
@@ -143,6 +156,21 @@ export const useConversationsStore = create<ConversationsState>()(
           return;
         }
         set((state) => ({ conversations: [...state.conversations, conversation] }));
+      },
+      setConversationKind: (channelId, kind) => {
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.channelId === channelId &&
+            (c.isGroup !== kind.isGroup || c.peerUserId !== kind.peerUserId)
+              ? {
+                  ...c,
+                  isGroup: kind.isGroup ? true : undefined,
+                  peerUserId: kind.peerUserId,
+                  ownerId: kind.isGroup ? (kind.ownerId ?? c.ownerId) : undefined,
+                }
+              : c,
+          ),
+        }));
       },
       hasConversation: (channelId) => get().conversations.some((c) => c.channelId === channelId),
       setConversationTtl: (channelId, ttlSeconds) => {

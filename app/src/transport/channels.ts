@@ -195,6 +195,26 @@ export async function fetchChannelMembers(channelId: string): Promise<string[]> 
   return (data ?? []).map((row) => row.member_id as string);
 }
 
+/**
+ * What kind of channel this is, and who owns it, straight from the server.
+ *
+ * Exists because guessing from the number of members is wrong for the one
+ * case that matters: a group of two people looks exactly like a
+ * conversation between two people, and is not one.
+ */
+export async function fetchChannelKind(
+  channelId: string,
+): Promise<{ kind: 'direct' | 'group'; ownerId: string | null } | null> {
+  const { data, error } = await supabase
+    .from('channels')
+    .select('kind, owner_id')
+    .eq('id', channelId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return { kind: data.kind as 'direct' | 'group', ownerId: (data.owner_id as string | null) ?? null };
+}
+
 export type ServerChannel = {
   channelId: string;
   kind: 'direct' | 'group';

@@ -18,6 +18,7 @@ import {
 } from '../transport/identities';
 import {
   subscribeToMyNewMemberships,
+  fetchChannelKind,
   fetchChannelMembers,
   fetchMyChannelsDetailed,
 } from '../transport/channels';
@@ -216,7 +217,8 @@ async function finishRegistration(userId: string): Promise<void> {
   // launch, which is not worth blocking startup over.
   try {
     const serverChannels = await fetchMyChannelsDetailed(userId);
-    const { addConversation, setGroupMembers, setConversationMuted } = useConversationsStore.getState();
+    const { addConversation, setGroupMembers, setConversationMuted, setConversationKind } =
+      useConversationsStore.getState();
     serverChannels.forEach(({ channelId, kind, ownerId, memberIds, muted }) => {
       if (kind === 'group') {
         addConversation({
@@ -232,6 +234,9 @@ async function finishRegistration(userId: string): Promise<void> {
         });
         // Membership changes while this device was away, so it is refreshed
         // on every launch rather than only when the group is first seen.
+        // Repairs a group this device once recorded as a direct
+        // conversation, which addConversation alone would never revisit.
+        setConversationKind(channelId, { isGroup: true, peerUserId: '', ownerId: ownerId ?? undefined });
         setGroupMembers(channelId, memberIds);
         // The server decides this one: it is what sends the notifications,
         // and a device restored from a backup has no local copy of it.
@@ -241,6 +246,7 @@ async function finishRegistration(userId: string): Promise<void> {
       const peerUserId = memberIds.find((id) => id !== userId);
       if (!peerUserId) return;
       addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS });
+      setConversationKind(channelId, { isGroup: false, peerUserId });
       setConversationMuted(channelId, muted);
     });
 
@@ -266,23 +272,37 @@ async function finishRegistration(userId: string): Promise<void> {
   subscribeToMyNewMemberships(userId, async (channelId) => {
     try {
       // Asking "who is the other person" only makes sense in a two-person
-      // conversation. A group has several -- or, in the moment right after
-      // creating one, only you -- so this used to throw every time a group
-      // was created, and would have left a group added by someone else out of
-      // the list entirely.
+      // conversation, so which kind of channel this is has to be settled
+      // first.
       const members = await fetchChannelMembers(channelId);
       const others = members.filter((id) => id !== userId);
 
-      if (members.length > 2 || others.length === 0) {
+      // The server is asked which kind of channel this is, rather than it
+      // being guessed from the member count. A group of two people counts
+      // exactly like a conversation between two people -- and being wrong
+      // about that is not cosmetic: a group marked as direct sends a single
+      // envelope where the others expect one copy per member, so every
+      // message this device sent to that group arrived undecryptable and was
+      // dropped in silence. Reported 2026-09-22: one side saw the other's
+      // messages, the other only the notifications.
+      const channel = await fetchChannelKind(channelId);
+      const isGroup = channel ? channel.kind === 'group' : members.length > 2 || others.length === 0;
+
+      if (isGroup) {
         useConversationsStore.getState().addConversation({
           channelId,
           peerUserId: '',
           ttlSeconds: DEFAULT_TTL_SECONDS,
           isGroup: true,
           memberIds: members,
+          ownerId: channel?.ownerId ?? undefined,
         });
         return;
       }
+
+      // A direct channel with nobody else in it: nothing to show, and
+      // nothing that could be sent anywhere.
+      if (others.length === 0) return;
 
       useConversationsStore.getState().addConversation({
         channelId,
