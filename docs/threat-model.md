@@ -1852,3 +1852,18 @@ first fix was claimed and did not hold.
 Confirmed on 1.13.1 (22) by the owner on 2026-09-21: typing through a voice message
 keeps it on the speaker, and holding the phone to the ear still moves it to the
 earpiece.
+
+### Screen-recording protection is now opt-in (2026-09-22, 1.13.3)
+
+Reverses the "always on" choice recorded above. App Review asked for a screen
+recording of the app from first launch; with `FLAG_SECURE`-style protection on
+iOS the recording was black from the terms screen onwards, with no way to
+switch it off before reaching Settings. The owner chose to make it a Settings
+switch, off by default (`hideFromScreenRecording` in
+`store/privacyPreferencesStore.ts`) -- the same default Signal ships on iOS.
+
+What this costs: on iOS, a screen recording or mirroring now shows Seixo
+unless the person turns the switch on. Screenshots were never blockable on
+iOS and are still announced inside conversations. On Android, where this flag
+also blocks screenshots, they are no longer blocked by default either -- to
+revisit before any Android release.

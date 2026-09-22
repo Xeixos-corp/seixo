@@ -9,9 +9,9 @@ import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
 const CAPTURE_KEY = 'seixo-screen-protection';
 
 /**
- * On by default, app-wide (see App.tsx), with one switch in Settings to turn
- * it off -- see `hideFromScreenRecording` in privacyPreferencesStore for why
- * the switch exists at all.
+ * App-wide (see App.tsx), and off by default since 1.13.3 -- one switch in
+ * Settings turns it on. See `hideFromScreenRecording` in
+ * privacyPreferencesStore for why.
  *
  * Android: usePreventScreenCapture() sets FLAG_SECURE, which genuinely
  * blocks screenshots and screen recording at the OS level (the same

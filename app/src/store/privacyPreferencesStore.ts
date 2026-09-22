@@ -18,11 +18,13 @@ type PrivacyPreferencesState = {
    * Whether a screen recording (or mirroring to another screen) shows Seixo
    * as black.
    *
-   * On by default, as it always was. A switch because the person may have
-   * a real reason to record their own screen -- the first one was App
-   * Review asking for a recording of the app, which the app itself made
-   * impossible. Screenshots are not affected on iOS: those cannot be
-   * blocked, and inside a conversation they are announced instead.
+   * Off by default since 1.13.3, the owner's decision: App Review asked for a
+   * recording of the app starting at first launch, and with this on the
+   * whole recording came out black -- terms and welcome screen included --
+   * with no way to turn it off before them. Signal ships the same way on
+   * iOS: screen security is there for whoever wants it. Screenshots are not
+   * affected either way: iOS cannot block them, and inside a conversation
+   * they are announced instead.
    */
   hideFromScreenRecording: boolean;
   setHideFromScreenRecording: (hide: boolean) => void;
@@ -33,7 +35,7 @@ export const usePrivacyPreferencesStore = create<PrivacyPreferencesState>()(
     (set) => ({
       showMessagePreviews: true,
       setShowMessagePreviews: (show) => set({ showMessagePreviews: show }),
-      hideFromScreenRecording: true,
+      hideFromScreenRecording: false,
       setHideFromScreenRecording: (hide) => set({ hideFromScreenRecording: hide }),
     }),
     {
