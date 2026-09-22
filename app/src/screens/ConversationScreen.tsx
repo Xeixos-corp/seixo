@@ -201,7 +201,9 @@ export function ConversationScreen({ route, navigation }: Props) {
       ? conversationDisplayName(conversation, t('conversationList.unnamedGroup'))
       : `${peerUserId.slice(0, 8)}…`;
   });
-  const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
+  // The list rather than the `isBlocked` function, so the members sheet
+  // updates as soon as someone is blocked -- see ConversationListScreen.
+  const blockedPeerIds = useBlockedPeersStore((state) => state.blockedPeerIds);
   // Needed to put a name to each member of a group; nicknames live on the
   // direct conversation with that person.
   const allConversations = useConversationsStore((state) => state.conversations);
@@ -2002,7 +2004,7 @@ export function ConversationScreen({ route, navigation }: Props) {
 
               {(groupMemberIds ?? []).map((memberId) => {
                 const isSelf = memberId === getCurrentUserId();
-                const blocked = isBlocked(memberId);
+                const blocked = blockedPeerIds.includes(memberId);
                 // The name you gave this person in your own conversation with
                 // them, if you have one. Never leaves the phone, and is not
                 // what anyone else in the group sees.

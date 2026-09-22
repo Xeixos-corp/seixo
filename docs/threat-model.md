@@ -1867,3 +1867,13 @@ unless the person turns the switch on. Screenshots were never blockable on
 iOS and are still announced inside conversations. On Android, where this flag
 also blocks screenshots, they are no longer blocked by default either -- to
 revisit before any Android release.
+
+### Unblocking did not bring the conversation back until a restart (2026-09-22)
+
+Both screens subscribed to the store's `isBlocked` *function*, whose identity
+never changes, so neither re-rendered when the blocked list did. Blocking
+looked right only because the screen was being left anyway; unblocking left
+the conversation hidden until the app was closed and reopened. They now
+subscribe to the array. Not a security fault -- the server enforces blocking
+(`create_direct_channel`) regardless of what the list shows -- but it made a
+privacy control look broken, which is its own kind of harm.

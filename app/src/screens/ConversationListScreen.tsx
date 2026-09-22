@@ -76,8 +76,12 @@ export function ConversationListScreen({ navigation }: Props) {
   useEffect(() => {
     noteFirstSeen();
   }, [noteFirstSeen]);
-  const isBlocked = useBlockedPeersStore((state) => state.isBlocked);
-  const visibleConversations = conversations.filter((c) => !isBlocked(c.peerUserId));
+  // The list of ids, not the `isBlocked` function: the function's identity
+  // never changes, so subscribing to it meant this screen never re-rendered
+  // when someone was blocked or unblocked. Unblocking left the conversation
+  // hidden until the app was closed and opened again.
+  const blockedPeerIds = useBlockedPeersStore((state) => state.blockedPeerIds);
+  const visibleConversations = conversations.filter((c) => !blockedPeerIds.includes(c.peerUserId));
 
   useEffect(() => {
     navigation.setOptions({
