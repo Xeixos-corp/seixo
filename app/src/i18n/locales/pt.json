@@ -236,7 +236,9 @@
     "contact": "Contacto",
     "version": "Versão",
     "appLockRow": "Bloqueio da app",
-    "appLockRowHint": "Face ID, ou um código só do Seixo com código de pânico."
+    "appLockRowHint": "Face ID, ou um código só do Seixo com código de pânico.",
+    "hideFromRecordingLabel": "Esconder das gravações de ecrã",
+    "hideFromRecordingHint": "Quando está ligado, uma gravação do ecrã, ou o espelhamento para outro ecrã, mostra o Seixo a preto. As capturas de ecrã não são afectadas: numa conversa, são avisadas a todos."
   },
   "screenshotWarning": {
     "title": "Captura de ecrã",

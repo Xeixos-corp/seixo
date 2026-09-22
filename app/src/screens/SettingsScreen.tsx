@@ -45,6 +45,8 @@ export function SettingsScreen({ navigation }: Props) {
   const appLockMethod = useAppLockStore((state) => state.method);
   const showMessagePreviews = usePrivacyPreferencesStore((state) => state.showMessagePreviews);
   const setShowMessagePreviews = usePrivacyPreferencesStore((state) => state.setShowMessagePreviews);
+  const hideFromScreenRecording = usePrivacyPreferencesStore((state) => state.hideFromScreenRecording);
+  const setHideFromScreenRecording = usePrivacyPreferencesStore((state) => state.setHideFromScreenRecording);
   const sound = useNotificationSoundStore((state) => state.sound);
   const blockedCount = useBlockedPeersStore((state) => state.blockedPeerIds.length);
   const handleDelete = async () => {
@@ -101,6 +103,11 @@ export function SettingsScreen({ navigation }: Props) {
             label={t('settings.showPreviewsLabel')}
             hint={t('settings.showPreviewsHint')}
             toggle={{ value: showMessagePreviews, onValueChange: setShowMessagePreviews }}
+          />
+          <SettingsRow
+            label={t('settings.hideFromRecordingLabel')}
+            hint={t('settings.hideFromRecordingHint')}
+            toggle={{ value: hideFromScreenRecording, onValueChange: setHideFromScreenRecording }}
           />
           {/* Moved here from the conversation list's header, which had three
               buttons competing for the top bar -- and which made a liar of

@@ -236,7 +236,9 @@
     "contact": "Contacto",
     "version": "Versión",
     "appLockRow": "Bloqueo de la app",
-    "appLockRowHint": "Face ID, o un código solo de Seixo con código de pánico."
+    "appLockRowHint": "Face ID, o un código solo de Seixo con código de pánico.",
+    "hideFromRecordingLabel": "Ocultar en grabaciones de pantalla",
+    "hideFromRecordingHint": "Cuando está activado, una grabación de pantalla, o la duplicación en otra pantalla, muestra Seixo en negro. Las capturas de pantalla no se ven afectadas: en una conversación, se avisa a todos."
   },
   "screenshotWarning": {
     "title": "Captura de pantalla",

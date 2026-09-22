@@ -3,10 +3,15 @@ import { Alert, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import * as ScreenCapture from 'expo-screen-capture';
 import { getActiveConversation } from '../messaging/activeConversation';
+import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
+
+/** One key for this hook's own prevent/allow calls, so nothing else can undo them. */
+const CAPTURE_KEY = 'seixo-screen-protection';
 
 /**
- * Always-on, app-wide (see App.tsx) — no per-conversation or Settings
- * toggle, matching this app's private-by-default posture.
+ * On by default, app-wide (see App.tsx), with one switch in Settings to turn
+ * it off -- see `hideFromScreenRecording` in privacyPreferencesStore for why
+ * the switch exists at all.
  *
  * Android: usePreventScreenCapture() sets FLAG_SECURE, which genuinely
  * blocks screenshots and screen recording at the OS level (the same
@@ -34,7 +39,14 @@ import { getActiveConversation } from '../messaging/activeConversation';
 export function useScreenshotProtection(): void {
   const { t } = useTranslation();
 
-  ScreenCapture.usePreventScreenCapture();
+  const hide = usePrivacyPreferencesStore((state) => state.hideFromScreenRecording);
+
+  useEffect(() => {
+    const change = hide
+      ? ScreenCapture.preventScreenCaptureAsync(CAPTURE_KEY)
+      : ScreenCapture.allowScreenCaptureAsync(CAPTURE_KEY);
+    change.catch((error) => console.warn('[screen] could not change capture protection', error));
+  }, [hide]);
 
   useEffect(() => {
     if (Platform.OS !== 'ios') return;

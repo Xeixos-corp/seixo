@@ -236,7 +236,9 @@
     "contact": "Contact",
     "version": "Version",
     "appLockRow": "App lock",
-    "appLockRowHint": "Face ID, or a Seixo-only code with a panic code."
+    "appLockRowHint": "Face ID, or a Seixo-only code with a panic code.",
+    "hideFromRecordingLabel": "Hide from screen recordings",
+    "hideFromRecordingHint": "When on, a screen recording, or mirroring to another screen, shows Seixo as black. Screenshots are not affected: in a conversation, everyone is told about them."
   },
   "screenshotWarning": {
     "title": "Screenshot",

@@ -14,6 +14,18 @@ type PrivacyPreferencesState = {
    */
   showMessagePreviews: boolean;
   setShowMessagePreviews: (show: boolean) => void;
+  /**
+   * Whether a screen recording (or mirroring to another screen) shows Seixo
+   * as black.
+   *
+   * On by default, as it always was. A switch because the person may have
+   * a real reason to record their own screen -- the first one was App
+   * Review asking for a recording of the app, which the app itself made
+   * impossible. Screenshots are not affected on iOS: those cannot be
+   * blocked, and inside a conversation they are announced instead.
+   */
+  hideFromScreenRecording: boolean;
+  setHideFromScreenRecording: (hide: boolean) => void;
 };
 
 export const usePrivacyPreferencesStore = create<PrivacyPreferencesState>()(
@@ -21,6 +33,8 @@ export const usePrivacyPreferencesStore = create<PrivacyPreferencesState>()(
     (set) => ({
       showMessagePreviews: true,
       setShowMessagePreviews: (show) => set({ showMessagePreviews: show }),
+      hideFromScreenRecording: true,
+      setHideFromScreenRecording: (hide) => set({ hideFromScreenRecording: hide }),
     }),
     {
       name: 'privacy-preferences',
