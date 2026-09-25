@@ -1901,3 +1901,50 @@ knows, so without that the phones would have stayed wrong for ever.
 Nothing was exposed: the undecryptable copies were ordinary ciphertext, and
 the server saw what it always sees. What was lost was messages, silently,
 which is its own kind of failure in a messenger.
+
+### Reports, filtering, suspension and expulsion (2026-09-25, Guideline 1.2)
+
+App Review rejected 1.13.5 under Guideline 1.2 with its standard list for
+apps where people talk without a real identity: 18+, zero-tolerance terms, a
+filter, flagging, blocking, removal, action on reports within 24 hours with
+the offender ejected, and in-app contact. Blocking, removal (delete for
+everyone), the terms gate and in-app contact already existed.
+
+**Filter.** On the phone only (`messaging/contentFilter.ts`): received text
+containing a short list of unambiguous slurs and crude terms (PT/EN/ES, whole
+words, accents folded) is covered until tapped; received photos are blurred
+until tapped. Nothing is reported or removed. No switch, deliberately, for the
+first approval; a tap uncovers any single message.
+
+**Reports** (`transport/reports.ts`, migration 0029). The first path by which
+message plaintext reaches the server: the recipient chooses to send the text
+of a message they report (photos and recordings travel only as a
+placeholder). This is the WhatsApp/Messenger model, and it is disclosed as
+such. A report also links, for that one message, a direct conversation's
+message to its sender -- something the database otherwise never records.
+Inserts only; nobody reads reports through the API. Twenty per account per
+day. Deleted after 90 days (`purge-old-reports`).
+
+**Developer alert.** `after_report` calls `report-notify` through pg_net with a
+vault secret. The email (Resend) carries no reported text and no ids -- only
+that a report arrived, the count of distinct reporters and the account state
+-- so neither the mail provider nor the mailbox holds content. Its link opens
+`moderar.html` on GitHub Pages with the report id and a one-time token in the
+URL fragment (never sent to GitHub); the page fetches the report from the
+`moderate` function and acts only on a button press, because mail services
+prefetch links. Only SHA-256 of the token is stored.
+
+**Suspension and expulsion.** Three distinct reporters suspend an account
+automatically; the developer confirms (ban) or dismisses. A restricted
+account cannot insert messages or channel memberships (triggers raising
+`account_restricted`), and nobody can add a banned account to a
+conversation. A ban deletes its group messages still on the server (those
+name their sender), every message in its direct conversations, the reported
+message, its memberships and its push token. Copies on other phones are
+unreachable by design. A banned person can delete the account and create a
+new anonymous one; nothing here prevents that, and nothing could without an
+identity the app deliberately does not ask for.
+
+**New trust placed in the developer:** the text of reported messages, for 90
+days, readable by whoever holds a report link. A leaked link acts on that
+single report only.

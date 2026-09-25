@@ -78,7 +78,8 @@ import * as ScreenCapture from 'expo-screen-capture';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
 import { encryptMessage, isUntrustedIdentityError } from '../crypto';
-import { SUPPORT_CONTACT_EMAIL } from '../config/support';
+import { sendReport, ReportLimitError, isAccountRestrictedError } from '../transport/reports';
+import { isObjectionable } from '../messaging/contentFilter';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { discardSharedImage, type SharedImage } from '../store/pendingShareStore';
 
@@ -282,19 +283,89 @@ export function ConversationScreen({ route, navigation }: Props) {
     ]);
   }, [channelId, navigation, t]);
 
+  /**
+   * Sends a report to the developer (transport/reports.ts), who is emailed at
+   * once and decides within a day whether to expel the account.
+   *
+   * It used to open a pre-written email instead, which needed a mail account
+   * on the phone and ended in a draft the person might never send. App
+   * Review asked for a mechanism to flag content (Guideline 1.2); this one
+   * says "sent" and means it.
+   */
+  const submitReport = useCallback(
+    async (reportedUserId: string, message?: DecryptedMessage, alsoBlock?: () => Promise<void>) => {
+      try {
+        await sendReport({
+          channelId,
+          reportedUserId,
+          messageId: message?.id,
+          // What the reporter chose to show. A photo or a recording is named,
+          // not sent: the report carries text only.
+          content: message
+            ? message.image
+              ? t('conversation.reportPhotoPlaceholder')
+              : message.audioBase64
+                ? t('conversation.reportVoicePlaceholder')
+                : message.plaintext
+            : undefined,
+        });
+        if (alsoBlock) await alsoBlock();
+        Alert.alert(t('conversation.reportSentTitle'), t('conversation.reportSentBody'));
+      } catch (error) {
+        console.error('[ConversationScreen] failed to send report', error);
+        setSendError(
+          error instanceof ReportLimitError ? t('conversation.reportLimit') : t('conversation.reportFailed'),
+        );
+      }
+    },
+    [channelId, t],
+  );
+
+  const blockPeerNow = useCallback(async () => {
+    const { userId } = await registerIdentity();
+    await blockPeer(userId, peerUserId);
+    addBlockedPeer(peerUserId);
+    navigation.navigate('ConversationList');
+  }, [peerUserId, addBlockedPeer, navigation]);
+
   const handleReport = useCallback(() => {
-    if (!SUPPORT_CONTACT_EMAIL) return;
-    const subject = encodeURIComponent(t('conversation.reportEmailSubject'));
-    // A group report names the channel, because there is no single user to
-    // name -- the peer id is empty for a group, and the mail used to arrive
-    // saying "the user with user_id:" and nothing after it.
-    const body = encodeURIComponent(
-      isGroup
-        ? t('conversation.reportGroupEmailBody', { channelId })
-        : t('conversation.reportEmailBody', { peerId: peerUserId }),
-    );
-    Linking.openURL(`mailto:${SUPPORT_CONTACT_EMAIL}?subject=${subject}&body=${body}`);
-  }, [peerUserId, channelId, isGroup, t]);
+    // A group has no single person to report from the header; the report
+    // belongs on the message, which names its sender.
+    if (isGroup) {
+      Alert.alert(t('conversation.reportTitle'), t('conversation.reportGroupHint'));
+      return;
+    }
+    Alert.alert(t('conversation.reportPersonTitle'), t('conversation.reportPersonBody'), [
+      { text: t('conversation.cancel'), style: 'cancel' },
+      { text: t('conversation.reportConfirm'), onPress: () => void submitReport(peerUserId) },
+      {
+        text: t('conversation.reportAndBlock'),
+        style: 'destructive',
+        onPress: () => void submitReport(peerUserId, undefined, blockPeerNow),
+      },
+    ]);
+  }, [isGroup, peerUserId, submitReport, blockPeerNow, t]);
+
+  const handleReportMessage = useCallback(
+    (message: DecryptedMessage) => {
+      const reportedUserId = isGroup ? message.senderUserId : peerUserId;
+      if (!reportedUserId) return;
+      Alert.alert(t('conversation.reportMessageTitle'), t('conversation.reportMessageBody'), [
+        { text: t('conversation.cancel'), style: 'cancel' },
+        { text: t('conversation.reportConfirm'), onPress: () => void submitReport(reportedUserId, message) },
+        ...(isGroup
+          ? []
+          : [
+              {
+                text: t('conversation.reportAndBlock'),
+                style: 'destructive' as const,
+                onPress: () => void submitReport(reportedUserId, message, blockPeerNow),
+              },
+            ]),
+      ]);
+    },
+    [isGroup, peerUserId, submitReport, blockPeerNow, t],
+  );
 
   useEffect(() => {
     navigation.setOptions({
@@ -314,11 +385,9 @@ export function ConversationScreen({ route, navigation }: Props) {
               </Text>
             </Pressable>
           )}
-          {SUPPORT_CONTACT_EMAIL ? (
-            <Pressable onPress={handleReport} hitSlop={8}>
-              <Text style={{ color: colors.accent, fontSize: 13 }}>{t('conversation.reportButton')}</Text>
-            </Pressable>
-          ) : null}
+          <Pressable onPress={handleReport} hitSlop={8}>
+            <Text style={{ color: colors.accent, fontSize: 13 }}>{t('conversation.reportButton')}</Text>
+          </Pressable>
           <Pressable onPress={isGroup ? handleLeaveGroup : handleBlock} hitSlop={8}>
             <Text style={{ color: colors.danger, fontSize: 13 }}>
               {isGroup ? t('conversation.leaveGroupButton') : t('conversation.blockButton')}
@@ -348,6 +417,10 @@ export function ConversationScreen({ route, navigation }: Props) {
     return () => clearInterval(tick);
   }, []);
 
+  // Received messages the filter covered and the person chose to see. Kept
+  // for this visit only: coming back covers them again, which is the safer
+  // default for words someone might not want on screen twice.
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(() => new Set());
   const [inputText, setInputText] = useState(initialDraft ?? '');
   // Also when this screen is reused with new params rather than mounted
   // afresh, which the navigator may do; useState's initial value would
@@ -544,6 +617,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         lifetimeSeconds?: number;
       } = {},
     ) => {
+      try {
       if (isGroup) {
         const selfUserId = getCurrentUserId();
         if (!selfUserId) throw new Error('Group membership not loaded yet');
@@ -573,8 +647,15 @@ export function ConversationScreen({ route, navigation }: Props) {
       }
       const envelope = encryptMessage(peerUserId, REMOTE_DEVICE_ID, payload);
       return sendMessage(channelId, envelope, lifetimeSeconds, options);
+      } catch (error) {
+        // Every send goes through here, so this is the one place to say why
+        // an account that was suspended or expelled can no longer send --
+        // rather than leaving it with a row of silent "not sent" marks.
+        if (isAccountRestrictedError(error)) setSendError(t('conversation.accountRestricted'));
+        throw error;
+      }
     },
-    [isGroup, groupMemberIds, channelId, peerUserId, ttlSeconds],
+    [isGroup, groupMemberIds, channelId, peerUserId, ttlSeconds, t],
   );
 
   const sendVoiceMessage = useCallback(
@@ -1308,6 +1389,14 @@ export function ConversationScreen({ route, navigation }: Props) {
               },
             ]
           : []),
+        ...(message && message.isMine !== true && !message.notice && !messageId.startsWith('local-')
+          ? [
+              {
+                text: t('conversation.reportMessage'),
+                onPress: () => handleReportMessage(message),
+              },
+            ]
+          : []),
         {
           text: t('conversation.deleteConfirm'),
           style: 'destructive',
@@ -1316,7 +1405,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         { text: t('conversation.cancel'), style: 'cancel' },
       ]);
     },
-    [copyToClipboard, handleDeleteMessage, handleReact, messages, navigation, t],
+    [copyToClipboard, handleDeleteMessage, handleReact, handleReportMessage, messages, navigation, t],
   );
 
   // Lets an arriving notification know it has nothing to announce while this
@@ -1701,6 +1790,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                   channelId={channelId}
                   messageId={item.id}
                   image={item.image}
+                  concealed={item.isMine !== true}
                   tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
                   onLongPress={() => handleMessageActions(item.id)}
                 />
@@ -1712,6 +1802,17 @@ export function ConversationScreen({ route, navigation }: Props) {
                   tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
                   onLongPress={() => handleMessageActions(item.id)}
                 />
+              ) : item.isMine !== true && !revealedIds.has(item.id) && isObjectionable(item.plaintext) ? (
+              <Pressable
+                onPress={() => setRevealedIds((current) => new Set(current).add(item.id))}
+                onLongPress={() => handleMessageActions(item.id)}
+                delayLongPress={350}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.hiddenMessage, { color: colors.textSecondary }]}>
+                  {t('conversation.hiddenMessage')}
+                </Text>
+              </Pressable>
               ) : (
               <Text style={{ color: item.isMine === true ? colors.onAccent : colors.textPrimary }}>
                 {splitLinks(item.plaintext).map((segment, index) =>
@@ -2321,6 +2422,10 @@ const styles = StyleSheet.create({
   },
   replyBarTextWrapper: {
     flex: 1,
+  },
+  hiddenMessage: {
+    fontStyle: 'italic',
+    fontSize: 14,
   },
   noticeRow: {
     alignSelf: 'center',

@@ -1,6 +1,6 @@
 # Termos de utilização — Seixo
 
-**Última atualização: 11 de setembro de 2026**
+**Última atualização: 25 de setembro de 2026**
 
 > Fonte de revisão. A versão publicada (também em inglês e espanhol) vive no
 > repositório público `Xeixos-corp/Seixo-Legal`, ao lado da política de
@@ -18,7 +18,7 @@ Ao carregares em «Aceito e continuar» na app, ou ao usá-la, aceitas estes ter
 
 ## 2. Idade mínima
 
-Tens de ter pelo menos 13 anos, ou a idade mínima exigida no teu país para usares sozinho serviços online, se for mais alta.
+Tens de ter pelo menos **18 anos**.
 
 ## 3. A tua conta
 
@@ -40,16 +40,18 @@ Não podes usar a Seixo para:
 - Partilhar conteúdo que não tens direito a partilhar.
 - Enviar software malicioso, ou tentar atacar, sobrecarregar ou aceder sem autorização ao serviço ou às contas de outras pessoas.
 
-Não há tolerância para conteúdo impróprio nem para quem abusa de outras pessoas.
+**Não há tolerância para conteúdo impróprio ou ofensivo, nem para quem abusa de outras pessoas.**
 
 ## 5. Como fazemos cumprir estas regras
 
-As mensagens são cifradas ponta-a-ponta: **ninguém as consegue ler além das pessoas da conversa, nem nós**. Por isso não conseguimos filtrar nem vigiar o que é enviado, e as ferramentas são estas:
+As mensagens são cifradas ponta-a-ponta: **ninguém as consegue ler além das pessoas da conversa, nem nós**. Por isso não vigiamos o que é enviado, e as ferramentas são estas:
 
+- **Filtro**: no teu telemóvel, as mensagens recebidas com linguagem ofensiva aparecem ocultadas, e as fotografias recebidas aparecem desfocadas, até tocares nelas.
 - **Bloquear**: podes bloquear qualquer pessoa, a qualquer momento. Deixa de te poder contactar.
-- **Denunciar**: o botão de denúncia abre um email para seixo.app@proton.me com o identificador da pessoa. Podes juntar a descrição ou capturas de ecrã do que aconteceu.
-- **Analisamos as denúncias e respondemos em tempo útil.** Quando confirmarmos uma violação destes termos, podemos eliminar a conta em causa, sem aviso prévio.
-- Se uma autoridade competente nos pedir dados, só podemos entregar o pouco que o servidor guarda e que está descrito na política de privacidade. Nunca o conteúdo das mensagens, que não temos.
+- **Denunciar**: podes denunciar uma mensagem (mantém o dedo sobre ela) ou uma pessoa. A denúncia chega-nos de imediato, com o texto da mensagem que escolheste mostrar e o identificador de quem a enviou.
+- **Analisamos cada denúncia em menos de 24 horas.** Quando confirmamos uma violação destes termos, **expulsamos a conta**: deixa de poder enviar mensagens, sai de todas as conversas, e o que enviou e ainda está no servidor é apagado.
+- **Suspensão automática**: se três pessoas diferentes denunciarem a mesma conta, ela fica suspensa até analisarmos o caso.
+- Se uma autoridade competente nos pedir dados, só podemos entregar o pouco que o servidor guarda e que está descrito na política de privacidade. Nunca o conteúdo das mensagens, que não temos — exceto o texto de mensagens que alguém nos tenha denunciado nos últimos 90 dias.
 
 ## 6. O teu conteúdo
 

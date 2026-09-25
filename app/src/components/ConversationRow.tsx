@@ -7,6 +7,7 @@ import { avatarColorFor, initialsFor } from '../theme/avatarColors';
 import { conversationDisplayName, type Conversation } from '../store/conversationsStore';
 import type { DecryptedMessage } from '../store/messagesStore';
 import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
+import { isObjectionable } from '../messaging/contentFilter';
 import { lastVisibleMessage } from '../messaging/lastMessage';
 
 type Props = {
@@ -81,6 +82,8 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
         : t('conversationList.screenshotPreview')
       : isImage
       ? t('conversationList.imagePreview')
+      : !last.isMine && isObjectionable(last.plaintext)
+      ? t('conversationList.hiddenPreview')
       : isVoice
         ? t('conversationList.voicePreview', { duration: formatDuration(last.audioDurationMs) })
         : last.plaintext.replace(/\s+/g, ' ').trim();

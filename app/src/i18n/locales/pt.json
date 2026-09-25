@@ -61,7 +61,8 @@
     "backupPromptDismiss": "Agora não",
     "backupPromptAction": "Criar cópia",
     "imagePreview": "Fotografia",
-    "screenshotPreview": "Captura de ecrã"
+    "screenshotPreview": "Captura de ecrã",
+    "hiddenPreview": "Mensagem ocultada"
   },
   "conversation": {
     "ttl": {
@@ -82,9 +83,6 @@
     "confirmBlock": "Bloquear",
     "securityWarningDecrypt": "A chave de segurança de {{peerId}} mudou desde a última conversa. Esta mensagem não foi decifrada — confirma com a outra pessoa antes de continuar.",
     "securityWarningSend": "A chave de segurança de {{peerId}} mudou desde a última conversa. A mensagem não foi enviada — confirma com a outra pessoa antes de continuar.",
-    "reportEmailSubject": "Denúncia de utilizador",
-    "reportEmailBody": "Quero denunciar o utilizador com user_id: {{peerId}}\n\nDescreve aqui o que aconteceu (podes colar o texto da mensagem em causa):\n\n",
-    "reportGroupEmailBody": "Quero denunciar um grupo (identificador do canal: {{channelId}})\n\nDescreve aqui o que aconteceu (podes colar o texto da mensagem em causa):\n\n",
     "ttlLabel": "As mensagens que enviares desaparecem após:",
     "expiresInSeconds": "desaparece em {{count}} s",
     "expiresInMinutes": "desaparece em {{count}} min",
@@ -189,7 +187,25 @@
     "screenshotNoticeTheirs": "{{name}} fez uma captura de ecrã",
     "screenshotSomeone": "Alguém",
     "screenshotFallback": "📸 Fiz uma captura de ecrã desta conversa.",
-    "serverView": "O que o servidor viu"
+    "serverView": "O que o servidor viu",
+    "reportMessage": "Denunciar",
+    "reportTitle": "Denunciar",
+    "reportMessageTitle": "Denunciar esta mensagem?",
+    "reportMessageBody": "O texto desta mensagem e o identificador de quem a enviou são enviados à equipa do Seixo. É a única forma de vermos uma mensagem: tu escolhes mostrá-la. Analisamos todas as denúncias em menos de 24 horas e expulsamos quem violar os termos.",
+    "reportPersonTitle": "Denunciar esta pessoa?",
+    "reportPersonBody": "O identificador desta pessoa é enviado à equipa do Seixo, que analisa a denúncia em menos de 24 horas. Para denunciar uma mensagem concreta, mantém o dedo sobre ela.",
+    "reportGroupHint": "Para denunciar alguém num grupo, mantém o dedo sobre a mensagem que queres denunciar e escolhe «Denunciar». Também podes bloquear um membro em «Membros».",
+    "reportConfirm": "Denunciar",
+    "reportAndBlock": "Denunciar e bloquear",
+    "reportSentTitle": "Denúncia enviada",
+    "reportSentBody": "Obrigado. Vamos analisá-la em menos de 24 horas. Se três pessoas diferentes denunciarem a mesma conta, ela é suspensa de imediato.",
+    "reportFailed": "Não foi possível enviar a denúncia. Tenta outra vez.",
+    "reportLimit": "Já enviaste muitas denúncias hoje. Tenta amanhã, ou escreve-nos para seixo.app@proton.me.",
+    "reportPhotoPlaceholder": "[fotografia]",
+    "reportVoicePlaceholder": "[mensagem de voz]",
+    "hiddenMessage": "Mensagem ocultada por conter linguagem ofensiva. Toca para ver.",
+    "imageTapToView": "Toca para ver a fotografia",
+    "accountRestricted": "A tua conta foi suspensa após denúncias e não pode enviar mensagens. Se achas que é um engano, escreve-nos para seixo.app@proton.me."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -315,11 +331,11 @@
   "terms": {
     "title": "Antes de começares",
     "intro": "A Seixo é para conversas privadas entre pessoas que se conhecem. Para a usares, aceitas estas regras:",
-    "rule1": "Tolerância zero para conteúdo ilegal, abuso sexual de menores, assédio, ameaças, discurso de ódio, spam e fraude.",
-    "rule2": "Ninguém consegue ler as tuas mensagens, nem nós. Por isso podes bloquear e denunciar qualquer pessoa, e analisamos as denúncias.",
-    "rule3": "Podemos eliminar contas que violem estas regras.",
+    "rule1": "Tolerância zero para conteúdo impróprio ou ofensivo e para quem abusa de outras pessoas — incluindo conteúdo ilegal, abuso sexual de menores, assédio, ameaças, discurso de ódio, spam e fraude.",
+    "rule2": "Ninguém consegue ler as tuas mensagens, nem nós. Por isso podes bloquear e denunciar qualquer pessoa ou mensagem, e analisamos cada denúncia em menos de 24 horas.",
+    "rule3": "Quem violar estas regras é expulso: a conta deixa de poder enviar mensagens e sai de todas as conversas.",
     "rule4": "És responsável pelo que envias. Mensagens temporárias não impedem que alguém faça uma captura de ecrã.",
-    "rule5": "Tens de ter pelo menos 13 anos, ou a idade mínima exigida no teu país.",
+    "rule5": "Tens de ter pelo menos 18 anos.",
     "readFull": "Ler os termos completos",
     "readPrivacy": "Ler a política de privacidade",
     "accept": "Aceito e continuar"
@@ -369,7 +385,7 @@
     "noToken": "Sem token de notificações",
     "blocked": "Pessoas bloqueadas",
     "absentSection": "O que não está aqui",
-    "absentList": "O conteúdo das mensagens · o que mostram as fotografias · quem enviou cada mensagem ou fotografia numa conversa a dois (na base de dados) · os nomes que deste aos contactos · os nomes dos grupos",
+    "absentList": "O conteúdo das mensagens · o que mostram as fotografias · quem enviou cada mensagem ou fotografia numa conversa a dois (na base de dados) · os nomes que deste aos contactos · os nomes dos grupos. Excepção: uma denúncia guarda o texto da mensagem denunciada e quem a enviou, durante 90 dias.",
     "hostingNote": "Isto é a base de dados. Antes de um pedido lá chegar, a camada de entrada do alojamento regista-o e guarda durante 24 horas o teu IP, a cidade e o código postal aproximados, o teu fornecedor de internet e, na maioria dos casos, o identificador da tua conta. Não o controlamos nem o conseguimos apagar mais cedo. Está explicado na política de privacidade.",
     "imagesSection": "Fotografias",
     "images_one": "1 fotografia cifrada",

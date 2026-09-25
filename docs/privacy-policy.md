@@ -1,6 +1,6 @@
 # Política de privacidade — Seixo
 
-**Última atualização: 21 de setembro de 2026**
+**Última atualização: 25 de setembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -14,7 +14,7 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 ## Em resumo
 
 - Não pedimos número de telefone, nome, email nem acesso aos teus contactos.
-- O servidor nunca consegue ler as tuas mensagens: são cifradas no teu telemóvel antes de saírem.
+- O servidor nunca consegue ler as tuas mensagens: são cifradas no teu telemóvel antes de saírem. A única excepção é uma mensagem que alguém denuncie — quem a recebeu escolhe mostrá-la.
 - Quase tudo o que o servidor guarda apaga-se sozinho — dizemos abaixo quando.
 - Não usamos publicidade, análise nem rastreio de terceiros.
 
@@ -31,7 +31,7 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 **Sobre as tuas conversas:**
 
 - **Que conversas existem e quem pertence a cada uma** e, nos grupos, quem é o dono. É o mínimo para o servidor saber a quem entregar cada mensagem.
-- **As mensagens, sempre cifradas.** De cada uma, o servidor vê a conversa a que pertence, a hora exata, o tamanho e se deve gerar notificação — nunca o conteúdo.
+- **As mensagens, sempre cifradas.** De cada uma, o servidor vê a conversa a que pertence, a hora exata, o tamanho e se deve gerar notificação — nunca o conteúdo, a não ser que alguém denuncie essa mensagem (ver «Denúncias»).
 - **Quem enviou:** numa conversa a dois, **não fica guardado na nossa base de dados**. Mas o servidor sabe quem és no momento em que envias, e os registos do alojamento guardam durante **24 horas** que a tua conta enviou algo àquela hora — o que permite, nesse período, saber quem enviou cada mensagem. Ao fim de 24 horas essa ligação desaparece. **Num grupo, o servidor consegue ver quem enviou cada mensagem** enquanto essa mensagem existir, porque quem a recebe precisa de saber com que chave a decifrar.
 - **Os nomes dos grupos e os nomes que dás aos contactos** nunca chegam ao servidor em texto legível.
 
@@ -91,19 +91,26 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 - **Chaves temporárias nunca usadas**: 30 dias.
 - **Contas**: apagadas ao fim de **6 meses sem abrires a app**, com tudo o que lhes pertence. Uma cópia de segurança dessa conta deixa de funcionar.
 - **Lista de bloqueados, token de notificações e credenciais da cópia de segurança**: enquanto a conta existir.
+- **Denúncias**: 90 dias. A marca de conta suspensa ou expulsa: enquanto a conta existir.
 - **Endereços IP**: ver a secção acima.
 
 ## Quem mais tem acesso aos teus dados
 
 - **As pessoas da conversa** — só elas conseguem decifrar o conteúdo, nos telemóveis delas.
-- **Supabase Inc.**, que aloja a base de dados, o servidor e os ficheiros cifrados das fotografias na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política — texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
+- **Supabase Inc.**, que aloja a base de dados, o servidor e os ficheiros cifrados das fotografias na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler, bem como ao texto das mensagens denunciadas. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política — texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
 - **Expo (650 Industries, Inc.) e Apple**, que encaminham as notificações até ao teu telemóvel. Recebem o token e o texto genérico da notificação — nunca o conteúdo nem o remetente.
 - **Proton AG**, só se nos escreveres para seixo.app@proton.me.
+- **Resend (Resend, Inc.)**, que envia ao programador o email de aviso de cada denúncia. Esse email diz apenas que chegou uma denúncia, quantas pessoas denunciaram a conta e se ela está suspensa — nunca o texto denunciado nem identificadores.
 - **Ninguém mais.** Não vendemos, alugamos nem partilhamos dados com publicidade, redes sociais ou quaisquer outros terceiros.
 
 ## Denúncias
 
-O botão para denunciar um contacto abre a tua app de email com uma mensagem já preenchida, que inclui o identificador desse contacto. Nada é enviado até carregares em enviar.
+Podes denunciar uma mensagem ou uma pessoa. É a **única forma de o conteúdo de uma mensagem chegar ao servidor em texto legível**, e só acontece porque quem a recebeu decide mostrá-la.
+
+- **Uma denúncia guarda:** quem denunciou, a conta denunciada, a conversa, e o texto da mensagem denunciada (uma fotografia ou uma mensagem de voz aparecem só como «[fotografia]» ou «[mensagem de voz]» — o ficheiro não é enviado). Numa conversa a dois, isto revela também quem enviou essa mensagem, algo que o servidor normalmente não guarda.
+- **Quem a vê:** só o programador, numa página a que se chega pela ligação do email de aviso. O email em si diz apenas que chegou uma denúncia — nunca o texto nem os identificadores.
+- **Durante quanto tempo:** a denúncia é apagada **90 dias** depois de ser feita.
+- **O que pode acontecer à conta denunciada:** se três pessoas diferentes a denunciarem, fica suspensa automaticamente até ser analisada. Se a denúncia se confirmar, a conta é expulsa. Uma conta suspensa ou expulsa fica marcada no servidor enquanto existir, e é a única que consegue ver essa marca.
 
 ## Os teus direitos
 
@@ -117,7 +124,7 @@ As mensagens são cifradas ponta-a-ponta com o protocolo Signal (PQXDH e Double 
 
 ## Menores de idade
 
-A app não é dirigida a crianças e não pedimos, conscientemente, dados de menores de idade. Não temos atualmente um mecanismo de verificação de idade.
+A app é só para maiores de **18 anos**, como dizem os termos de utilização. Não pedimos, conscientemente, dados de menores de idade. Não temos um mecanismo de verificação de idade.
 
 ## Alterações a esta política
 

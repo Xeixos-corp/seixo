@@ -61,7 +61,8 @@
     "backupPromptDismiss": "Not now",
     "backupPromptAction": "Create backup",
     "imagePreview": "Photo",
-    "screenshotPreview": "Screenshot"
+    "screenshotPreview": "Screenshot",
+    "hiddenPreview": "Hidden message"
   },
   "conversation": {
     "ttl": {
@@ -82,9 +83,6 @@
     "confirmBlock": "Block",
     "securityWarningDecrypt": "{{peerId}}'s security key changed since your last conversation. This message wasn't decrypted — confirm with the other person before continuing.",
     "securityWarningSend": "{{peerId}}'s security key changed since your last conversation. The message wasn't sent — confirm with the other person before continuing.",
-    "reportEmailSubject": "User report",
-    "reportEmailBody": "I want to report the user with user_id: {{peerId}}\n\nDescribe what happened here (you can paste the message text in question):\n\n",
-    "reportGroupEmailBody": "I want to report a group (channel id: {{channelId}})\n\nDescribe what happened here (you can paste the message in question):\n\n",
     "ttlLabel": "Messages you send disappear after:",
     "expiresInSeconds": "disappears in {{count}}s",
     "expiresInMinutes": "disappears in {{count}} min",
@@ -189,7 +187,25 @@
     "screenshotNoticeTheirs": "{{name}} took a screenshot",
     "screenshotSomeone": "Someone",
     "screenshotFallback": "📸 I took a screenshot of this conversation.",
-    "serverView": "What the server saw"
+    "serverView": "What the server saw",
+    "reportMessage": "Report",
+    "reportTitle": "Report",
+    "reportMessageTitle": "Report this message?",
+    "reportMessageBody": "The text of this message and the ID of whoever sent it are sent to the Seixo team. It is the only way we can ever see a message: you choose to show it to us. We review every report within 24 hours and expel anyone who breaks the terms.",
+    "reportPersonTitle": "Report this person?",
+    "reportPersonBody": "This person's ID is sent to the Seixo team, who review the report within 24 hours. To report a specific message, press and hold it.",
+    "reportGroupHint": "To report someone in a group, press and hold the message you want to report and choose \"Report\". You can also block a member under \"Members\".",
+    "reportConfirm": "Report",
+    "reportAndBlock": "Report and block",
+    "reportSentTitle": "Report sent",
+    "reportSentBody": "Thank you. We will review it within 24 hours. If three different people report the same account, it is suspended immediately.",
+    "reportFailed": "Could not send the report. Please try again.",
+    "reportLimit": "You have sent many reports today. Try tomorrow, or write to us at seixo.app@proton.me.",
+    "reportPhotoPlaceholder": "[photo]",
+    "reportVoicePlaceholder": "[voice message]",
+    "hiddenMessage": "Message hidden because it contains offensive language. Tap to view.",
+    "imageTapToView": "Tap to view the photo",
+    "accountRestricted": "Your account was suspended after reports and cannot send messages. If you think this is a mistake, write to us at seixo.app@proton.me."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
@@ -315,11 +331,11 @@
   "terms": {
     "title": "Before you start",
     "intro": "Seixo is for private conversations between people who know each other. To use it, you agree to these rules:",
-    "rule1": "Zero tolerance for illegal content, child sexual abuse, harassment, threats, hate speech, spam and fraud.",
-    "rule2": "Nobody can read your messages, not even us. That is why you can block and report anyone, and we review reports.",
-    "rule3": "We may delete accounts that break these rules.",
+    "rule1": "Zero tolerance for objectionable or offensive content and for abusive users — including illegal content, child sexual abuse, harassment, threats, hate speech, spam and fraud.",
+    "rule2": "Nobody can read your messages, not even us. That is why you can block and report any person or message, and we review every report within 24 hours.",
+    "rule3": "Anyone who breaks these rules is expelled: the account can no longer send messages and leaves every conversation.",
     "rule4": "You are responsible for what you send. Disappearing messages do not stop someone taking a screenshot.",
-    "rule5": "You must be at least 13, or the minimum age required in your country.",
+    "rule5": "You must be at least 18 years old.",
     "readFull": "Read the full terms",
     "readPrivacy": "Read the privacy policy",
     "accept": "Accept and continue"
@@ -369,7 +385,7 @@
     "noToken": "No notification token",
     "blocked": "People blocked",
     "absentSection": "What is not here",
-    "absentList": "The content of messages · what photos show · who sent each message or photo in a one-to-one conversation (in the database) · the names you gave your contacts · the names of groups",
+    "absentList": "The content of messages · what photos show · who sent each message or photo in a one-to-one conversation (in the database) · the names you gave your contacts · the names of groups. The exception: a report keeps the reported message's text and who sent it, for 90 days.",
     "hostingNote": "This is the database. Before a request reaches it, the hosting provider's entry layer records it and keeps, for 24 hours, your IP, the approximate city and postal code, your internet provider and, in most cases, your account id. We do not control it and cannot delete it sooner. It is explained in the privacy policy.",
     "imagesSection": "Photos",
     "images_one": "1 encrypted photo",

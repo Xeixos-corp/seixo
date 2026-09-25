@@ -19,7 +19,7 @@ export const PRIVACY_POLICY_URL = 'https://xeixos-corp.github.io/Seixo-Legal/';
 // per version: raise TERMS_VERSION when the terms change significantly and
 // every device asks again.
 export const TERMS_URL = 'https://xeixos-corp.github.io/Seixo-Legal/terms.html';
-export const TERMS_VERSION = 1;
+export const TERMS_VERSION = 2;
 
 // Frequently asked questions, published beside the privacy policy and the
 // terms (Xeixos-corp/Seixo-Legal) with the source at docs/faq.md. Also the

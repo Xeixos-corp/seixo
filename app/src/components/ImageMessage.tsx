@@ -15,6 +15,13 @@ type Props = {
   image: StoredImage;
   /** Colour for the status text drawn over the picture. */
   tint: string;
+  /**
+   * Covered until tapped. For photos from others: the app cannot tell what a
+   * photo shows -- the server never sees it and nothing on the phone judges
+   * it -- so the filter App Review requires (Guideline 1.2) is that nobody is
+   * shown someone else's picture without choosing to look.
+   */
+  concealed?: boolean;
   onLongPress: () => void;
 };
 
@@ -27,9 +34,10 @@ type Props = {
  * blurred preview is sized exactly like the picture it stands in for, so
  * nothing jumps when the real one replaces it.
  */
-export function ImageMessage({ channelId, messageId, image, tint, onLongPress }: Props) {
+export function ImageMessage({ channelId, messageId, image, tint, onLongPress, concealed }: Props) {
   const { t } = useTranslation();
   const [viewing, setViewing] = useState(false);
+  const [revealed, setRevealed] = useState(!concealed);
   const [broken, setBroken] = useState(false);
 
   // A picture that is still owed and is now on screen: make sure something is
@@ -57,7 +65,11 @@ export function ImageMessage({ channelId, messageId, image, tint, onLongPress }:
   return (
     <>
       <Pressable
-        onPress={() => (showFull ? setViewing(true) : undefined)}
+        onPress={() => {
+          if (!showFull) return;
+          if (!revealed) setRevealed(true);
+          else setViewing(true);
+        }}
         onLongPress={onLongPress}
         delayLongPress={350}
         accessibilityRole="image"
@@ -69,6 +81,7 @@ export function ImageMessage({ channelId, messageId, image, tint, onLongPress }:
               source={{ uri: imageUri(image.fileName as string) }}
               style={size}
               resizeMode="cover"
+              blurRadius={revealed ? 0 : 30}
               // A file the cache was cleared of, or one that failed to decode.
               onError={() => setBroken(true)}
             />
@@ -79,6 +92,12 @@ export function ImageMessage({ channelId, messageId, image, tint, onLongPress }:
               resizeMode="cover"
               blurRadius={12}
             />
+          ) : null}
+
+          {showFull && !revealed && !status ? (
+            <View style={styles.overlay}>
+              <Text style={[styles.status, { color: '#FFFFFF' }]}>{t('conversation.imageTapToView')}</Text>
+            </View>
           ) : null}
 
           {status || (!showFull && !unavailable) ? (
