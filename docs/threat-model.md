@@ -1948,3 +1948,15 @@ identity the app deliberately does not ask for.
 **New trust placed in the developer:** the text of reported messages, for 90
 days, readable by whoever holds a report link. A leaked link acts on that
 single report only.
+
+### Egress: every resync re-downloaded every message (2026-09-25)
+
+The dashboard showed 4.28 of the free plan's 5 GB monthly egress used with
+five users. `fetchMessages` selected full rows -- ciphertext included -- for
+every message of every channel on every foreground resync and every
+conversation opened. Voice messages run to a megabyte and group messages
+carry one copy per member, so nearly all of it was re-downloading messages
+the phones had already decrypted. It now fetches ids first and full rows only
+for ids the phone does not already hold (`alreadyHaveMessage`). Recorded here
+because exhausting the quota restricts the whole project -- an availability
+failure for every user, not a cost detail.

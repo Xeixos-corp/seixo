@@ -107,20 +107,51 @@ export async function sendMessage(
   };
 }
 
-export async function fetchMessages(channelId: string): Promise<FetchedMessage[]> {
-  const { data, error } = await supabase
-    .from('messages')
-    .select('id, ciphertext, created_at, expires_at')
-    .eq('channel_id', channelId)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
+/** Ids per request for the second step below: keeps the URL well under any limit. */
+const FETCH_BATCH = 50;
 
-  return (data ?? []).map((row) => ({
-    id: row.id as string,
-    createdAt: row.created_at as string,
-    expiresAt: row.expires_at as string,
-    ciphertext: row.ciphertext as string,
-  }));
+/**
+ * Fetches the messages of a channel that this phone does not have yet.
+ *
+ * In two steps: first only the ids -- a few bytes each -- and then the full
+ * rows for the ids `alreadyHave` does not recognise. It used to download
+ * every message of every conversation, ciphertext and all, every time the app
+ * came back to the foreground. A voice message is up to a megabyte and a
+ * group message carries one copy per member, so a handful of people used most
+ * of the free plan's 5 GB of monthly egress by September 25th -- almost all of
+ * it re-downloading messages the phones had already decrypted.
+ */
+export async function fetchMessages(
+  channelId: string,
+  alreadyHave: (id: string) => boolean = () => false,
+): Promise<FetchedMessage[]> {
+  const { data: heads, error: headsError } = await supabase
+    .from('messages')
+    .select('id')
+    .eq('channel_id', channelId);
+  if (headsError) throw headsError;
+
+  const missing = (heads ?? []).map((row) => row.id as string).filter((id) => !alreadyHave(id));
+  if (missing.length === 0) return [];
+
+  const rows: FetchedMessage[] = [];
+  for (let start = 0; start < missing.length; start += FETCH_BATCH) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id, ciphertext, created_at, expires_at')
+      .in('id', missing.slice(start, start + FETCH_BATCH));
+    if (error) throw error;
+    for (const row of data ?? []) {
+      rows.push({
+        id: row.id as string,
+        createdAt: row.created_at as string,
+        expiresAt: row.expires_at as string,
+        ciphertext: row.ciphertext as string,
+      });
+    }
+  }
+  // Oldest first, as before: ingest order decides the ratchet's order.
+  return rows.sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
 }
 
 /**

@@ -29,7 +29,7 @@ import {
 } from '../store/conversationsStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { fetchMessages, sendMessage, deleteMessage } from '../transport/messages';
-import { ingestFetchedMessage } from '../messaging/ingest';
+import { alreadyHaveMessage, ingestFetchedMessage } from '../messaging/ingest';
 import { encodePayload } from '../messaging/payload';
 import { splitLinks } from '../messaging/links';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
@@ -1447,7 +1447,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   useEffect(() => {
     let cancelled = false;
 
-    fetchMessages(channelId)
+    fetchMessages(channelId, (id) => alreadyHaveMessage(channelId, id))
       .then((fetched) => {
         if (cancelled) return;
         fetched.forEach((message) =>

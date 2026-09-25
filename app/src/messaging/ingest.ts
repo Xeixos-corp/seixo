@@ -53,6 +53,16 @@ function rememberControlMessage(channelId: string, fetched: FetchedMessage, dele
   });
 }
 
+/**
+ * Whether a fetch can skip this message: it is already stored here, or it
+ * failed to decrypt this session and would only fail again (a Double Ratchet
+ * key works once). Passed to fetchMessages so neither is downloaded again.
+ */
+export function alreadyHaveMessage(channelId: string, messageId: string): boolean {
+  if (failedThisSession.has(messageId)) return true;
+  return (useMessagesStore.getState().messagesByChannel[channelId] ?? []).some((m) => m.id === messageId);
+}
+
 /** Called when the account is deleted -- nothing should outlive that. */
 export function clearFailedMessageCache(): void {
   failedThisSession.clear();

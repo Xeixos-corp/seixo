@@ -4,7 +4,7 @@ import type { AppStateStatus } from 'react-native';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useMessagesStore } from '../store/messagesStore';
 import { fetchMessages, subscribeToChannelMessages } from '../transport/messages';
-import { ingestFetchedMessage } from './ingest';
+import { alreadyHaveMessage, ingestFetchedMessage } from './ingest';
 import { getCurrentUserId } from '../identity/currentUser';
 
 /**
@@ -78,7 +78,7 @@ export function useMessageSync(): void {
     const unsubscribers = current.map(({ channelId, peerUserId }) => {
       // Catch up on anything that arrived while this device was away. The
       // realtime subscription below only covers what happens from now on.
-      fetchMessages(channelId)
+      fetchMessages(channelId, (id) => alreadyHaveMessage(channelId, id))
         .then((fetched) => {
           fetched.forEach((message) =>
             ingestFetchedMessage(channelId, peerUserId, message, getCurrentUserId() ?? undefined),
