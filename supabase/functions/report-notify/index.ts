@@ -116,8 +116,7 @@ Deno.serve(async (req: Request) => {
     "",
     "Tens 24 horas para decidir. Abre esta ligação para ver o que foi denunciado e expulsar a conta ou rejeitar a denúncia:",
     link,
-  ].join("
-");
+  ].join("\n");
 
   const html = `<p>Nova denúncia no Seixo, ${where}.</p>
 <p>Pessoas diferentes que denunciaram esta conta: <strong>${reporters}</strong><br>

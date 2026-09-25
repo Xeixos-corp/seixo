@@ -47,7 +47,10 @@ as $$
   select exists (select 1 from public.account_restrictions where user_id = uid);
 $$;
 
-revoke all on function public.is_restricted(uuid) from public;
+-- Not callable through the API: it would let anyone ask whether any account
+-- is restricted. Only the triggers below use it. (Supabase grants EXECUTE to
+-- anon and authenticated on new functions by default, hence naming them.)
+revoke all on function public.is_restricted(uuid) from public, anon, authenticated;
 
 -- A restricted account cannot send. Checked in a trigger rather than in the
 -- insert policy so the refusal carries a recognisable message the app can
@@ -66,7 +69,7 @@ begin
 end;
 $$;
 
-revoke all on function public.refuse_restricted_sender() from public;
+revoke all on function public.refuse_restricted_sender() from public, anon, authenticated;
 
 create trigger messages_refuse_restricted_sender
   before insert on public.messages
@@ -95,7 +98,7 @@ begin
 end;
 $$;
 
-revoke all on function public.refuse_restricted_membership() from public;
+revoke all on function public.refuse_restricted_membership() from public, anon, authenticated;
 
 create trigger channel_members_refuse_restricted
   before insert on public.channel_members
@@ -157,7 +160,7 @@ begin
 end;
 $$;
 
-revoke all on function public.limit_reports() from public;
+revoke all on function public.limit_reports() from public, anon, authenticated;
 
 create trigger reports_limit
   before insert on public.reports
@@ -207,7 +210,7 @@ begin
 end;
 $$;
 
-revoke all on function public.after_report() from public;
+revoke all on function public.after_report() from public, anon, authenticated;
 
 create trigger reports_after_insert
   after insert on public.reports
