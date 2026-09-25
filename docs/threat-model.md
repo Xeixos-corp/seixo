@@ -1960,3 +1960,14 @@ the phones had already decrypted. It now fetches ids first and full rows only
 for ids the phone does not already hold (`alreadyHaveMessage`). Recorded here
 because exhausting the quota restricts the whole project -- an availability
 failure for every user, not a cost detail.
+
+**Evidence (2026-09-25, migration 0031).** A report of a photo or a voice
+message now carries the file itself, chosen by the reporter: the photo already
+decrypted on their phone, or the recording written out for the upload and
+deleted after. Stored in the private `report-evidence` bucket under the
+report's id (client-generated, since the reporter cannot read reports back),
+uploadable once, by that reporter, within ten minutes of the report; no read
+policy at all. The `moderate` function makes a ten-minute signed URL only
+after checking the report token. A daily job removes evidence whose report is
+gone, through purge-attachments with the same vault secret. Without this, a
+reported photo reached the developer as "[photo]", which cannot be judged.

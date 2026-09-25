@@ -205,7 +205,9 @@
     "reportVoicePlaceholder": "[voice message]",
     "hiddenMessage": "Message hidden because it contains offensive language. Tap to view.",
     "imageTapToView": "Tap to view the photo",
-    "accountRestricted": "Your account was suspended after reports and cannot send messages. If you think this is a mistake, write to us at seixo.app@proton.me."
+    "accountRestricted": "Your account was suspended after reports and cannot send messages. If you think this is a mistake, write to us at seixo.app@proton.me.",
+    "reportPhotoBody": "This photo and the ID of whoever sent it are sent to the Seixo team. It is the only way we can ever see it: you choose to show it to us. We review every report within 24 hours and expel anyone who breaks the terms.",
+    "reportVoiceBody": "This voice message and the ID of whoever sent it are sent to the Seixo team. It is the only way we can ever hear it: you choose to show it to us. We review every report within 24 hours and expel anyone who breaks the terms."
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
@@ -385,7 +387,7 @@
     "noToken": "No notification token",
     "blocked": "People blocked",
     "absentSection": "What is not here",
-    "absentList": "The content of messages · what photos show · who sent each message or photo in a one-to-one conversation (in the database) · the names you gave your contacts · the names of groups. The exception: a report keeps the reported message's text and who sent it, for 90 days.",
+    "absentList": "The content of messages · what photos show · who sent each message or photo in a one-to-one conversation (in the database) · the names you gave your contacts · the names of groups. The exception: a report keeps the reported message (text, photo or audio) and who sent it, for 90 days.",
     "hostingNote": "This is the database. Before a request reaches it, the hosting provider's entry layer records it and keeps, for 24 hours, your IP, the approximate city and postal code, your internet provider and, in most cases, your account id. We do not control it and cannot delete it sooner. It is explained in the privacy policy.",
     "imagesSection": "Photos",
     "images_one": "1 encrypted photo",

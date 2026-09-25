@@ -48,10 +48,10 @@ As mensagens são cifradas ponta-a-ponta: **ninguém as consegue ler além das p
 
 - **Filtro**: no teu telemóvel, as mensagens recebidas com linguagem ofensiva aparecem ocultadas, e as fotografias recebidas aparecem desfocadas, até tocares nelas.
 - **Bloquear**: podes bloquear qualquer pessoa, a qualquer momento. Deixa de te poder contactar.
-- **Denunciar**: podes denunciar uma mensagem (mantém o dedo sobre ela) ou uma pessoa. A denúncia chega-nos de imediato, com o texto da mensagem que escolheste mostrar e o identificador de quem a enviou.
+- **Denunciar**: podes denunciar uma mensagem (mantém o dedo sobre ela) ou uma pessoa. A denúncia chega-nos de imediato, com a mensagem que escolheste mostrar — o texto, a fotografia ou a mensagem de voz — e o identificador de quem a enviou.
 - **Analisamos cada denúncia em menos de 24 horas.** Quando confirmamos uma violação destes termos, **expulsamos a conta**: deixa de poder enviar mensagens, sai de todas as conversas, e o que enviou e ainda está no servidor é apagado.
 - **Suspensão automática**: se três pessoas diferentes denunciarem a mesma conta, ela fica suspensa até analisarmos o caso.
-- Se uma autoridade competente nos pedir dados, só podemos entregar o pouco que o servidor guarda e que está descrito na política de privacidade. Nunca o conteúdo das mensagens, que não temos — exceto o texto de mensagens que alguém nos tenha denunciado nos últimos 90 dias.
+- Se uma autoridade competente nos pedir dados, só podemos entregar o pouco que o servidor guarda e que está descrito na política de privacidade. Nunca o conteúdo das mensagens, que não temos — exceto o conteúdo de mensagens que alguém nos tenha denunciado nos últimos 90 dias.
 
 ## 6. O teu conteúdo
 

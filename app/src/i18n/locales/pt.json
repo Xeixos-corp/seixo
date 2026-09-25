@@ -205,7 +205,9 @@
     "reportVoicePlaceholder": "[mensagem de voz]",
     "hiddenMessage": "Mensagem ocultada por conter linguagem ofensiva. Toca para ver.",
     "imageTapToView": "Toca para ver a fotografia",
-    "accountRestricted": "A tua conta foi suspensa após denúncias e não pode enviar mensagens. Se achas que é um engano, escreve-nos para seixo.app@proton.me."
+    "accountRestricted": "A tua conta foi suspensa após denúncias e não pode enviar mensagens. Se achas que é um engano, escreve-nos para seixo.app@proton.me.",
+    "reportPhotoBody": "Esta fotografia e o identificador de quem a enviou são enviados à equipa do Seixo. É a única forma de a vermos: tu escolhes mostrá-la. Analisamos todas as denúncias em menos de 24 horas e expulsamos quem violar os termos.",
+    "reportVoiceBody": "Esta mensagem de voz e o identificador de quem a enviou são enviados à equipa do Seixo. É a única forma de a ouvirmos: tu escolhes mostrá-la. Analisamos todas as denúncias em menos de 24 horas e expulsamos quem violar os termos."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -385,7 +387,7 @@
     "noToken": "Sem token de notificações",
     "blocked": "Pessoas bloqueadas",
     "absentSection": "O que não está aqui",
-    "absentList": "O conteúdo das mensagens · o que mostram as fotografias · quem enviou cada mensagem ou fotografia numa conversa a dois (na base de dados) · os nomes que deste aos contactos · os nomes dos grupos. Excepção: uma denúncia guarda o texto da mensagem denunciada e quem a enviou, durante 90 dias.",
+    "absentList": "O conteúdo das mensagens · o que mostram as fotografias · quem enviou cada mensagem ou fotografia numa conversa a dois (na base de dados) · os nomes que deste aos contactos · os nomes dos grupos. Excepção: uma denúncia guarda a mensagem denunciada (texto, fotografia ou áudio) e quem a enviou, durante 90 dias.",
     "hostingNote": "Isto é a base de dados. Antes de um pedido lá chegar, a camada de entrada do alojamento regista-o e guarda durante 24 horas o teu IP, a cidade e o código postal aproximados, o teu fornecedor de internet e, na maioria dos casos, o identificador da tua conta. Não o controlamos nem o conseguimos apagar mais cedo. Está explicado na política de privacidade.",
     "imagesSection": "Fotografias",
     "images_one": "1 fotografia cifrada",

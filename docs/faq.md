@@ -120,7 +120,7 @@ Ler, não. As mensagens são cifradas no teu telemóvel antes de saírem e a cha
 O que ele **vê**, e que dizemos por inteiro na [política de privacidade](index.html):
 
 - Que conversas existem e quem pertence a cada uma — é o mínimo para saber a quem entregar cada mensagem.
-- De cada mensagem: a que conversa pertence, a hora e o tamanho. Nunca o conteúdo — a não ser o de uma mensagem que alguém nos denuncie, e só o texto dessa.
+- De cada mensagem: a que conversa pertence, a hora e o tamanho. Nunca o conteúdo — a não ser o de uma mensagem que alguém nos denuncie, e só essa.
 - Numa conversa a dois, **não guarda quem enviou na base de dados** — mas os registos do alojamento permitem sabê-lo durante **24 horas**. **Num grupo, guarda** — quem recebe precisa de saber com que chave decifrar. Dizemos isto porque é verdade, não porque nos agrade.
 - Das fotografias: um ficheiro cifrado por fotografia, com o tamanho arredondado, e **quando foi descarregado**. Isto último é quase um aviso de leitura, e não o conseguimos impedir — mas existe só enquanto o ficheiro existir, no máximo um dia.
 - O teu endereço IP. Aqui há uma distinção que vale a pena: na nossa base de dados o IP é apagado a cada minuto, mas os registos de entrada do alojamento — que não controlamos — guardam durante **24 horas** o IP, a cidade e o código postal aproximados, o teu fornecedor de internet e, na maioria dos casos, o identificador da tua conta. Ao fim desse dia desaparecem. A app não esconde o teu IP; se isso te importa, usa uma VPN.
@@ -132,7 +132,7 @@ E não tens de acreditar só no que aqui escrevemos. Em qualquer mensagem, mant�
 
 - **Numa conversa a dois:** abre a conversa e carrega em **«Bloquear»**. Essa pessoa deixa de te conseguir escrever.
 - **Num grupo:** abre **«Membros»** e bloqueia essa pessoa. As mensagens dela deixam de te chegar — no grupo e em qualquer conversa — enquanto ela continua no grupo e não fica a saber. Se preferires sair, há **«Sair»** no topo da conversa.
-- **Para nos dizeres:** mantém o dedo sobre a mensagem e escolhe **«Denunciar»**. A denúncia chega-nos de imediato, com o texto dessa mensagem — é a única forma de a vermos, porque não conseguimos ler as mensagens. Numa conversa a dois, também podes denunciar a pessoa no topo da conversa.
+- **Para nos dizeres:** mantém o dedo sobre a mensagem e escolhe **«Denunciar»**. A denúncia chega-nos de imediato, com essa mensagem — texto, fotografia ou áudio — e é a única forma de a vermos, porque não conseguimos ler as mensagens. Numa conversa a dois, também podes denunciar a pessoa no topo da conversa.
 - **O que fazemos:** analisamos cada denúncia em **menos de 24 horas** e expulsamos quem violar os termos. Se três pessoas diferentes denunciarem a mesma conta, ela fica suspensa de imediato, até decidirmos.
 
 Mensagens recebidas com linguagem ofensiva aparecem ocultadas, e as fotografias recebidas aparecem desfocadas, até tocares nelas.

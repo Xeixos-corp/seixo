@@ -28,6 +28,11 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const BUCKET = "attachments";
+
+// The same sweep for the photos and recordings attached to reports
+// (migration 0031): asked for once a day with {"bucket":"report-evidence"},
+// and removing only files whose report no longer exists.
+const EVIDENCE_BUCKET = "report-evidence";
 const BATCH = 100;
 
 function json(body: unknown, status: number): Response {
@@ -53,13 +58,21 @@ Deno.serve(async (req: Request) => {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
+  let requested: string | undefined;
+  try {
+    requested = (await req.json())?.bucket;
+  } catch {
+    // An empty body is the ordinary per-minute call.
+  }
+  const bucket = requested === EVIDENCE_BUCKET ? EVIDENCE_BUCKET : BUCKET;
+
   // One call both checks the secret and returns what to delete. A wrong secret
   // raises inside the database, which surfaces here as an error -- reported as
   // "not authorised" and nothing more, so a caller learns nothing by probing.
-  const { data, error } = await admin.rpc("claim_expired_attachments", {
-    secret,
-    max_count: BATCH,
-  });
+  const { data, error } = await admin.rpc(
+    bucket === EVIDENCE_BUCKET ? "claim_orphan_report_evidence" : "claim_expired_attachments",
+    { secret, max_count: BATCH },
+  );
   if (error) {
     return json({ error: "not authorised" }, 401);
   }
@@ -81,7 +94,7 @@ Deno.serve(async (req: Request) => {
     return json({ removed: 0 }, 200);
   }
 
-  const { error: removeError } = await admin.storage.from(BUCKET).remove(names);
+  const { error: removeError } = await admin.storage.from(bucket).remove(names);
   if (removeError) {
     // Left for the next minute's run, which will claim the same names again.
     return json({ error: "remove failed" }, 500);

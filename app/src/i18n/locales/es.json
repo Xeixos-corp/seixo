@@ -205,7 +205,9 @@
     "reportVoicePlaceholder": "[mensaje de voz]",
     "hiddenMessage": "Mensaje oculto por contener lenguaje ofensivo. Toca para verlo.",
     "imageTapToView": "Toca para ver la foto",
-    "accountRestricted": "Tu cuenta fue suspendida tras varias denuncias y no puede enviar mensajes. Si crees que es un error, escríbenos a seixo.app@proton.me."
+    "accountRestricted": "Tu cuenta fue suspendida tras varias denuncias y no puede enviar mensajes. Si crees que es un error, escríbenos a seixo.app@proton.me.",
+    "reportPhotoBody": "Esta foto y el identificador de quien la envió se envían al equipo de Seixo. Es la única forma de que la veamos: tú decides mostrárnosla. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos.",
+    "reportVoiceBody": "Este mensaje de voz y el identificador de quien lo envió se envían al equipo de Seixo. Es la única forma de que lo escuchemos: tú decides mostrárnoslo. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos."
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -385,7 +387,7 @@
     "noToken": "Sin token de notificaciones",
     "blocked": "Personas bloqueadas",
     "absentSection": "Lo que no está aquí",
-    "absentList": "El contenido de los mensajes · lo que muestran las fotos · quién envió cada mensaje o foto en una conversación entre dos (en la base de datos) · los nombres que diste a tus contactos · los nombres de los grupos. La excepción: una denuncia guarda el texto del mensaje denunciado y quién lo envió, durante 90 días.",
+    "absentList": "El contenido de los mensajes · lo que muestran las fotos · quién envió cada mensaje o foto en una conversación entre dos (en la base de datos) · los nombres que diste a tus contactos · los nombres de los grupos. La excepción: una denuncia guarda el mensaje denunciado (texto, foto o audio) y quién lo envió, durante 90 días.",
     "hostingNote": "Esto es la base de datos. Antes de que una petición llegue, la capa de entrada del alojamiento la registra y guarda durante 24 horas tu IP, la ciudad y el código postal aproximados, tu proveedor de internet y, en la mayoría de los casos, el identificador de tu cuenta. No lo controlamos ni podemos borrarlo antes. Está explicado en la política de privacidad.",
     "imagesSection": "Fotos",
     "images_one": "1 foto cifrada",

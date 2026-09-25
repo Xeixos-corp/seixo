@@ -67,6 +67,7 @@ import { ImageIcon } from '../components/icons';
 import {
   IMAGE_SERVER_TTL_SECONDS,
   ImageMetadataError,
+  imageUri,
   keepOwnCopy,
   pickImage,
   prepareImage,
@@ -78,7 +79,8 @@ import * as ScreenCapture from 'expo-screen-capture';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
 import { encryptMessage, isUntrustedIdentityError } from '../crypto';
-import { sendReport, ReportLimitError, isAccountRestrictedError } from '../transport/reports';
+import { sendReport, ReportLimitError, isAccountRestrictedError, type ReportEvidence } from '../transport/reports';
+import { materialiseForPlayback, discard as discardVoiceFile } from '../audio/voiceFiles';
 import { isObjectionable } from '../messaging/contentFilter';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { discardSharedImage, type SharedImage } from '../store/pendingShareStore';
@@ -294,8 +296,25 @@ export function ConversationScreen({ route, navigation }: Props) {
    */
   const submitReport = useCallback(
     async (reportedUserId: string, message?: DecryptedMessage, alsoBlock?: () => Promise<void>) => {
+      // The photo or recording itself goes with the report (migration 0031):
+      // a report that says only "[photo]" is one nobody can judge. The photo
+      // is the copy already decrypted on this phone; a recording is written
+      // out for the upload and deleted straight after, like during playback.
+      let evidence: ReportEvidence | undefined;
+      let voiceFile: string | null = null;
+      try {
+        if (message?.image?.fileName) {
+          evidence = { kind: 'photo', uri: imageUri(message.image.fileName), contentType: 'image/jpeg' };
+        } else if (message?.audioBase64) {
+          voiceFile = await materialiseForPlayback(`report-${message.id}`, message.audioBase64);
+          evidence = { kind: 'voice', uri: voiceFile, contentType: 'audio/mp4' };
+        }
+      } catch (error) {
+        console.warn('[ConversationScreen] could not prepare report evidence', error);
+      }
       try {
         await sendReport({
+          evidence,
           channelId,
           reportedUserId,
           messageId: message?.id,
@@ -316,6 +335,8 @@ export function ConversationScreen({ route, navigation }: Props) {
         setSendError(
           error instanceof ReportLimitError ? t('conversation.reportLimit') : t('conversation.reportFailed'),
         );
+      } finally {
+        if (voiceFile) void discardVoiceFile(voiceFile);
       }
     },
     [channelId, t],
@@ -350,7 +371,12 @@ export function ConversationScreen({ route, navigation }: Props) {
     (message: DecryptedMessage) => {
       const reportedUserId = isGroup ? message.senderUserId : peerUserId;
       if (!reportedUserId) return;
-      Alert.alert(t('conversation.reportMessageTitle'), t('conversation.reportMessageBody'), [
+      const body = message.image
+        ? t('conversation.reportPhotoBody')
+        : message.audioBase64
+          ? t('conversation.reportVoiceBody')
+          : t('conversation.reportMessageBody');
+      Alert.alert(t('conversation.reportMessageTitle'), body, [
         { text: t('conversation.cancel'), style: 'cancel' },
         { text: t('conversation.reportConfirm'), onPress: () => void submitReport(reportedUserId, message) },
         ...(isGroup

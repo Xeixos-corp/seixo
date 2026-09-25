@@ -8,6 +8,10 @@
 // report id without the matching token does nothing. Anyone holding a link
 // can act on that one report and nothing else.
 //
+// A reported photo or recording (migration 0031) is never sent through here:
+// the page gets a signed link to it that expires in ten minutes, made only
+// after the token has been checked.
+//
 // Called from the browser, on the project's GitHub Pages origin, so it
 // answers CORS for that origin only. Logs nothing about reports.
 
@@ -56,7 +60,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: report } = await admin
     .from("reports")
-    .select("id, created_at, reported_user_id, content, status, action_token_hash, channel_id")
+    .select("id, created_at, reported_user_id, content, status, action_token_hash, channel_id, evidence_kind")
     .eq("id", r)
     .maybeSingle();
   if (!report || !report.action_token_hash || report.action_token_hash !== (await sha256Hex(t))) {
@@ -72,8 +76,17 @@ Deno.serve(async (req: Request) => {
       admin.from("account_restrictions").select("state").eq("user_id", report.reported_user_id)
         .maybeSingle(),
     ]);
+    let evidenceUrl: string | null = null;
+    if (report.evidence_kind) {
+      const { data: signed } = await admin.storage
+        .from("report-evidence")
+        .createSignedUrl(report.id, 600);
+      evidenceUrl = signed?.signedUrl ?? null;
+    }
     return json({
       report: {
+        evidenceKind: report.evidence_kind,
+        evidenceUrl,
         createdAt: report.created_at,
         reportedUserId: report.reported_user_id,
         content: report.content,
