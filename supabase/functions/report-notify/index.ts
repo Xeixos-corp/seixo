@@ -19,6 +19,8 @@
 // directly, because mail services fetch links in advance to check them, and
 // that must never be able to expel anyone.
 //
+// In English, like the page: App Review watches both in the review recording.
+//
 // Logs nothing about the report's content or the people in it.
 //
 // Needs two secrets set on the project (Edge Functions > Secrets):
@@ -103,26 +105,26 @@ Deno.serve(async (req: Request) => {
   const link = `${PAGE}#r=${report.id}&t=${tokenHex}`;
   const state =
     restriction?.state === "banned"
-      ? "já expulsa"
+      ? "already expelled"
       : restriction?.state === "suspended"
-      ? "SUSPENSA automaticamente (3 ou mais pessoas denunciaram)"
-      : "activa";
-  const where = channel?.kind === "group" ? "num grupo" : "numa conversa a dois";
+      ? "SUSPENDED automatically (3 or more people reported it)"
+      : "active";
+  const where = channel?.kind === "group" ? "in a group" : "in a one-to-one conversation";
 
   const text = [
-    `Nova denúncia no Seixo, ${where}.`,
-    `Pessoas diferentes que denunciaram esta conta: ${reporters}`,
-    `Estado da conta: ${state}`,
+    `New report on Seixo, ${where}.`,
+    `Different people who reported this account: ${reporters}`,
+    `Account status: ${state}`,
     "",
-    "Tens 24 horas para decidir. Abre esta ligação para ver o que foi denunciado e expulsar a conta ou rejeitar a denúncia:",
+    "You have 24 hours to act. Open this link to see what was reported and expel the account or dismiss the report:",
     link,
   ].join("\n");
 
-  const html = `<p>Nova denúncia no Seixo, ${where}.</p>
-<p>Pessoas diferentes que denunciaram esta conta: <strong>${reporters}</strong><br>
-Estado da conta: <strong>${escapeHtml(state)}</strong></p>
-<p>Tens 24 horas para decidir. O que foi denunciado aparece na página, não neste email.</p>
-<p><a href="${link}" style="background:#c9785b;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;display:inline-block">Ver e decidir</a></p>`;
+  const html = `<p>New report on Seixo, ${where}.</p>
+<p>Different people who reported this account: <strong>${reporters}</strong><br>
+Account status: <strong>${escapeHtml(state)}</strong></p>
+<p>You have 24 hours to act. What was reported is shown on the page, not in this email.</p>
+<p><a href="${link}" style="background:#c9785b;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;display:inline-block">Review and act</a></p>`;
 
   const key = Deno.env.get("RESEND_API_KEY");
   const to = Deno.env.get("REPORT_EMAIL_TO");
@@ -134,7 +136,7 @@ Estado da conta: <strong>${escapeHtml(state)}</strong></p>
     body: JSON.stringify({
       from: "Seixo <onboarding@resend.dev>",
       to: [to],
-      subject: reporters >= 3 ? "Seixo: denúncia — conta suspensa" : "Seixo: nova denúncia",
+      subject: reporters >= 3 ? "Seixo: report — account suspended" : "Seixo: new report",
       text,
       html,
     }),
