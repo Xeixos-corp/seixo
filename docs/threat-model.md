@@ -289,6 +289,34 @@ implementing, not from memory.
   is now `seixo.app@proton.me` — the report action and the Settings contact
   row both surface it.
 
+## The demo account (App Review)
+
+App Review tests on one phone, and a new Seixo account has nobody to talk to,
+so reviewers never reached the filter, reporting or blocking (server logs,
+2026-09-30). Since 2026-10-05 there is an automatic demo account whose phone is
+the `demo-account` Edge Function (migration 0032, `packages/demo-account`).
+
+What this changes, stated plainly:
+
+- **Messages sent to the demo account are decrypted by the server.** It is one
+  end of those conversations. End-to-end encryption still holds for every other
+  conversation: no other account's messages reach that code, and the trigger
+  only queues messages in one-to-one channels the demo account is a member of.
+- Its private keys and Signal sessions sit in `public.demo_account`, readable
+  by the service role only. They protect nothing but conversations with this
+  account.
+- It never logs plaintext. It keeps, per correspondent, their id, the session,
+  whether the script was sent and a daily reply count.
+- The WebAssembly it runs is fetched from this repository at a pinned commit
+  and refused unless its SHA-256 matches, so changing GitHub cannot change what
+  runs; changing it takes a new deploy.
+- It cannot be suspended or expelled (reviewers report it on purpose) and is
+  exempt from the six-month purge.
+- Its id is only in the review notes. Anyone who learns it can write to it and
+  get the same scripted replies, nothing more.
+
+Disclosed in the privacy policy ("Conta de demonstração") and the FAQ.
+
 ## US export compliance (encryption)
 
 Confirmed during the first `eas build --profile development-simulator

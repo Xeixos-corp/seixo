@@ -1,6 +1,6 @@
 # Perguntas frequentes — Seixo
 
-**Última atualização: 25 de setembro de 2026**
+**Última atualização: 5 de outubro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -127,6 +127,10 @@ O que ele **vê**, e que dizemos por inteiro na [política de privacidade](index
 
 Os nomes que dás aos contactos e os nomes dos grupos nunca chegam ao servidor em texto legível.
 E não tens de acreditar só no que aqui escrevemos. Em qualquer mensagem, mantém o dedo e escolhe **«O que o servidor viu»**: a app lê essa mensagem no servidor nesse momento e mostra-te exactamente o que lá está. Em Definições, **«O que o servidor sabe»** faz o mesmo para a tua conta inteira.
+
+## O que é a conta de demonstração?
+
+Uma conta automática, nossa, que responde sozinha com mensagens de exemplo. Existe para que a app possa ser experimentada num só telemóvel, sobretudo pela equipa de revisão da App Store, e não aparece em lado nenhum da app. Há uma diferença importante: como o nosso servidor faz de telemóvel dela, **o que lhe escreves é lido pelo servidor** — ao contrário de qualquer conversa com uma pessoa. Os pormenores estão na política de privacidade.
 
 ## Alguém me está a incomodar. O que faço?
 

@@ -1,6 +1,6 @@
 # Política de privacidade — Seixo
 
-**Última atualização: 25 de setembro de 2026**
+**Última atualização: 5 de outubro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -14,7 +14,7 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 ## Em resumo
 
 - Não pedimos número de telefone, nome, email nem acesso aos teus contactos.
-- O servidor nunca consegue ler as tuas mensagens: são cifradas no teu telemóvel antes de saírem. A única excepção é uma mensagem que alguém denuncie — quem a recebeu escolhe mostrá-la.
+- O servidor nunca consegue ler as tuas mensagens: são cifradas no teu telemóvel antes de saírem. As únicas excepções são uma mensagem que alguém denuncie — quem a recebeu escolhe mostrá-la — e o que escreveres à nossa conta automática de demonstração.
 - Quase tudo o que o servidor guarda apaga-se sozinho — dizemos abaixo quando.
 - Não usamos publicidade, análise nem rastreio de terceiros.
 
@@ -105,12 +105,20 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 
 ## Denúncias
 
-Podes denunciar uma mensagem ou uma pessoa. É a **única forma de o conteúdo de uma mensagem chegar ao servidor em texto legível**, e só acontece porque quem a recebeu decide mostrá-la.
+Podes denunciar uma mensagem ou uma pessoa. É a **única forma de o conteúdo de uma mensagem chegar ao servidor em texto legível** (fora o que se escreve à conta de demonstração, mais abaixo), e só acontece porque quem a recebeu decide mostrá-la.
 
 - **Uma denúncia guarda:** quem denunciou, a conta denunciada, a conversa, e a mensagem denunciada: o texto, ou a própria fotografia ou mensagem de voz, que quem denuncia escolhe enviar. Numa conversa a dois, isto revela também quem enviou essa mensagem, algo que o servidor normalmente não guarda.
 - **Quem a vê:** só o programador, numa página a que se chega pela ligação do email de aviso. O email em si diz apenas que chegou uma denúncia — nunca o conteúdo nem os identificadores. Uma fotografia ou mensagem de voz denunciada fica num espaço privado do servidor, e a página só a mostra através de uma ligação que expira em 10 minutos.
 - **Durante quanto tempo:** a denúncia é apagada **90 dias** depois de ser feita.
 - **O que pode acontecer à conta denunciada:** se três pessoas diferentes a denunciarem, fica suspensa automaticamente até ser analisada. Se a denúncia se confirmar, a conta é expulsa. Uma conta suspensa ou expulsa fica marcada no servidor enquanto existir, e é a única que consegue ver essa marca.
+
+## Conta de demonstração
+
+Existe uma conta automática de demonstração, para que a app possa ser experimentada num só telemóvel — é usada sobretudo pela equipa de revisão da App Store. O ID dela não aparece em lado nenhum da app: só lhe escreves se alguém to der.
+
+- **É nossa, e o servidor faz de telemóvel dela.** Por isso, ao contrário de qualquer outra conversa, **o que escreves à conta de demonstração é decifrado pelo nosso servidor**: ele é a outra ponta da conversa. Lê cada mensagem só para responder, com mensagens de exemplo sempre iguais (uma delas com linguagem ofensiva, para mostrar o filtro), e não guarda nem regista o que leu.
+- **O que guarda:** as chaves da própria conta e, de cada pessoa que lhe escreve, o ID, a sessão cifrada com ela, se já recebeu as mensagens de exemplo e quantas respostas recebeu nesse dia.
+- **Nenhuma outra conversa** passa por este código.
 
 ## Os teus direitos
 
