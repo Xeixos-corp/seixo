@@ -38,3 +38,6 @@ codegen-units = 1
 # a demo conversation is proven against the code the reviewer's phone runs.
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 signal_native = { path = "../signal-native/rust" }
+# Only for examples/live_check.rs, which talks to the real project.
+ureq = { version = "2", features = ["json"] }
+sha2 = "0.10"

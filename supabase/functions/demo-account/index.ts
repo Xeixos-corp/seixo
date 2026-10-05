@@ -28,7 +28,7 @@ import {
 } from "./demo_account.js";
 
 const ASSETS =
-  "https://raw.githubusercontent.com/Xeixos-corp/seixo/__COMMIT__/supabase/functions/demo-account/assets/";
+  "https://raw.githubusercontent.com/Xeixos-corp/seixo/8e7bc031cd5c5f96fd7e61703a5d48259dd59268/supabase/functions/demo-account/assets/";
 const WASM_SHA256 = "8e8a47dac47ed17c456786b2cfdfaa054bb16024ea8cf2e6223dbb8f3d8bcb89";
 const PHOTO_SHA256 = "aa4c87d792376be865c33b739c971fbdecf9689bf0771ebb1da1165d4326268c";
 const PHOTO_WIDTH = 1280;

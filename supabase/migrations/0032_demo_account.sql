@@ -204,7 +204,8 @@ as $$
   update public.demo_account
      set state = new_state,
          peers = new_peers,
-         lease_until = case when release then null else now() + interval '90 seconds' end;
+         lease_until = case when release then null else now() + interval '90 seconds' end
+   where singleton;
 $$;
 
 revoke all on function public.demo_account_take(integer) from public, anon, authenticated;
