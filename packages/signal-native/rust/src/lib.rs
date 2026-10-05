@@ -29,6 +29,9 @@ use rand::TryRngCore as _;
 mod attachment;
 mod backup;
 mod store;
+// Visible to Rust callers too, for the demo account's interop test
+// (packages/demo-account/tests): it proves a photo sealed there opens here.
+pub use attachment::open_attachment;
 use store::PersistentSignalProtocolStore;
 
 uniffi::setup_scaffolding!();

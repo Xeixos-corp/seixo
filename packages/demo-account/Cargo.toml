@@ -1,0 +1,40 @@
+[package]
+name = "demo_account"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# The Signal Protocol side of the automatic demo account, compiled to
+# WebAssembly for the `demo-account` Edge Function. Same libsignal revision as
+# the app (Cargo.lock is shared with packages/signal-native/rust), so the two
+# ends of a demo conversation run identical protocol code. See README.md.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal", package = "libsignal-protocol" }
+rand = "0.9"
+aes-gcm = "0.10"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bincode = "1"
+async-trait = "0.1"
+base64 = "0.22"
+wasm-bindgen = "0.2"
+
+# WebAssembly has no operating-system randomness of its own: both getrandom
+# generations in the tree are pointed at the runtime's crypto.getRandomValues
+# (Deno's, in the Edge Function). Selected by the cfg in .cargo/config.toml.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
+getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+
+# The interop test talks to this crate through the app's own Signal module, so
+# a demo conversation is proven against the code the reviewer's phone runs.
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+signal_native = { path = "../signal-native/rust" }
