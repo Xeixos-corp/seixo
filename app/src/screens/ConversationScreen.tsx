@@ -662,7 +662,10 @@ export function ConversationScreen({ route, navigation }: Props) {
           useConversationsStore.getState().setGroupMembers(channelId, members);
         }
         if (!members.length) throw new Error('Group membership not loaded yet');
-        return sendGroupMessage(
+        // Awaited, not just returned: a promise returned from inside `try`
+        // rejects past the `catch` below, and the expelled account's
+        // explanation never showed (seen in the 2026-09-29 review recording).
+        return await sendGroupMessage(
           channelId,
           selfUserId,
           members,
@@ -672,7 +675,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         );
       }
       const envelope = encryptMessage(peerUserId, REMOTE_DEVICE_ID, payload);
-      return sendMessage(channelId, envelope, lifetimeSeconds, options);
+      return await sendMessage(channelId, envelope, lifetimeSeconds, options);
       } catch (error) {
         // Every send goes through here, so this is the one place to say why
         // an account that was suspended or expelled can no longer send --

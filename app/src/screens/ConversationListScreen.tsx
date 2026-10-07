@@ -35,6 +35,7 @@ import { useRegisterPushToken } from '../notifications/usePushRegistration';
 import { usePendingShareStore } from '../store/pendingShareStore';
 import { useBackupPromptStore, shouldOfferBackup } from '../store/backupPromptStore';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { DEMO_ACCOUNT_ID } from '../config/support';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ConversationList'>;
 
@@ -293,6 +294,35 @@ export function ConversationListScreen({ navigation }: Props) {
     }
   };
 
+  // Someone who has just installed the app usually has nobody to talk to
+  // yet, and an empty screen shows none of what the app does. The demo
+  // contact answers by itself. It is said up front that our server reads it,
+  // because that is the one way it differs from a person. The greeting is put
+  // in the box rather than sent: nothing leaves the phone until Send.
+  const handleTryDemo = () => {
+    Alert.alert(t('conversationList.demoConfirmTitle'), t('conversationList.demoConfirmBody'), [
+      { text: t('conversationList.renameCancel'), style: 'cancel' },
+      {
+        text: t('conversationList.demoConfirmStart'),
+        onPress: async () => {
+          setStarting(true);
+          setErrorMessage(null);
+          try {
+            const conversation = await startConversationWithPeer(DEMO_ACCOUNT_ID);
+            navigation.navigate('Conversation', {
+              ...conversation,
+              initialDraft: t('conversationList.demoGreeting'),
+            });
+          } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : String(error));
+          } finally {
+            setStarting(false);
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <Text style={[styles.header, { color: colors.textPrimary }]}>{t('navigation.conversationList')}</Text>
@@ -420,6 +450,27 @@ export function ConversationListScreen({ navigation }: Props) {
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {t('conversationList.emptyState')}
             </Text>
+            <View style={[styles.demoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.demoTitle, { color: colors.textPrimary }]}>
+                {t('conversationList.demoTitle')}
+              </Text>
+              <Text style={[styles.demoBody, { color: colors.textSecondary }]}>
+                {t('conversationList.demoBody')}
+              </Text>
+              <Pressable
+                onPress={handleTryDemo}
+                disabled={starting}
+                style={({ pressed }) => [
+                  styles.demoButton,
+                  { backgroundColor: pressed ? colors.accentPressed : colors.accent },
+                  starting && styles.busy,
+                ]}
+              >
+                <Text style={[styles.demoButtonText, { color: colors.onAccent }]}>
+                  {t('conversationList.demoButton')}
+                </Text>
+              </Pressable>
+            </View>
             <View style={styles.myIdCardWrapper}>
               <MyIdCard />
             </View>
@@ -662,6 +713,32 @@ const styles = StyleSheet.create({
     marginTop: 48,
     alignItems: 'center',
     paddingHorizontal: 24,
+  },
+  demoCard: {
+    marginTop: 20,
+    width: '100%',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    padding: 16,
+    gap: 6,
+  },
+  demoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  demoBody: {
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  demoButton: {
+    marginTop: 8,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  demoButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   myIdCardWrapper: {
     marginTop: 24,

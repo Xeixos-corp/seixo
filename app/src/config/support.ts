@@ -32,3 +32,11 @@ export const TERMS_VERSION = 2;
 // can see. Anything explainable in place belongs in place; a growing FAQ is
 // where documentation goes to rot.
 export const FAQ_URL = 'https://xeixos-corp.github.io/Seixo-Legal/faq.html';
+
+// The automatic demo account (supabase/migrations/0032_demo_account.sql): an
+// ordinary account whose replies come from the server, so someone with nobody
+// to invite yet -- App Review, above all -- can see the filter, photos,
+// reporting and blocking work. Offered only on the empty conversation list.
+// Unlike any person, it is read by our server; the app says so before
+// starting it, and the privacy policy says so too.
+export const DEMO_ACCOUNT_ID = '72e983a1-ea2b-474a-a416-08c178f2bb7f';
