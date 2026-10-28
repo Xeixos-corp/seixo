@@ -512,6 +512,8 @@ export function ConversationScreen({ route, navigation }: Props) {
   );
 
   const [replyToId, setReplyToId] = useState<string | null>(null);
+  const replyToIdRef = useRef<string | null>(null);
+  replyToIdRef.current = replyToId;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showSafetyNumber, setShowSafetyNumber] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
@@ -693,6 +695,8 @@ export function ConversationScreen({ route, navigation }: Props) {
       durationMs: number,
       /** A failed voice message being sent again, in its own place. */
       retryOfLocalId?: string,
+      /** The message this one answers, as for text. */
+      replyTo?: string,
     ) => {
       const localId = retryOfLocalId ?? `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       if (retryOfLocalId) {
@@ -704,6 +708,7 @@ export function ConversationScreen({ route, navigation }: Props) {
           expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
           plaintext: '',
           isMine: true,
+          replyToId: replyTo,
           status: 'sending',
           audioBase64,
           audioDurationMs: durationMs,
@@ -714,6 +719,7 @@ export function ConversationScreen({ route, navigation }: Props) {
         const { id, createdAt, expiresAt } = await transmit(
           encodePayload({
             text: '',
+            replyToId: replyTo,
             audioBase64,
             audioDurationMs: durationMs,
             // The device lifetime rides inside the encryption, because the
@@ -730,6 +736,7 @@ export function ConversationScreen({ route, navigation }: Props) {
           expiresAt: new Date(Date.parse(createdAt) + ttlSeconds * 1000).toISOString(),
           plaintext: '',
           isMine: true,
+          replyToId: replyTo,
           status: 'sent',
           audioBase64,
           audioDurationMs: durationMs,
@@ -984,7 +991,14 @@ export function ConversationScreen({ route, navigation }: Props) {
           return;
         }
         const base64 = await readRecordingAndDelete(uri);
-        await sendVoiceMessage(base64, durationMs);
+        // Read from the ref, not the state: this callback is kept stable so
+        // the recording's time limit is not restarted whenever the reply
+        // changes. A voice message answers what was selected, exactly as
+        // typed text does; it used to go out as a message of its own and
+        // leave the "replying to" bar behind.
+        const replyTo = replyToIdRef.current ?? undefined;
+        setReplyToId(null);
+        await sendVoiceMessage(base64, durationMs, undefined, replyTo);
       } catch (error) {
         console.error('[ConversationScreen] failed to finish recording', error);
         setSendError(t('conversation.recordingFailed'));
@@ -1649,7 +1663,7 @@ export function ConversationScreen({ route, navigation }: Props) {
       // resend `plaintext`, which is empty for a recording -- so it went out,
       // to both phones, as a blank bubble, and the recording was never sent.
       if (message.audioBase64) {
-        void sendVoiceMessage(message.audioBase64, message.audioDurationMs ?? 0, message.id);
+        void sendVoiceMessage(message.audioBase64, message.audioDurationMs ?? 0, message.id, message.replyToId);
         return;
       }
       // Nothing to resend. Never reached today (images have no retry, and

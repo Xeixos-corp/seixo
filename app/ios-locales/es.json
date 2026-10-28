@@ -1,0 +1,6 @@
+{
+  "NSCameraUsageDescription": "Seixo usa la cámara para leer el código QR de un contacto y para hacer las fotos que decidas enviar. Las fotos se cifran en tu teléfono antes de salir.",
+  "NSPhotoLibraryUsageDescription": "Seixo solo ve la foto que elijas enviar, nunca tu galería. La imagen se cifra en tu teléfono antes de salir, sin la ubicación ni otros datos de la foto.",
+  "NSMicrophoneUsageDescription": "Seixo usa el micrófono solo para grabar mensajes de voz. La grabación se cifra en tu teléfono antes de salir, y no se envía nada sin que tú lo mandes.",
+  "NSFaceIDUsageDescription": "Seixo usa Face ID solo para desbloquear la app en este dispositivo. Nada sale del teléfono."
+}

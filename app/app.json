@@ -2,8 +2,13 @@
   "expo": {
     "name": "Seixo",
     "slug": "seixo",
-    "version": "1.13.8",
+    "version": "1.13.9",
     "orientation": "portrait",
+    "locales": {
+      "en": "./ios-locales/en.json",
+      "pt": "./ios-locales/pt.json",
+      "es": "./ios-locales/es.json"
+    },
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,7 +17,7 @@
       "bundleIdentifier": "com.xeixos.seixo",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "O Seixo usa o microfone só para gravares mensagens de voz. A gravação é cifrada no telemóvel antes de sair, e nada é enviado sem seres tu a mandar."
+        "NSMicrophoneUsageDescription": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it."
       }
     },
     "android": {
@@ -58,27 +63,27 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "O Seixo usa a câmara para ler o código QR de um contacto e para tirares fotografias que decides enviar. As fotografias são cifradas no telemóvel antes de saírem."
+          "cameraPermission": "Seixo uses the camera to scan a contact's QR code and to take photos you choose to send. Photos are encrypted on your phone before they leave it."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "O Seixo só vê a fotografia que escolheres para enviar, nunca a tua galeria. A imagem é cifrada no telemóvel antes de sair, sem a localização nem outros dados da fotografia.",
-          "cameraPermission": "O Seixo usa a câmara para ler o código QR de um contacto e para tirares fotografias que decides enviar. As fotografias são cifradas no telemóvel antes de saírem.",
-          "microphonePermission": "O Seixo usa o microfone só para gravares mensagens de voz. A gravação é cifrada no telemóvel antes de sair, e nada é enviado sem seres tu a mandar."
+          "photosPermission": "Seixo only sees the photo you choose to send, never your library. The image is encrypted on your phone before it leaves, without its location or other photo data.",
+          "cameraPermission": "Seixo uses the camera to scan a contact's QR code and to take photos you choose to send. Photos are encrypted on your phone before they leave it.",
+          "microphonePermission": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it."
         }
       ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "O Seixo usa o Face ID só para desbloquear a app neste dispositivo. Nada sai do telemóvel."
+          "faceIDPermission": "Seixo uses Face ID only to unlock the app on this device. Nothing leaves your phone."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "O Seixo usa o microfone só para gravares mensagens de voz. A gravação é cifrada no telemóvel antes de sair, e nada é enviado sem seres tu a mandar."
+          "microphonePermission": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it."
         }
       ]
     ],
