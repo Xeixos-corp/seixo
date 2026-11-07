@@ -39,8 +39,8 @@ underlying implementation (linked file) changes without this doc being updated.
   - **Connection IP and request timing, always.** There is no Tor toggle and
     no other IP-hiding path in the app today (see below), so the backend —
     and Supabase Inc. while Cloud is in use — sees the real client IP of
-    every request, and records considerably more than the IP for 24 hours
-    (see "What the platform's request log actually holds", below).
+    every request, and records considerably more than the IP, for a period
+    the provider decides (see "What the platform's request log actually holds", below).
   - Approximate message size and frequency (ciphertext length, insert rate),
     even though content and sender-within-a-message are hidden.
 
@@ -1693,6 +1693,19 @@ the fields and the 24 hours, and the in-app "what the server knows" screen
 carries the same statement, because a screen that claims to show everything
 and stops at the database would be the most misleading thing in the app.
 
+**Correction, 2026-11-07: the 24 hours no longer holds.** Edge logs were
+queryable 63 days back (the oldest rows from early September), although the
+provider still advertises one day on this plan. The provider changed its
+logging, nothing here did, and there is still no setting to shorten it. The
+privacy policy and the FAQ (three languages) now name no duration: the record
+is kept "by the hosting provider, under its own rules, which we do not
+control", which states the criterion as GDPR art. 13 requires without making
+a promise someone else can break. They also say the log shows *what* was
+requested (that an account sent a message, which conversation it fetched),
+never the content. The in-app strings `serverFootprint.hostingNote` and
+`messageServerView.hostingUntil` (which prints a time computed from 24 hours)
+still say otherwise and change in the next app update.
+
 ### Images (2026-09-18)
 
 A photo is re-encoded on the phone, sealed once under a key made for it
@@ -1716,8 +1729,8 @@ bytes from any record past 1024 KB. A photo times ten members does not fit.
   this side. Dies with the object.
 - Not the uploader. `owner` and `owner_id` are nulled by a BEFORE trigger, so
   a one-to-one image carries no sender, consistent with `messages`. The
-  upload request still passes through the hosting request log (24 hours,
-  account id included), like every other request.
+  upload request still passes through the hosting request log (account id
+  included, kept as long as the provider keeps it), like every other request.
 
 **Lifetime.** Capped at 24 hours on the server, like voice; the chosen timer
 travels inside the envelope and governs the phones. Deletion could not be a

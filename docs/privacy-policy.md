@@ -1,6 +1,6 @@
 # Política de privacidade — Seixo
 
-**Última atualização: 5 de outubro de 2026**
+**Última atualização: 7 de novembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -32,14 +32,14 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 
 - **Que conversas existem e quem pertence a cada uma** e, nos grupos, quem é o dono. É o mínimo para o servidor saber a quem entregar cada mensagem.
 - **As mensagens, sempre cifradas.** De cada uma, o servidor vê a conversa a que pertence, a hora exata, o tamanho e se deve gerar notificação — nunca o conteúdo, a não ser que alguém denuncie essa mensagem (ver «Denúncias»).
-- **Quem enviou:** numa conversa a dois, **não fica guardado na nossa base de dados**. Mas o servidor sabe quem és no momento em que envias, e os registos do alojamento guardam durante **24 horas** que a tua conta enviou algo àquela hora — o que permite, nesse período, saber quem enviou cada mensagem. Ao fim de 24 horas essa ligação desaparece. **Num grupo, o servidor consegue ver quem enviou cada mensagem** enquanto essa mensagem existir, porque quem a recebe precisa de saber com que chave a decifrar.
+- **Quem enviou:** numa conversa a dois, **não fica guardado na nossa base de dados**. Mas o servidor sabe quem és no momento em que envias, e os registos do alojamento guardam que a tua conta enviou algo àquela hora, o que permite, enquanto esses registos e a mensagem existirem, saber quem a enviou. **Num grupo, o servidor consegue ver quem enviou cada mensagem** enquanto essa mensagem existir, porque quem a recebe precisa de saber com que chave a decifrar.
 - **Os nomes dos grupos e os nomes que dás aos contactos** nunca chegam ao servidor em texto legível.
 
 **Sobre as fotografias que envias:**
 
 - **Cada fotografia é cifrada no teu telemóvel** com uma chave feita só para ela, e guardada como um ficheiro com o nome da mensagem a que pertence. A chave viaja dentro da mensagem cifrada: o servidor nunca a tem e não consegue abrir o ficheiro.
 - **Do ficheiro, o servidor vê:** o tamanho — arredondado para cima, para não revelar o tamanho real da fotografia —, quando foi guardado e **quando foi descarregado** pela última vez. Esta última informação é quase um aviso de leitura: diz, aproximadamente, quando a outra pessoa recebeu a fotografia. Não a conseguimos impedir, porque é escrita pelo serviço de armazenamento; existe apenas enquanto o ficheiro existir.
-- **Na base de dados, não fica registado quem enviou o ficheiro.** O serviço de armazenamento tenta guardá-lo; nós apagamo-lo antes de ser gravado. (Os registos do alojamento, como para as mensagens, guardam-no durante 24 horas.)
+- **Na base de dados, não fica registado quem enviou o ficheiro.** O serviço de armazenamento tenta guardá-lo; nós apagamo-lo antes de ser gravado. (Os registos do alojamento, como para as mensagens, registam o envio.)
 - **Antes de sair do telemóvel, a fotografia é refeita** sem a localização, o modelo do telemóvel, a data e os outros dados que as fotografias costumam trazer. A app verifica o resultado e **recusa enviar** se algum desses dados tiver ficado.
 
 **Só se criares uma cópia de segurança:**
@@ -58,15 +58,16 @@ Como qualquer serviço na internet, o servidor vê o endereço IP de onde te lig
 
 **Nos registos do alojamento**, onde não temos:
 
-Antes de um pedido chegar ao nosso código, a camada de entrada do fornecedor regista-o. Esse registo guarda, **durante 24 horas**:
+Antes de um pedido chegar ao nosso código, a camada de entrada do fornecedor regista-o. Esse registo guarda:
 
 - o endereço IP;
 - o país, a cidade e o código postal aproximados de onde te ligas;
 - o teu fornecedor de acesso à internet;
-- uma impressão digital técnica do dispositivo — a forma como o teu telemóvel negoceia a ligação cifrada, que não é o mesmo que um identificador teu, mas distingue aparelhos;
+- uma impressão digital técnica do dispositivo: a forma como o teu telemóvel negoceia a ligação cifrada, que não é o mesmo que um identificador teu, mas distingue aparelhos;
+- o que foi pedido, por exemplo que a conta enviou uma mensagem ou de que conversa foi buscar mensagens, mas nunca o conteúdo, que vai cifrado;
 - e, na maioria dos pedidos, o identificador da conta que o fez.
 
-Não escrevemos esse registo, não lhe podemos tocar e não o podemos apagar mais cedo. Ao fim de 24 horas desaparece. Dizemo-lo por inteiro porque durante essas horas existe, no alojamento, uma ligação possível entre uma conta e um sítio — e essa é exactamente a informação que o resto desta política se esforça por não criar.
+Não escrevemos esse registo nem lhe podemos tocar. Fica guardado pelo fornecedor do alojamento, segundo as regras dele, que nós não controlamos. Dizemo-lo por inteiro porque, enquanto existe, há no alojamento uma ligação possível entre uma conta, um sítio e a sua actividade, e essa é exactamente a informação que o resto desta política se esforça por não criar.
 
 A app não esconde o teu IP. Se isso for importante para ti, usa uma VPN ou Tor.
 
