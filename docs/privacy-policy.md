@@ -1,4 +1,4 @@
-# Política de privacidade — Seixo
+# Seixo: Política de privacidade
 
 **Última atualização: 7 de novembro de 2026**
 
@@ -14,8 +14,8 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 ## Em resumo
 
 - Não pedimos número de telefone, nome, email nem acesso aos teus contactos.
-- O servidor nunca consegue ler as tuas mensagens: são cifradas no teu telemóvel antes de saírem. As únicas excepções são uma mensagem que alguém denuncie — quem a recebeu escolhe mostrá-la — e o que escreveres à nossa conta automática de demonstração.
-- Quase tudo o que o servidor guarda apaga-se sozinho — dizemos abaixo quando.
+- O servidor nunca consegue ler as tuas mensagens: são cifradas no teu telemóvel antes de saírem. As únicas excepções são uma mensagem que alguém denuncie (quem a recebeu escolhe mostrá-la), e o que escreveres à nossa conta automática de demonstração.
+- Quase tudo o que o servidor guarda apaga-se sozinho: dizemos abaixo quando.
 - Não usamos publicidade, análise nem rastreio de terceiros.
 
 ## O que o servidor guarda
@@ -24,21 +24,21 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 
 - **Um identificador aleatório**, criado quando abres a app pela primeira vez. Não está ligado a nenhum dado teu.
 - **A tua chave pública de identidade e chaves públicas temporárias** (protocolo Signal), para outras pessoas poderem iniciar conversas cifradas contigo. As chaves privadas nunca saem do teu telemóvel.
-- **A data do último uso** — só o dia, nunca a hora — para podermos apagar contas abandonadas.
+- **A data do último uso** (só o dia, nunca a hora) para podermos apagar contas abandonadas.
 - **A lista de pessoas que bloqueaste**, visível só para ti.
 - **Um token de notificações** do teu telemóvel e os textos genéricos que o teu telemóvel escolheu mostrar (por exemplo, «Tens uma mensagem nova.»). Nunca incluem o conteúdo nem quem enviou.
 
 **Sobre as tuas conversas:**
 
 - **Que conversas existem e quem pertence a cada uma** e, nos grupos, quem é o dono. É o mínimo para o servidor saber a quem entregar cada mensagem.
-- **As mensagens, sempre cifradas.** De cada uma, o servidor vê a conversa a que pertence, a hora exata, o tamanho e se deve gerar notificação — nunca o conteúdo, a não ser que alguém denuncie essa mensagem (ver «Denúncias»).
+- **As mensagens, sempre cifradas.** De cada uma, o servidor vê a conversa a que pertence, a hora exata, o tamanho e se deve gerar notificação: nunca o conteúdo, a não ser que alguém denuncie essa mensagem (ver «Denúncias»).
 - **Quem enviou:** numa conversa a dois, **não fica guardado na nossa base de dados**. Mas o servidor sabe quem és no momento em que envias, e os registos do alojamento guardam que a tua conta enviou algo àquela hora, o que permite, enquanto esses registos e a mensagem existirem, saber quem a enviou. **Num grupo, o servidor consegue ver quem enviou cada mensagem** enquanto essa mensagem existir, porque quem a recebe precisa de saber com que chave a decifrar.
 - **Os nomes dos grupos e os nomes que dás aos contactos** nunca chegam ao servidor em texto legível.
 
 **Sobre as fotografias que envias:**
 
 - **Cada fotografia é cifrada no teu telemóvel** com uma chave feita só para ela, e guardada como um ficheiro com o nome da mensagem a que pertence. A chave viaja dentro da mensagem cifrada: o servidor nunca a tem e não consegue abrir o ficheiro.
-- **Do ficheiro, o servidor vê:** o tamanho — arredondado para cima, para não revelar o tamanho real da fotografia —, quando foi guardado e **quando foi descarregado** pela última vez. Esta última informação é quase um aviso de leitura: diz, aproximadamente, quando a outra pessoa recebeu a fotografia. Não a conseguimos impedir, porque é escrita pelo serviço de armazenamento; existe apenas enquanto o ficheiro existir.
+- **Do ficheiro, o servidor vê:** o tamanho (arredondado para cima, para não revelar o tamanho real da fotografia), quando foi guardado e **quando foi descarregado** pela última vez. Esta última informação é quase um aviso de leitura: diz, aproximadamente, quando a outra pessoa recebeu a fotografia. Não a conseguimos impedir, porque é escrita pelo serviço de armazenamento; existe apenas enquanto o ficheiro existir.
 - **Na base de dados, não fica registado quem enviou o ficheiro.** O serviço de armazenamento tenta guardá-lo; nós apagamo-lo antes de ser gravado. (Os registos do alojamento, como para as mensagens, registam o envio.)
 - **Antes de sair do telemóvel, a fotografia é refeita** sem a localização, o modelo do telemóvel, a data e os outros dados que as fotografias costumam trazer. A app verifica o resultado e **recusa enviar** se algum desses dados tiver ficado.
 
@@ -85,10 +85,10 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 
 ## Durante quanto tempo guardamos os dados
 
-- **Mensagens**: apagadas do servidor quando acaba o temporizador que escolheres — entre 30 segundos e 1 semana, para a conversa ou só para uma mensagem — mesmo que ninguém abra a app.
+- **Mensagens**: apagadas do servidor quando acaba o temporizador que escolheres (entre 30 segundos e 1 semana, para a conversa ou só para uma mensagem), mesmo que ninguém abra a app.
 - **Mensagens de voz**: no servidor, no máximo **24 horas**, ou menos se o temporizador for mais curto. Quem não abrir a app nesse prazo não as recebe.
 - **Fotografias**: no servidor, no máximo **24 horas**, ou menos se o temporizador for mais curto, e são apagadas cerca de um minuto depois da mensagem a que pertencem. Quem não abrir a app nesse prazo não as recebe. No telemóvel de quem as recebe, duram o tempo que o temporizador da conversa indicar.
-- **Conversas**: uma conversa que nunca chegou a ter uma mensagem é apagada ao fim de **7 dias**. Uma conversa que já foi usada fica no servidor enquanto existirem as contas de quem a tem — mesmo depois de todas as mensagens terem expirado — para não desaparecer só por ter estado em silêncio.
+- **Conversas**: uma conversa que nunca chegou a ter uma mensagem é apagada ao fim de **7 dias**. Uma conversa que já foi usada fica no servidor enquanto existirem as contas de quem a tem (mesmo depois de todas as mensagens terem expirado), para não desaparecer só por ter estado em silêncio.
 - **Chaves temporárias nunca usadas**: 30 dias.
 - **Contas**: apagadas ao fim de **6 meses sem abrires a app**, com tudo o que lhes pertence. Uma cópia de segurança dessa conta deixa de funcionar.
 - **Lista de bloqueados, token de notificações e credenciais da cópia de segurança**: enquanto a conta existir.
@@ -97,11 +97,11 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 
 ## Quem mais tem acesso aos teus dados
 
-- **As pessoas da conversa** — só elas conseguem decifrar o conteúdo, nos telemóveis delas.
-- **Supabase Inc.**, que aloja a base de dados, o servidor e os ficheiros cifrados das fotografias na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler, bem como ao conteúdo das mensagens denunciadas. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política — texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
-- **Expo (650 Industries, Inc.) e Apple**, que encaminham as notificações até ao teu telemóvel. Recebem o token e o texto genérico da notificação — nunca o conteúdo nem o remetente.
+- **As pessoas da conversa**: só elas conseguem decifrar o conteúdo, nos telemóveis delas.
+- **Supabase Inc.**, que aloja a base de dados, o servidor e os ficheiros cifrados das fotografias na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler, bem como ao conteúdo das mensagens denunciadas. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política: texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
+- **Expo (650 Industries, Inc.) e Apple**, que encaminham as notificações até ao teu telemóvel. Recebem o token e o texto genérico da notificação: nunca o conteúdo nem o remetente.
 - **Proton AG**, só se nos escreveres para seixo.app@proton.me.
-- **Resend (Resend, Inc.)**, que envia ao programador o email de aviso de cada denúncia. Esse email diz apenas que chegou uma denúncia, quantas pessoas denunciaram a conta e se ela está suspensa — nunca o texto denunciado nem identificadores.
+- **Resend (Resend, Inc.)**, que envia ao programador o email de aviso de cada denúncia. Esse email diz apenas que chegou uma denúncia, quantas pessoas denunciaram a conta e se ela está suspensa: nunca o texto denunciado nem identificadores.
 - **Ninguém mais.** Não vendemos, alugamos nem partilhamos dados com publicidade, redes sociais ou quaisquer outros terceiros.
 
 ## Denúncias
@@ -109,13 +109,13 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 Podes denunciar uma mensagem ou uma pessoa. É a **única forma de o conteúdo de uma mensagem chegar ao servidor em texto legível** (fora o que se escreve à conta de demonstração, mais abaixo), e só acontece porque quem a recebeu decide mostrá-la.
 
 - **Uma denúncia guarda:** quem denunciou, a conta denunciada, a conversa, e a mensagem denunciada: o texto, ou a própria fotografia ou mensagem de voz, que quem denuncia escolhe enviar. Numa conversa a dois, isto revela também quem enviou essa mensagem, algo que o servidor normalmente não guarda.
-- **Quem a vê:** só o programador, numa página a que se chega pela ligação do email de aviso. O email em si diz apenas que chegou uma denúncia — nunca o conteúdo nem os identificadores. Uma fotografia ou mensagem de voz denunciada fica num espaço privado do servidor, e a página só a mostra através de uma ligação que expira em 10 minutos.
+- **Quem a vê:** só o programador, numa página a que se chega pela ligação do email de aviso. O email em si diz apenas que chegou uma denúncia: nunca o conteúdo nem os identificadores. Uma fotografia ou mensagem de voz denunciada fica num espaço privado do servidor, e a página só a mostra através de uma ligação que expira em 10 minutos.
 - **Durante quanto tempo:** a denúncia é apagada **90 dias** depois de ser feita.
 - **O que pode acontecer à conta denunciada:** se três pessoas diferentes a denunciarem, fica suspensa automaticamente até ser analisada. Se a denúncia se confirmar, a conta é expulsa. Uma conta suspensa ou expulsa fica marcada no servidor enquanto existir, e é a única que consegue ver essa marca.
 
 ## Conta de demonstração
 
-Existe uma conta automática de demonstração, para que a app possa ser experimentada num só telemóvel — é usada sobretudo pela equipa de revisão da App Store. O ID dela não aparece em lado nenhum da app: só lhe escreves se alguém to der.
+Existe uma conta automática de demonstração, para que a app possa ser experimentada num só telemóvel: é usada sobretudo pela equipa de revisão da App Store. O ID dela não aparece em lado nenhum da app: só lhe escreves se alguém to der.
 
 - **É nossa, e o servidor faz de telemóvel dela.** Por isso, ao contrário de qualquer outra conversa, **o que escreves à conta de demonstração é decifrado pelo nosso servidor**: ele é a outra ponta da conversa. Lê cada mensagem só para responder, com mensagens de exemplo sempre iguais (uma delas com linguagem ofensiva, para mostrar o filtro), e não guarda nem regista o que leu.
 - **O que guarda:** as chaves da própria conta e, de cada pessoa que lhe escreve, o ID, a sessão cifrada com ela, se já recebeu as mensagens de exemplo e quantas respostas recebeu nesse dia.

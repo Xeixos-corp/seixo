@@ -28,7 +28,7 @@
     "selfConversationError": "No puedes iniciar una conversación contigo mismo.",
     "untrustedIdentityError": "La clave de seguridad de {{peerId}} cambió desde la última vez (probablemente reinstaló la app). Confirma la identidad de la otra persona antes de volver a intentarlo.",
     "blockedChannelError": "No es posible iniciar esta conversación: uno de los dos ha bloqueado al otro.",
-    "emptyState": "Aún no hay conversaciones. Introduce el user_id de otra persona arriba para empezar — los mensajes aquí están cifrados de extremo a extremo.",
+    "emptyState": "Aún no hay conversaciones. Introduce el user_id de otra persona arriba para empezar: los mensajes aquí están cifrados de extremo a extremo.",
     "demoTitle": "¿Aún no tienes con quién hablar?",
     "demoBody": "Prueba Seixo con un contacto de demostración: responde solo con mensajes de ejemplo, para que veas el filtro, las fotos, las denuncias y el bloqueo.",
     "demoButton": "Probar el contacto de demostración",
@@ -88,8 +88,8 @@
     "blockConfirmMessage": "Dejarás de poder intercambiar mensajes con {{peerId}}. Puedes desbloquearlo más tarde en Ajustes > Bloqueados.",
     "cancel": "Cancelar",
     "confirmBlock": "Bloquear",
-    "securityWarningDecrypt": "La clave de seguridad de {{peerId}} cambió desde la última conversación. Este mensaje no se descifró — confirma con la otra persona antes de continuar.",
-    "securityWarningSend": "La clave de seguridad de {{peerId}} cambió desde la última conversación. El mensaje no se envió — confirma con la otra persona antes de continuar.",
+    "securityWarningDecrypt": "La clave de seguridad de {{peerId}} cambió desde la última conversación. Este mensaje no se descifró: confirma con la otra persona antes de continuar.",
+    "securityWarningSend": "La clave de seguridad de {{peerId}} cambió desde la última conversación. El mensaje no se envió: confirma con la otra persona antes de continuar.",
     "ttlLabel": "Los mensajes que envíes desaparecen tras:",
     "expiresInSeconds": "desaparece en {{count}} s",
     "expiresInMinutes": "desaparece en {{count}} min",
@@ -150,12 +150,12 @@
     "blockMemberFailed": "No se pudo bloquear. Comprueba la conexión e inténtalo de nuevo.",
     "membersButton": "Miembros",
     "groupOwnerNote": "Solo quien creó el grupo puede añadir o quitar personas.",
-    "groupNoHistoryNote": "Quien entre ahora no verá los mensajes anteriores — se cifraron con claves que esa persona no tiene.",
+    "groupNoHistoryNote": "Quien entre ahora no verá los mensajes anteriores: se cifraron con claves que esa persona no tiene.",
     "close": "Cerrar",
-    "emptyGroupNotice": "Este grupo aún no tiene a nadie. Toca Miembros para añadir personas — solo después se pueden enviar mensajes.",
+    "emptyGroupNotice": "Este grupo aún no tiene a nadie. Toca Miembros para añadir personas: solo después se pueden enviar mensajes.",
     "deleteGroupButton": "Eliminar grupo",
     "deleteGroupTitle": "¿Eliminar el grupo?",
-    "deleteGroupBody": "El grupo y sus mensajes desaparecen del servidor para todos. Los mensajes que cada persona ya recibió quedan en su teléfono hasta que el temporizador los borre — esto no puede alcanzarlos.",
+    "deleteGroupBody": "El grupo y sus mensajes desaparecen del servidor para todos. Los mensajes que cada persona ya recibió quedan en su teléfono hasta que el temporizador los borre: esto no puede alcanzarlos.",
     "deleteGroupConfirm": "Eliminar",
     "groupNamePlaceholder": "Nombre del grupo",
     "groupNameSave": "Guardar",
@@ -267,7 +267,7 @@
   },
   "screenshotWarning": {
     "title": "Captura de pantalla",
-    "message": "Has hecho una captura de pantalla. Recuerda que las conversaciones aquí son privadas — evita compartirlas."
+    "message": "Has hecho una captura de pantalla. Recuerda que las conversaciones aquí son privadas: evita compartirlas."
   },
   "myId": {
     "label": "Mi ID",
@@ -303,9 +303,9 @@
   },
   "safetyNumber": {
     "title": "Código de seguridad",
-    "explanation": "Compara este código con la otra persona — en persona, por llamada, o de cualquier forma que no sea esta app. Si coincide en ambos teléfonos, nadie está en medio leyéndoos.",
-    "resetWarning": "La clave de seguridad de esta persona cambió. Ocurre cuando reinstala la app — pero también es lo que verías si alguien la estuviera suplantando. Continúa solo si has confirmado el código de arriba con ella por otro medio.",
-    "resetButton": "Confirmado — volver a confiar",
+    "explanation": "Compara este código con la otra persona: en persona, por llamada, o de cualquier forma que no sea esta app. Si coincide en ambos teléfonos, nadie está en medio leyéndoos.",
+    "resetWarning": "La clave de seguridad de esta persona cambió. Ocurre cuando reinstala la app, pero también es lo que verías si alguien la estuviera suplantando. Continúa solo si has confirmado el código de arriba con ella por otro medio.",
+    "resetButton": "Confirmado: volver a confiar",
     "idLabel": "ID del contacto",
     "copyId": "Copiar ID",
     "idCopied": "Copiado"
