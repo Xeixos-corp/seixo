@@ -32,7 +32,7 @@ import {
 } from "./demo_account.js";
 
 const ASSETS =
-  "https://raw.githubusercontent.com/Xeixos-corp/seixo/8e7bc031cd5c5f96fd7e61703a5d48259dd59268/supabase/functions/demo-account/assets/";
+  "https://raw.githubusercontent.com/Xeixos-corp/seixo/82c3d73880554939ae1a54b0fc6fe070c6dd33e2/supabase/functions/demo-account/assets/";
 const WASM_SHA256 = "6c97e4554b60e39871e46435c9cf487ca3dc42bcc7255edaa7496d0b0ae3cfb9";
 const PHOTO_SHA256 = "aa4c87d792376be865c33b739c971fbdecf9689bf0771ebb1da1165d4326268c";
 const PHOTO_WIDTH = 1280;
