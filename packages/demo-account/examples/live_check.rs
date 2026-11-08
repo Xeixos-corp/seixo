@@ -91,6 +91,18 @@ fn main() {
         "/rest/v1/identities",
         json!({ "user_id": me, "identity_public_key": own.identity_key_base64, "registration_id": own.registration_id }),
     );
+    // Published as registerIdentity does, so the demo account can start a
+    // session with this "phone" and speak first.
+    api.post(
+        "/rest/v1/signed_prekeys",
+        json!({ "owner_id": me, "signed_prekey_id": own.signed_prekey_id, "public_key": own.signed_prekey_public_base64,
+                "signature": own.signed_prekey_signature_base64, "kyber_prekey_id": own.kyber_prekey_id,
+                "kyber_prekey_public_key": own.kyber_prekey_public_base64, "kyber_prekey_signature": own.kyber_prekey_signature_base64 }),
+    );
+    api.post(
+        "/rest/v1/one_time_prekeys",
+        json!({ "owner_id": me, "prekey_id": own.one_time_prekey_id, "public_key": own.one_time_prekey_public_base64 }),
+    );
 
     // Start the conversation exactly as startConversationWithPeer does.
     let channel = s(&api.post("/rest/v1/rpc/create_direct_channel", json!({ "peer_id": demo })));
