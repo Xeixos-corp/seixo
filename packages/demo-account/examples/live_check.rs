@@ -169,7 +169,9 @@ fn main() {
             .unwrap()
     };
 
-    let mut skip = vec![send("Hello")];
+    // Like a person who opens the demo conversation and never presses Send:
+    // since migration 0033 the demo account speaks first.
+    let mut skip: Vec<String> = vec![];
     let started = Instant::now();
     let replies = wait_for(4, &skip);
     println!("{} replies after {:?}", replies.len(), started.elapsed());

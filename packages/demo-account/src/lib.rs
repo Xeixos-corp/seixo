@@ -518,6 +518,92 @@ pub fn has_session(state: &[u8], peer: &str) -> Result<bool, JsError> {
     Ok(state.sessions.contains_key(&address_key(&address(peer)?)))
 }
 
+/// A peer's published prekey bundle, as the app's tables hold it (the same
+/// fields `claimPeerPrekeyBundle` reads on a phone). The one-time prekey is
+/// optional: the pool can be empty, and the handshake still works without it.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PeerBundle {
+    registration_id: u32,
+    identity_key: String,
+    signed_prekey_id: u32,
+    signed_prekey_public: String,
+    signed_prekey_signature: String,
+    kyber_prekey_id: u32,
+    kyber_prekey_public: String,
+    kyber_prekey_signature: String,
+    one_time_prekey_id: Option<u32>,
+    one_time_prekey_public: Option<String>,
+}
+
+/// Starts a session with `peer` from their published bundle, so the demo
+/// account can speak first.
+///
+/// It used to wait for the other person's first message, and the app only
+/// drafts that message: people (App Review among them) opened the demo
+/// conversation, never pressed Send, and saw an empty chat. Speaking first
+/// means the account is the side that runs the handshake, exactly as a phone
+/// does when it starts a conversation. If the other phone has started one of
+/// its own meanwhile, both ends cope: that is libsignal's simultaneous
+/// initiation, covered by the interop test.
+#[wasm_bindgen]
+pub fn initiate(
+    state: &[u8],
+    self_id: &str,
+    peer: &str,
+    bundle_json: &str,
+    now_ms: f64,
+) -> Result<Output, JsError> {
+    let mut state = State::decode(state)?;
+    let bundle: PeerBundle = serde_json::from_str(bundle_json).map_err(fail)?;
+    let decode = |s: &str| BASE64.decode(s).map_err(fail);
+
+    let one_time = match (bundle.one_time_prekey_id, bundle.one_time_prekey_public.as_deref()) {
+        (Some(id), Some(public)) => Some((id.into(), PublicKey::deserialize(&decode(public)?).map_err(fail)?)),
+        _ => None,
+    };
+    let device: DeviceId = DEVICE_ID.try_into().map_err(|_| fail("bad device id"))?;
+    let prekey_bundle = libsignal_protocol::PreKeyBundle::new(
+        bundle.registration_id,
+        device,
+        one_time,
+        bundle.signed_prekey_id.into(),
+        PublicKey::deserialize(&decode(&bundle.signed_prekey_public)?).map_err(fail)?,
+        decode(&bundle.signed_prekey_signature)?,
+        bundle.kyber_prekey_id.into(),
+        kem::PublicKey::deserialize(&decode(&bundle.kyber_prekey_public)?).map_err(fail)?,
+        decode(&bundle.kyber_prekey_signature)?,
+        IdentityKey::decode(&decode(&bundle.identity_key)?).map_err(fail)?,
+    )
+    .map_err(fail)?;
+
+    let pair = state.identity()?;
+    let registration_id = state.registration_id;
+    let State {
+        known_identities,
+        sessions,
+        ..
+    } = &mut state;
+    let mut identities = Identities {
+        pair,
+        registration_id,
+        known: known_identities,
+    };
+    let mut rng = rand::rngs::OsRng.unwrap_err();
+    run(libsignal_protocol::process_prekey_bundle(
+        &address(peer)?,
+        &address(self_id)?,
+        &mut Sessions(sessions),
+        &mut identities,
+        &prekey_bundle,
+        system_time(now_ms),
+        &mut rng,
+    ))
+    .map_err(fail)?;
+
+    output(&state, serde_json::json!({}))
+}
+
 // ── Photos ──────────────────────────────────────────────────────────────────
 //
 // The app's attachment format (packages/signal-native/rust/src/attachment.rs),

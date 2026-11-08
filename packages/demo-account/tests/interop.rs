@@ -100,3 +100,115 @@ fn more_prekeys_never_reuse_an_id() {
         .as_array().unwrap().iter().map(|p| p["id"].as_u64().unwrap()).collect();
     assert_eq!(ids, vec![4, 5]);
 }
+
+/// The phone's own bundle as JSON, in the shape the Edge Function builds from
+/// the tables before calling `initiate`.
+fn phone_bundle_json(b: &PreKeyBundleData) -> String {
+    serde_json::json!({
+        "registrationId": b.registration_id,
+        "identityKey": b.identity_key_base64,
+        "signedPrekeyId": b.signed_prekey_id,
+        "signedPrekeyPublic": b.signed_prekey_public_base64,
+        "signedPrekeySignature": b.signed_prekey_signature_base64,
+        "kyberPrekeyId": b.kyber_prekey_id,
+        "kyberPrekeyPublic": b.kyber_prekey_public_base64,
+        "kyberPrekeySignature": b.kyber_prekey_signature_base64,
+        "oneTimePrekeyId": b.one_time_prekey_id,
+        "oneTimePrekeyPublic": b.one_time_prekey_public_base64,
+    })
+    .to_string()
+}
+
+fn demo_bundle(bundle: &serde_json::Value) -> PreKeyBundleData {
+    let one_time = &bundle["oneTimePrekeys"][0];
+    PreKeyBundleData {
+        registration_id: bundle["registrationId"].as_u64().unwrap() as u32,
+        device_id: 1,
+        identity_key_base64: bundle["identityPublicKey"].as_str().unwrap().into(),
+        one_time_prekey_id: one_time["id"].as_u64().unwrap() as u32,
+        one_time_prekey_public_base64: one_time["publicKey"].as_str().unwrap().into(),
+        signed_prekey_id: bundle["signedPrekeyId"].as_u64().unwrap() as u32,
+        signed_prekey_public_base64: bundle["signedPrekeyPublic"].as_str().unwrap().into(),
+        signed_prekey_signature_base64: bundle["signedPrekeySignature"].as_str().unwrap().into(),
+        kyber_prekey_id: bundle["kyberPrekeyId"].as_u64().unwrap() as u32,
+        kyber_prekey_public_base64: bundle["kyberPrekeyPublic"].as_str().unwrap().into(),
+        kyber_prekey_signature_base64: bundle["kyberPrekeySignature"].as_str().unwrap().into(),
+    }
+}
+
+fn demo_says(state: &mut Vec<u8>, phone: &SignalDevice, text: &str) {
+    let out = demo_account::encrypt(state, DEMO, PHONE, text, now()).unwrap();
+    *state = out.state();
+    let wire: serde_json::Value = serde_json::from_str(&out.json()).unwrap();
+    let opened = phone
+        .decrypt(
+            DEMO.into(),
+            1,
+            signal_native::EncryptedEnvelope {
+                message_type: wire["t"].as_u64().unwrap() as u8,
+                ciphertext_base64: wire["c"].as_str().unwrap().into(),
+            },
+        )
+        .unwrap();
+    assert_eq!(opened, text);
+}
+
+fn phone_says(state: &mut Vec<u8>, phone: &SignalDevice, text: &str) {
+    let env = phone.encrypt(DEMO.into(), 1, text.into()).unwrap();
+    let out = demo_account::decrypt(state, DEMO, PHONE, env.message_type, &env.ciphertext_base64).unwrap();
+    *state = out.state();
+    let json: serde_json::Value = serde_json::from_str(&out.json()).unwrap();
+    assert_eq!(json["plaintext"], text);
+}
+
+/// The app opens the conversation (which already sets up its own session to
+/// the demo account) and never sends: the demo account speaks first.
+#[test]
+fn the_demo_account_speaks_first() {
+    let created = demo_account::create(now(), 5).unwrap();
+    let bundle: serde_json::Value = serde_json::from_str(&created.json()).unwrap();
+    let mut state = created.state();
+
+    let phone = SignalDevice::new(PHONE.into(), 1, vec![5; 32], temp_dir()).unwrap();
+    let phone_own = phone.generate_prekey_bundle(1, 1, 1).unwrap();
+    phone.establish_session(DEMO.into(), 1, demo_bundle(&bundle)).unwrap();
+
+    let out = demo_account::initiate(&state, DEMO, PHONE, &phone_bundle_json(&phone_own), now()).unwrap();
+    state = out.state();
+    for text in ["Hi!", "Second", "Third", "Fourth"] {
+        demo_says(&mut state, &phone, text);
+    }
+    // The person answers afterwards, and the conversation carries on.
+    phone_says(&mut state, &phone, "Thanks");
+    demo_says(&mut state, &phone, "You're welcome");
+    phone_says(&mut state, &phone, "Bye");
+}
+
+/// Both sides start at once: the person sends while the greeting is on its
+/// way. Each end must still read the other.
+#[test]
+fn both_ends_starting_at_once_still_talk() {
+    let created = demo_account::create(now(), 5).unwrap();
+    let bundle: serde_json::Value = serde_json::from_str(&created.json()).unwrap();
+    let mut state = created.state();
+
+    let phone = SignalDevice::new(PHONE.into(), 1, vec![6; 32], temp_dir()).unwrap();
+    let phone_own = phone.generate_prekey_bundle(1, 1, 1).unwrap();
+    phone.establish_session(DEMO.into(), 1, demo_bundle(&bundle)).unwrap();
+
+    // The phone's "Hello" is sealed now but reaches the server only later.
+    let early = phone.encrypt(DEMO.into(), 1, "Hello".into()).unwrap();
+
+    let out = demo_account::initiate(&state, DEMO, PHONE, &phone_bundle_json(&phone_own), now()).unwrap();
+    state = out.state();
+    demo_says(&mut state, &phone, "Hi! I'm the demo account.");
+
+    let out = demo_account::decrypt(&state, DEMO, PHONE, early.message_type, &early.ciphertext_base64).unwrap();
+    state = out.state();
+    let json: serde_json::Value = serde_json::from_str(&out.json()).unwrap();
+    assert_eq!(json["plaintext"], "Hello");
+
+    demo_says(&mut state, &phone, "Short reply");
+    phone_says(&mut state, &phone, "Got it");
+    demo_says(&mut state, &phone, "Another");
+}

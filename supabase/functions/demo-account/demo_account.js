@@ -190,6 +190,40 @@ export function has_session(state, peer) {
 }
 
 /**
+ * Starts a session with `peer` from their published bundle, so the demo
+ * account can speak first.
+ *
+ * It used to wait for the other person's first message, and the app only
+ * drafts that message: people (App Review among them) opened the demo
+ * conversation, never pressed Send, and saw an empty chat. Speaking first
+ * means the account is the side that runs the handshake, exactly as a phone
+ * does when it starts a conversation. If the other phone has started one of
+ * its own meanwhile, both ends cope: that is libsignal's simultaneous
+ * initiation, covered by the interop test.
+ * @param {Uint8Array} state
+ * @param {string} self_id
+ * @param {string} peer
+ * @param {string} bundle_json
+ * @param {number} now_ms
+ * @returns {Output}
+ */
+export function initiate(state, self_id, peer, bundle_json, now_ms) {
+    const ptr0 = passArray8ToWasm0(state, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(self_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(peer, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passStringToWasm0(bundle_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ret = wasm.initiate(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, now_ms);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return Output.__wrap(ret[0]);
+}
+
+/**
  * @param {Uint8Array} plaintext
  * @returns {Sealed}
  */

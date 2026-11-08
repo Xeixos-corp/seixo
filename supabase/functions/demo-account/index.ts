@@ -6,8 +6,10 @@
 //
 //   setup  creates the account once: an auth user, its identity and prekeys,
 //          the state row. Run by hand; returns the account's id.
-//   drain  answers whatever is waiting in demo_account_inbox. Called by the
-//          trigger on every message sent to the account, and by a retry job.
+//   drain  greets whoever has just opened a conversation with the account
+//          (demo_account_greetings, migration 0033), then answers whatever
+//          is waiting in demo_account_inbox. Called by the triggers, and by a
+//          retry job.
 //
 // It runs as the account itself (signed in with its password), so every
 // message it sends passes the same policies and triggers as a phone's: the
@@ -23,13 +25,15 @@ import {
   create,
   decrypt,
   encrypt,
+  has_session,
+  initiate,
   initSync,
   seal_attachment,
 } from "./demo_account.js";
 
 const ASSETS =
   "https://raw.githubusercontent.com/Xeixos-corp/seixo/8e7bc031cd5c5f96fd7e61703a5d48259dd59268/supabase/functions/demo-account/assets/";
-const WASM_SHA256 = "8e8a47dac47ed17c456786b2cfdfaa054bb16024ea8cf2e6223dbb8f3d8bcb89";
+const WASM_SHA256 = "6c97e4554b60e39871e46435c9cf487ca3dc42bcc7255edaa7496d0b0ae3cfb9";
 const PHOTO_SHA256 = "aa4c87d792376be865c33b739c971fbdecf9689bf0771ebb1da1165d4326268c";
 const PHOTO_WIDTH = 1280;
 const PHOTO_HEIGHT = 851;
@@ -283,6 +287,96 @@ class Conversation {
   }
 }
 
+async function runScript(conversation: Conversation): Promise<void> {
+  for (const step of [
+    () => conversation.send(SCRIPT_GREETING),
+    () => conversation.send(SCRIPT_OFFENSIVE),
+    () => conversation.sendPhoto(),
+    () => conversation.send(SCRIPT_HOW_TO),
+  ]) {
+    // A pause between them, so they arrive as separate messages in order
+    // and read like someone typing rather than a burst.
+    if (!(await step())) break;
+    await sleep(1200);
+  }
+}
+
+/**
+ * The other person's published prekey bundle, claiming one of their one-time
+ * prekeys exactly as a phone starting a conversation does
+ * (app/src/transport/identities.ts, claimPeerPrekeyBundle).
+ */
+async function fetchBundle(peerId: string): Promise<Record<string, unknown> | null> {
+  const [{ data: identity }, { data: signed }] = await Promise.all([
+    admin.from("identities").select("identity_public_key, registration_id").eq("user_id", peerId).maybeSingle(),
+    admin
+      .from("signed_prekeys")
+      .select("signed_prekey_id, public_key, signature, kyber_prekey_id, kyber_prekey_public_key, kyber_prekey_signature")
+      .eq("owner_id", peerId)
+      .maybeSingle(),
+  ]);
+  if (!identity || !signed) return null;
+  const { data: oneTime } = await admin
+    .from("one_time_prekeys")
+    .select("id, prekey_id, public_key")
+    .eq("owner_id", peerId)
+    .limit(1)
+    .maybeSingle();
+  if (oneTime) await admin.from("one_time_prekeys").delete().eq("id", oneTime.id);
+  return {
+    registrationId: identity.registration_id,
+    identityKey: identity.identity_public_key,
+    signedPrekeyId: signed.signed_prekey_id,
+    signedPrekeyPublic: signed.public_key,
+    signedPrekeySignature: signed.signature,
+    kyberPrekeyId: signed.kyber_prekey_id,
+    kyberPrekeyPublic: signed.kyber_prekey_public_key,
+    kyberPrekeySignature: signed.kyber_prekey_signature,
+    oneTimePrekeyId: oneTime?.prekey_id ?? null,
+    oneTimePrekeyPublic: oneTime?.public_key ?? null,
+  };
+}
+
+/**
+ * Speaks first to someone who has just opened a conversation with the demo
+ * account, once. Waits a few seconds after the conversation was created, so
+ * the phone has finished setting it up and is listening when the greeting
+ * arrives.
+ */
+async function greet(
+  lease: Lease,
+  demo: SupabaseClient,
+  state: Uint8Array,
+  item: { channel_id: string; peer_id: string; created_at: string },
+): Promise<Uint8Array> {
+  const peer = (lease.peers[item.peer_id] ??= {});
+  if (peer.scripted) return state; // already greeted, or already answered
+
+  const age = Date.now() - Date.parse(item.created_at);
+  if (age < 4000) await sleep(4000 - age);
+
+  if (!has_session(state, item.peer_id)) {
+    const bundle = await fetchBundle(item.peer_id);
+    if (!bundle) {
+      console.error("[demo-account] no bundle to greet with");
+      return state;
+    }
+    try {
+      const out = initiate(state, lease.user_id, item.peer_id, JSON.stringify(bundle), Date.now());
+      state = out.state;
+      out.free();
+    } catch {
+      console.error("[demo-account] could not start a session");
+      return state;
+    }
+  }
+
+  const conversation = new Conversation(demo, lease.user_id, item.peer_id, item.channel_id, state);
+  peer.scripted = true;
+  await runScript(conversation);
+  return conversation.state;
+}
+
 async function answer(
   lease: Lease,
   demo: SupabaseClient,
@@ -315,17 +409,7 @@ async function answer(
 
   if (!peer.scripted) {
     peer.scripted = true;
-    for (const step of [
-      () => conversation.send(SCRIPT_GREETING),
-      () => conversation.send(SCRIPT_OFFENSIVE),
-      () => conversation.sendPhoto(),
-      () => conversation.send(SCRIPT_HOW_TO),
-    ]) {
-      // A pause between them, so they arrive as separate messages in order
-      // and read like someone typing rather than a burst.
-      if (!(await step())) break;
-      await sleep(1200);
-    }
+    await runScript(conversation);
   } else {
     if (peer.day !== today) {
       peer.day = today;
@@ -363,6 +447,24 @@ async function drain(): Promise<Response> {
     try {
       const demo = await signInAsDemo(lease.password);
       for (;;) {
+        const { data: greetings } = await admin
+          .from("demo_account_greetings")
+          .select("channel_id, peer_id, created_at")
+          .order("created_at", { ascending: true })
+          .limit(10);
+        if (!greetings || greetings.length === 0) break;
+        for (const item of greetings) {
+          state = await greet(lease, demo, state, item);
+          await admin.rpc("demo_account_put", {
+            new_state: toBytea(state),
+            new_peers: lease.peers,
+            release: false,
+          });
+          await admin.from("demo_account_greetings").delete().eq("channel_id", item.channel_id);
+          answered++;
+        }
+      }
+      for (;;) {
         const { data: items } = await admin
           .from("demo_account_inbox")
           .select("message_id, peer_id")
@@ -393,10 +495,11 @@ async function drain(): Promise<Response> {
 
     // Something may have arrived after the last check, from a caller that
     // gave up waiting for the lease.
-    const { count } = await admin
-      .from("demo_account_inbox")
-      .select("*", { count: "exact", head: true });
-    if (!count) break;
+    const [{ count: waiting }, { count: toGreet }] = await Promise.all([
+      admin.from("demo_account_inbox").select("*", { count: "exact", head: true }),
+      admin.from("demo_account_greetings").select("*", { count: "exact", head: true }),
+    ]);
+    if (!waiting && !toGreet) break;
   }
   return json({ answered });
 }
