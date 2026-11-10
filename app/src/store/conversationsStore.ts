@@ -49,6 +49,16 @@ export type Conversation = {
    * launch, which is the copy that decides.
    */
   muted?: boolean;
+  /**
+   * Someone else started this conversation, or added this user to the group,
+   * and it has not been opened yet.
+   *
+   * A conversation only counted as unread once a message arrived, so a
+   * conversation started with nothing in it landed in the list looking
+   * already read, with nothing to say anyone was waiting. It counts as one
+   * unread item until opened. Local, like lastReadAt.
+   */
+  awaitingFirstOpen?: boolean;
 };
 
 /**
@@ -57,6 +67,16 @@ export type Conversation = {
  * message landing in the list should not make it look unread.
  */
 export function unreadCount(
+  conversation: Conversation,
+  messages: { createdAt: string; isMine?: boolean; isControl?: boolean }[] | undefined,
+): number {
+  const fromPeer = countFromPeer(conversation, messages);
+  // A new conversation with nothing in it yet still counts once, so it is
+  // bold in the list and on the badge like anything else waiting to be read.
+  return fromPeer === 0 && conversation.awaitingFirstOpen ? 1 : fromPeer;
+}
+
+function countFromPeer(
   conversation: Conversation,
   messages: { createdAt: string; isMine?: boolean; isControl?: boolean }[] | undefined,
 ): number {
@@ -140,6 +160,13 @@ type ConversationsState = {
   setGroupMembers: (channelId: string, memberIds: string[]) => void;
   setConversationMuted: (channelId: string, muted: boolean) => void;
   removeConversation: (channelId: string) => void;
+  /**
+   * Whether this device has already matched its list against the server once.
+   * See registerIdentity.ts: the first time, every conversation it learns of
+   * is old news (a fresh install, a restored backup), not something new.
+   */
+  hasReconciled?: boolean;
+  setHasReconciled: () => void;
 };
 
 // Persisted: the list of known conversations (including the chosen TTL)
@@ -225,6 +252,7 @@ export const useConversationsStore = create<ConversationsState>()(
         const conversation = get().conversations.find((c) => c.channelId === channelId);
         if (!conversation) return;
         if (
+          !conversation.awaitingFirstOpen &&
           newestMessageAt &&
           conversation.lastReadAt &&
           Date.parse(conversation.lastReadAt) >= Date.parse(newestMessageAt)
@@ -234,7 +262,7 @@ export const useConversationsStore = create<ConversationsState>()(
         const now = new Date().toISOString();
         set((state) => ({
           conversations: state.conversations.map((c) =>
-            c.channelId === channelId ? { ...c, lastReadAt: now } : c,
+            c.channelId === channelId ? { ...c, lastReadAt: now, awaitingFirstOpen: undefined } : c,
           ),
         }));
       },
@@ -242,6 +270,9 @@ export const useConversationsStore = create<ConversationsState>()(
       // conversation locally. Doesn't touch server-side channel/message
       // rows; those age out via the existing TTL purge like any other
       // conversation (see supabase/migrations/0007_blocking.sql).
+      setHasReconciled: () => {
+        if (!get().hasReconciled) set({ hasReconciled: true });
+      },
       removeConversation: (channelId) => {
         set((state) => ({
           conversations: state.conversations.filter((c) => c.channelId !== channelId),

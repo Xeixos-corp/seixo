@@ -323,6 +323,45 @@ export function ConversationListScreen({ navigation }: Props) {
     ]);
   };
 
+  // The demo card stays until there is someone real to talk to: a direct
+  // conversation with anyone but the demo contact, or a group with somebody
+  // else in it. It used to show only while the list was empty, so creating
+  // an empty group first (as one App Review device did, 2026-10-29) hid it
+  // for good. It is not offered anywhere else, by choice: once there are
+  // real people here, it has done its job. Hidden too while the demo
+  // conversation itself is in the list, which is the way back to it.
+  const showDemoCard = useMemo(
+    () =>
+      !conversations.some(
+        (conversation) => !conversation.isGroup || (conversation.memberIds?.length ?? 0) > 1,
+      ),
+    [conversations],
+  );
+
+  const demoCard = (
+    <View style={[styles.demoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.demoTitle, { color: colors.textPrimary }]}>
+        {t('conversationList.demoTitle')}
+      </Text>
+      <Text style={[styles.demoBody, { color: colors.textSecondary }]}>
+        {t('conversationList.demoBody')}
+      </Text>
+      <Pressable
+        onPress={handleTryDemo}
+        disabled={starting}
+        style={({ pressed }) => [
+          styles.demoButton,
+          { backgroundColor: pressed ? colors.accentPressed : colors.accent },
+          starting && styles.busy,
+        ]}
+      >
+        <Text style={[styles.demoButtonText, { color: colors.onAccent }]}>
+          {t('conversationList.demoButton')}
+        </Text>
+      </Pressable>
+    </View>
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <Text style={[styles.header, { color: colors.textPrimary }]}>{t('navigation.conversationList')}</Text>
@@ -438,6 +477,11 @@ export function ConversationListScreen({ navigation }: Props) {
             onLongPress={() => openRowActions(item)}
           />
         )}
+        ListHeaderComponent={
+          showDemoCard && !searchQuery && matchingConversations.length > 0 ? (
+            <View style={styles.demoHeader}>{demoCard}</View>
+          ) : null
+        }
         ListEmptyComponent={
           searchQuery ? (
             <View style={styles.empty}>
@@ -450,27 +494,7 @@ export function ConversationListScreen({ navigation }: Props) {
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {t('conversationList.emptyState')}
             </Text>
-            <View style={[styles.demoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.demoTitle, { color: colors.textPrimary }]}>
-                {t('conversationList.demoTitle')}
-              </Text>
-              <Text style={[styles.demoBody, { color: colors.textSecondary }]}>
-                {t('conversationList.demoBody')}
-              </Text>
-              <Pressable
-                onPress={handleTryDemo}
-                disabled={starting}
-                style={({ pressed }) => [
-                  styles.demoButton,
-                  { backgroundColor: pressed ? colors.accentPressed : colors.accent },
-                  starting && styles.busy,
-                ]}
-              >
-                <Text style={[styles.demoButtonText, { color: colors.onAccent }]}>
-                  {t('conversationList.demoButton')}
-                </Text>
-              </Pressable>
-            </View>
+            {demoCard}
             <View style={styles.myIdCardWrapper}>
               <MyIdCard />
             </View>
@@ -713,6 +737,9 @@ const styles = StyleSheet.create({
     marginTop: 48,
     alignItems: 'center',
     paddingHorizontal: 24,
+  },
+  demoHeader: {
+    marginBottom: 12,
   },
   demoCard: {
     marginTop: 20,

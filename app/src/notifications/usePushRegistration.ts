@@ -181,6 +181,7 @@ export function useRegisterPushToken(): void {
         // holding.
         t('notifications.body'),
         t('notifications.groupBody'),
+        t('notifications.directBody'),
         // Re-sent on every launch, so a choice made while the server could
         // not be reached still arrives.
         useNotificationSoundStore.getState().sound,

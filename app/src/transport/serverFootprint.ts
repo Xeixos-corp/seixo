@@ -39,6 +39,7 @@ export type ServerFootprint = {
     title: string;
     body: string;
     groupBody: string | null;
+    directBody: string | null;
     sound: string | null;
     /** Also only a date. */
     updatedAt: string | null;
@@ -77,7 +78,7 @@ export async function fetchServerFootprint(userId: string): Promise<ServerFootpr
     supabase.from('channel_members').select('channel_id, muted').eq('member_id', userId),
     supabase
       .from('push_tokens')
-      .select('notification_title, notification_body, notification_group_body, notification_sound, updated_at')
+      .select('notification_title, notification_body, notification_group_body, notification_direct_body, notification_sound, updated_at')
       .eq('user_id', userId)
       .maybeSingle(),
   ]);
@@ -173,6 +174,7 @@ export async function fetchServerFootprint(userId: string): Promise<ServerFootpr
           title: pushTokens.data.notification_title as string,
           body: pushTokens.data.notification_body as string,
           groupBody: (pushTokens.data.notification_group_body as string | null) ?? null,
+          directBody: (pushTokens.data.notification_direct_body as string | null) ?? null,
           sound: (pushTokens.data.notification_sound as string | null) ?? null,
           updatedAt: (pushTokens.data.updated_at as string | null) ?? null,
         }

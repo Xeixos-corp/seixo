@@ -299,7 +299,8 @@
   "notifications": {
     "title": "Seixo",
     "body": "You have a new message.",
-    "groupBody": "You were added to a group."
+    "groupBody": "You were added to a group.",
+    "directBody": "Someone started a conversation with you."
   },
   "safetyNumber": {
     "title": "Safety number",
@@ -395,7 +396,7 @@
     "blocked": "People blocked",
     "absentSection": "What is not here",
     "absentList": "The content of messages · what photos show · who sent each message or photo in a one-to-one conversation (in the database) · the names you gave your contacts · the names of groups. The exception: a report keeps the reported message (text, photo or audio) and who sent it, for 90 days.",
-    "hostingNote": "This is the database. Before a request reaches it, the hosting provider's entry layer records it and keeps, for 24 hours, your IP, the approximate city and postal code, your internet provider and, in most cases, your account id. We do not control it and cannot delete it sooner. It is explained in the privacy policy.",
+    "hostingNote": "This is the database. Before a request reaches it, the hosting provider's entry layer records it with your IP, the approximate city and postal code, your internet provider, what was requested (never the content) and, in most cases, your account id. The hosting provider keeps it under its own rules, which we do not control, and we cannot delete it. It is explained in the privacy policy.",
     "imagesSection": "Photos",
     "images_one": "1 encrypted photo",
     "images_other": "{{count}} encrypted photos",
@@ -437,8 +438,7 @@
     "hostingSection": "In the hosting logs",
     "hostingMine": "Your send was logged with your account, your IP and your approximate location.",
     "hostingTheirs": "The send was logged with the account of whoever sent it. When you received it, your request was logged the same way, with your account.",
-    "hostingUntil": "Until {{time}}. We cannot read it or delete it sooner.",
-    "hostingGone": "More than 24 hours have passed: that log entry is already gone."
+    "hostingKept": "Kept by the hosting provider under its own rules. We do not control it and cannot delete it."
   },
   "codePad": {
     "entered_one": "{{count}} digit entered",

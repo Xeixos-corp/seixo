@@ -299,7 +299,8 @@
   "notifications": {
     "title": "Seixo",
     "body": "Tienes un mensaje nuevo.",
-    "groupBody": "Te añadieron a un grupo."
+    "groupBody": "Te añadieron a un grupo.",
+    "directBody": "Alguien empezó una conversación contigo."
   },
   "safetyNumber": {
     "title": "Código de seguridad",
@@ -395,7 +396,7 @@
     "blocked": "Personas bloqueadas",
     "absentSection": "Lo que no está aquí",
     "absentList": "El contenido de los mensajes · lo que muestran las fotos · quién envió cada mensaje o foto en una conversación entre dos (en la base de datos) · los nombres que diste a tus contactos · los nombres de los grupos. La excepción: una denuncia guarda el mensaje denunciado (texto, foto o audio) y quién lo envió, durante 90 días.",
-    "hostingNote": "Esto es la base de datos. Antes de que una petición llegue, la capa de entrada del alojamiento la registra y guarda durante 24 horas tu IP, la ciudad y el código postal aproximados, tu proveedor de internet y, en la mayoría de los casos, el identificador de tu cuenta. No lo controlamos ni podemos borrarlo antes. Está explicado en la política de privacidad.",
+    "hostingNote": "Esto es la base de datos. Antes de que una petición llegue, la capa de entrada del alojamiento la registra con tu IP, la ciudad y el código postal aproximados, tu proveedor de internet, lo que se pidió (nunca el contenido) y, en la mayoría de los casos, el identificador de tu cuenta. El proveedor del alojamiento lo guarda según sus propias reglas, que no controlamos, y no podemos borrarlo. Está explicado en la política de privacidad.",
     "imagesSection": "Fotos",
     "images_one": "1 foto cifrada",
     "images_other": "{{count}} fotos cifradas",
@@ -437,8 +438,7 @@
     "hostingSection": "En los registros del alojamiento",
     "hostingMine": "Tu envío quedó registrado con tu cuenta, tu IP y tu ubicación aproximada.",
     "hostingTheirs": "El envío quedó registrado con la cuenta de quien lo envió. Cuando lo recibiste, tu petición quedó registrada igual, con tu cuenta.",
-    "hostingUntil": "Hasta el {{time}}. No podemos leerlo ni borrarlo antes.",
-    "hostingGone": "Ya pasaron 24 horas: ese registro ya desapareció."
+    "hostingKept": "Lo guarda el proveedor del alojamiento según sus propias reglas. No lo controlamos ni podemos borrarlo."
   },
   "codePad": {
     "entered_one": "{{count}} dígito escrito",

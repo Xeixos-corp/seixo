@@ -1637,7 +1637,8 @@ need the app to report when each message is read -- a usage record this
 project has declined to keep since 0016.
 
 **Limits, stated plainly.** The extension counts notifications, not messages:
-being added to a group counts too, and a message that produces no notification
+being added to a group or to a new conversation (migration 0034) counts too,
+and a message that produces no notification
 (a silent one, or from someone blocked) does not. The count is corrected the
 next time the app opens. The App Group holds only that number and, briefly,
 a shared item.

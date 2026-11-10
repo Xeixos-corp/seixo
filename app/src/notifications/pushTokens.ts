@@ -16,6 +16,8 @@ export async function upsertPushToken(
   notificationBody: string,
   /** Shown when someone adds this user to a group, rather than for a message. */
   notificationGroupBody: string,
+  /** Shown when someone starts a direct conversation with this user. */
+  notificationDirectBody: string,
   /** A bundled file name, or 'default' for the phone's ordinary sound. */
   notificationSound: string,
 ): Promise<void> {
@@ -39,6 +41,7 @@ export async function upsertPushToken(
       notification_title: notificationTitle,
       notification_body: notificationBody,
       notification_group_body: notificationGroupBody,
+      notification_direct_body: notificationDirectBody,
       // Null rather than the string 'default': the column means "a sound this
       // app carries", and the ordinary sound is not one of those.
       notification_sound: notificationSound === DEFAULT_SOUND ? null : notificationSound,

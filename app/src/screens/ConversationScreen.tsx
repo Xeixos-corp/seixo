@@ -78,7 +78,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as ScreenCapture from 'expo-screen-capture';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
-import { encryptMessage, isUntrustedIdentityError } from '../crypto';
+import { isUntrustedIdentityError } from '../crypto';
+import { encryptForPeer } from '../messaging/encryptForPeer';
 import { sendReport, ReportLimitError, isAccountRestrictedError, type ReportEvidence } from '../transport/reports';
 import { materialiseForPlayback, discard as discardVoiceFile } from '../audio/voiceFiles';
 import { isObjectionable } from '../messaging/contentFilter';
@@ -87,7 +88,6 @@ import { discardSharedImage, type SharedImage } from '../store/pendingShareStore
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Conversation'>;
 
-const REMOTE_DEVICE_ID = 1; // single device per identity for now
 
 // Stable reference for "this channel has no messages yet". Returning a fresh
 // `[]` from the selector below instead would hand React a different snapshot
@@ -676,7 +676,9 @@ export function ConversationScreen({ route, navigation }: Props) {
           options,
         );
       }
-      const envelope = encryptMessage(peerUserId, REMOTE_DEVICE_ID, payload);
+      // Starts the session first when this side never had one: the person
+      // who did not start the conversation writing first (encryptForPeer.ts).
+      const envelope = await encryptForPeer(peerUserId, payload);
       return await sendMessage(channelId, envelope, lifetimeSeconds, options);
       } catch (error) {
         // Every send goes through here, so this is the one place to say why

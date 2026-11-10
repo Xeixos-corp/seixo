@@ -217,11 +217,18 @@ async function finishRegistration(userId: string): Promise<void> {
   // launch, which is not worth blocking startup over.
   try {
     const serverChannels = await fetchMyChannelsDetailed(userId);
-    const { addConversation, setGroupMembers, setConversationMuted, setConversationKind } =
+    const { addConversation, setGroupMembers, setConversationMuted, setConversationKind, hasConversation, hasReconciled } =
       useConversationsStore.getState();
+    // A conversation the server has and this phone does not is one someone
+    // started while the app was closed -- except on the very first reconcile,
+    // where everything is unknown because the phone is new or was restored
+    // from a backup, and marking all of it as waiting would be noise.
+    const isNewArrival = (channelId: string) => hasReconciled === true && !hasConversation(channelId);
     serverChannels.forEach(({ channelId, kind, ownerId, memberIds, muted }) => {
+      const awaitingFirstOpen = isNewArrival(channelId) || undefined;
       if (kind === 'group') {
         addConversation({
+          awaitingFirstOpen,
           channelId,
           // A group has no single peer. Kept as the empty string rather than
           // made optional, so every existing code path that reads it gets
@@ -245,7 +252,7 @@ async function finishRegistration(userId: string): Promise<void> {
       }
       const peerUserId = memberIds.find((id) => id !== userId);
       if (!peerUserId) return;
-      addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS });
+      addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS, awaitingFirstOpen });
       setConversationKind(channelId, { isGroup: false, peerUserId });
       setConversationMuted(channelId, muted);
     });
@@ -263,6 +270,7 @@ async function finishRegistration(userId: string): Promise<void> {
     conversations
       .filter((conversation) => !live.has(conversation.channelId))
       .forEach((conversation) => removeConversation(conversation.channelId));
+    useConversationsStore.getState().setHasReconciled();
   } catch (error) {
     console.error('[registerIdentity] failed to reconcile channels', error);
   }
@@ -296,6 +304,11 @@ async function finishRegistration(userId: string): Promise<void> {
           isGroup: true,
           memberIds: members,
           ownerId: channel?.ownerId ?? undefined,
+          // Arrived while the app was open, so it is new by definition. On
+          // the side that created it this may win the race against
+          // startConversation/group creation; opening it, which they do
+          // straight away, clears the mark.
+          awaitingFirstOpen: true,
         });
         return;
       }
@@ -308,6 +321,7 @@ async function finishRegistration(userId: string): Promise<void> {
         channelId,
         peerUserId: others[0],
         ttlSeconds: DEFAULT_TTL_SECONDS,
+        awaitingFirstOpen: true,
       });
     } catch (error) {
       console.error('[registerIdentity] failed to resolve new channel membership', error);

@@ -11,9 +11,6 @@ import { getCurrentUserId } from '../identity/currentUser';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MessageServerView'>;
 
-/** How long the hosting layer's request log keeps a request (privacy policy). */
-const HOSTING_LOG_HOURS = 24;
-
 /**
  * One message, as the server holds it -- read live, the moment this opens.
  *
@@ -26,7 +23,7 @@ const HOSTING_LOG_HOURS = 24;
  * database would be the most misleading thing here.
  */
 export function MessageServerViewScreen({ route }: Props) {
-  const { messageId, isMine, sentAt } = route.params;
+  const { messageId, isMine } = route.params;
   const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
   const [view, setView] = useState<MessageServerView | null>(null);
@@ -61,12 +58,6 @@ export function MessageServerViewScreen({ route }: Props) {
     });
   const bytes = (count: number) =>
     count < 1024 ? `${count} B` : `${(count / 1024).toLocaleString(i18n.language, { maximumFractionDigits: 1 })} KB`;
-
-  // Until when the hosting log can tie this message to the account that sent
-  // it: a day from the send. Worked out from the message's own time, which is
-  // the one the log matches against.
-  const logUntil = new Date(Date.parse(view?.found ? view.createdAt : sentAt) + HOSTING_LOG_HOURS * 3600 * 1000);
-  const logStillHolds = logUntil.getTime() > Date.now();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -164,11 +155,12 @@ export function MessageServerViewScreen({ route }: Props) {
                   ? t('messageServerView.hostingMine')
                   : t('messageServerView.hostingTheirs')
               }
-              hint={
-                logStillHolds
-                  ? t('messageServerView.hostingUntil', { time: moment(logUntil.toISOString()) })
-                  : t('messageServerView.hostingGone')
-              }
+              // No date. This used to count down a day from the send, taken
+              // from the provider's advertised retention; its logs turned out
+              // to outlast that by weeks, and how long they keep them is its
+              // decision, not ours (privacy policy, "Nos registos do
+              // alojamento").
+              hint={t('messageServerView.hostingKept')}
             />
           </SettingsGroup>
         ) : null}

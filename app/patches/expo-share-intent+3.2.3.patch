@@ -1,0 +1,47 @@
+diff --git a/node_modules/expo-share-intent/plugin/build/ios/ShareExtensionViewController.swift b/node_modules/expo-share-intent/plugin/build/ios/ShareExtensionViewController.swift
+index a8b001a..307c8d6 100644
+--- a/node_modules/expo-share-intent/plugin/build/ios/ShareExtensionViewController.swift
++++ b/node_modules/expo-share-intent/plugin/build/ios/ShareExtensionViewController.swift
+@@ -160,6 +160,17 @@ class ShareViewController: UIViewController {
+             url = dataURL
+           } else if let imageData = item as? UIImage {
+             url = self.saveScreenshot(imageData)
++          } else if let rawData = item as? Data {
++            // Seixo: the screenshot editor (the thumbnail after taking a
++            // screenshot) hands the image over as raw bytes, neither a file
++            // nor a UIImage. Unhandled, `url` stayed nil and `url!` below
++            // crashed the extension: the sheet closed and nothing happened.
++            url = self.saveScreenshotData(rawData)
++          }
++          guard url != nil else {
++            NSLog("[ERROR] Unsupported image item \(String(describing: type(of: item)))")
++            self.dismissWithError(message: "Cannot read this image")
++            return
+           }
+ 
+           var pixelWidth: Int? = nil
+@@ -236,6 +247,24 @@ class ShareViewController: UIViewController {
+     return screenshotURL
+   }
+ 
++  // Seixo: raw bytes from the screenshot editor, written out so the rest of
++  // the path (size, copy into the App Group) treats them like any photo. The
++  // extension is guessed from the bytes; the app re-encodes it anyway.
++  private func saveScreenshotData(_ data: Data) -> URL? {
++    let isJpeg = data.starts(with: [0xFF, 0xD8, 0xFF])
++    let isHeic = data.count > 12 && String(data: data.subdata(in: 4..<8), encoding: .ascii) == "ftyp"
++    let ext = isJpeg ? "jpg" : (isHeic ? "heic" : "png")
++    guard let path = documentDirectoryPath()?.appendingPathComponent("screenshot.\(ext)") else {
++      return nil
++    }
++    do {
++      try data.write(to: path)
++      return path
++    } catch {
++      return nil
++    }
++  }
++
+   private func handleVideos(content: NSExtensionItem, attachment: NSItemProvider, index: Int) async
+   {
+     Task.detached {
