@@ -47,6 +47,8 @@ declare class SignalNativeExpoModule extends NativeModule<{}> {
   // base64 string would cost memory and time for nothing.
   sealAttachmentFile(inputUri: string): Promise<SealedAttachmentFile>;
   openAttachmentFile(sealedUri: string, keyBase64: string): Promise<string>;
+  /** As openAttachmentFile, for a file: written under its own (sanitised) name. */
+  openAttachmentFileNamed(sealedUri: string, keyBase64: string, fileName: string): Promise<string>;
   clearAttachmentFiles(): void;
 }
 

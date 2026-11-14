@@ -115,6 +115,19 @@ inside travels encrypted but travels.
 Saving to the library is the easiest way to put a message beyond its own timer.
 Anyone determined can screenshot, which is at least a deliberate act.
 
+**Documents, revisited (2026-11-14).** Documents are now sent, up to 10 MiB,
+by the owner's decision. The rule above still holds as a description: a file
+cannot be rebuilt, and what is hidden in it travels. What changed is the
+answer to it. People asked for files, and refusing them sends those files
+through some other app that encrypts less and says nothing. So the app says
+it instead: before every file it warns, in plain words, that names, dates,
+earlier versions and embedded photos may be inside and are not removed, and
+the privacy policy and FAQ say the same. Unlike a photo, a received file can
+be opened in another app or saved from the share sheet, which puts it beyond
+the timer; a file nobody can open anywhere else is of no use, and that is
+said too. Same sealing, same bucket, same purge as images (migration 0035
+only raises the size limit). Video and animated GIFs stay excluded.
+
 ## Order of work
 
 1. **The purge first.** Bucket, policies, trigger, orphan sweep — written and

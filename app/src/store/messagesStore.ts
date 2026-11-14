@@ -22,6 +22,35 @@ export type StoredImage = {
   state?: 'uploading' | 'failed' | 'unavailable';
 };
 
+/**
+ * A file sent or received: a PDF, a spreadsheet, a document.
+ *
+ * Fetched as soon as it arrives, like a picture, and for the same reason: the
+ * server keeps it for a day at most, and a file someone only opens the next
+ * evening should still be there. Waiting for a press would save some traffic
+ * and lose files instead.
+ */
+export type StoredFile = {
+  /** The name it had on the sender's phone. */
+  name: string;
+  /** Real size in bytes, before padding. */
+  size: number;
+  mimeType?: string;
+  /** What opens the stored object. Dropped once the file is on disk. */
+  keyBase64?: string;
+  /**
+   * Where the opened file is in the attachments cache, relative to it:
+   * "<directory>/<name>", each file having a directory of its own.
+   */
+  fileName?: string;
+  /**
+   * As for images: 'uploading' while this device sends it, 'failed' if that
+   * did not happen, 'unavailable' when a received file could not be fetched
+   * or opened. Undefined means fine -- present, or on its way.
+   */
+  state?: 'uploading' | 'failed' | 'unavailable';
+};
+
 export type DecryptedMessage = {
   id: string;
   createdAt: string;
@@ -117,6 +146,8 @@ export type DecryptedMessage = {
    * (messaging/attachments.ts).
    */
   image?: StoredImage;
+  /** A file. `plaintext` is empty for these, as for images. */
+  file?: StoredFile;
   /**
    * Who sent it, in a group. Undefined in a one-to-one conversation, where
    * `isMine` already says everything there is to say.
@@ -137,6 +168,8 @@ type MessagesState = {
   setMessageStatus: (channelId: string, id: string, status: DecryptedMessage['status']) => void;
   /** Merges into a message's image, for the download and upload to report on. */
   updateMessageImage: (channelId: string, id: string, patch: Partial<StoredImage>) => void;
+  /** Merges into a message's file, for the upload and download to report on. */
+  updateMessageFile: (channelId: string, id: string, patch: Partial<StoredFile>) => void;
   /**
    * Rewrites a message's text in place, keeping its id, position and -- most
    * importantly -- its original expiry. Editing must not restart the
@@ -224,6 +257,16 @@ export const useMessagesStore = create<MessagesState>()(
             ...state.messagesByChannel,
             [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) =>
               m.id === id && m.image ? { ...m, image: { ...m.image, ...patch } } : m,
+            ),
+          },
+        }));
+      },
+      updateMessageFile: (channelId, id, patch) => {
+        set((state) => ({
+          messagesByChannel: {
+            ...state.messagesByChannel,
+            [channelId]: (state.messagesByChannel[channelId] ?? []).map((m) =>
+              m.id === id && m.file ? { ...m, file: { ...m.file, ...patch } } : m,
             ),
           },
         }));

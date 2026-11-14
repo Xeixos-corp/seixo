@@ -9,6 +9,7 @@ import {
   Linking,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -63,18 +64,28 @@ import {
 } from '../../modules/audio-session-expo/src';
 import { VoiceMessage } from '../components/VoiceMessage';
 import { ImageMessage } from '../components/ImageMessage';
-import { ImageIcon } from '../components/icons';
+import { PaperclipIcon, TrashIcon } from '../components/icons';
+import { FileMessage } from '../components/FileMessage';
+import { PasteButton } from '../components/PasteButton';
+import { NotAnIdHelp } from '../components/NotAnIdHelp';
+import { findPeerId, isBlockedMemberError, isGroupFullError, isPeerNotFoundError } from '../identity/peerId';
+import { DEMO_ACCOUNT_ID } from '../config/support';
 import {
   IMAGE_SERVER_TTL_SECONDS,
   ImageMetadataError,
   imageUri,
   keepOwnCopy,
+  keepOwnFileCopy,
+  openFile,
+  pickFile,
   pickImage,
   prepareImage,
   sealImage,
   uploadSealed,
+  type PickedFile,
 } from '../messaging/attachments';
 import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system';
 import * as ScreenCapture from 'expo-screen-capture';
 import { blockPeer } from '../transport/blocking';
 import { registerIdentity } from '../identity/registerIdentity';
@@ -113,6 +124,7 @@ function quotePreview(message: DecryptedMessage | undefined, t: TFunction): stri
   if (!message) return t('conversation.quoteUnavailable');
   if (message.audioBase64) return t('conversation.voiceMessage');
   if (message.image) return t('conversation.imageQuote');
+  if (message.file) return t('conversation.fileQuote', { name: message.file.name });
   return message.plaintext;
 }
 
@@ -186,6 +198,7 @@ export function ConversationScreen({ route, navigation }: Props) {
   const replaceMessage = useMessagesStore((state) => state.replaceMessage);
   const setMessageStatus = useMessagesStore((state) => state.setMessageStatus);
   const updateMessageImage = useMessagesStore((state) => state.updateMessageImage);
+  const updateMessageFile = useMessagesStore((state) => state.updateMessageFile);
   const applyEdit = useMessagesStore((state) => state.applyEdit);
   const removeMessage = useMessagesStore((state) => state.removeMessage);
   const ttlSeconds = useConversationsStore(
@@ -323,7 +336,9 @@ export function ConversationScreen({ route, navigation }: Props) {
           content: message
             ? message.image
               ? t('conversation.reportPhotoPlaceholder')
-              : message.audioBase64
+              : message.file
+                ? t('conversation.reportFilePlaceholder', { name: message.file.name })
+                : message.audioBase64
                 ? t('conversation.reportVoicePlaceholder')
                 : message.plaintext
             : undefined,
@@ -373,7 +388,9 @@ export function ConversationScreen({ route, navigation }: Props) {
       if (!reportedUserId) return;
       const body = message.image
         ? t('conversation.reportPhotoBody')
-        : message.audioBase64
+        : message.file
+          ? t('conversation.reportFileBody')
+          : message.audioBase64
           ? t('conversation.reportVoiceBody')
           : t('conversation.reportMessageBody');
       Alert.alert(t('conversation.reportMessageTitle'), body, [
@@ -523,6 +540,10 @@ export function ConversationScreen({ route, navigation }: Props) {
     null,
   );
   const [newMemberId, setNewMemberId] = useState('');
+  // A name typed where a member's ID goes. Shown inside the sheet, which
+  // covers the conversation and everything drawn on it.
+  const [memberNotAnId, setMemberNotAnId] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
   const [groupNameDraft, setGroupNameDraft] = useState('');
   /**
    * A shorter timer for the next message only, chosen without changing the
@@ -868,6 +889,135 @@ export function ConversationScreen({ route, navigation }: Props) {
     ],
   );
 
+  /**
+   * Sends a file the person chose and agreed to send: seals it, keeps the
+   * sender's own copy, inserts the message and uploads the sealed file under
+   * its id. The same order and the same failure rules as a photo, above.
+   *
+   * Nothing is stripped. A photo can be rebuilt from its pixels with nothing
+   * else in it; a PDF or a spreadsheet cannot, and pretending otherwise would
+   * be a promise the app cannot keep. The warning before this is the honest
+   * version.
+   */
+  const sendPickedFile = useCallback(
+    async (picked: PickedFile) => {
+      setSendError(null);
+
+      let sealed: Awaited<ReturnType<typeof sealImage>>;
+      let fileName: string;
+      try {
+        // Sealed before the copy is kept: keeping it moves the file.
+        sealed = await sealImage(picked.uri);
+        fileName = await keepOwnFileCopy(picked.uri, picked.name);
+      } catch (error) {
+        console.error('[ConversationScreen] could not prepare the file', error);
+        setSendError(t('conversation.filePrepareFailed'));
+        return;
+      }
+
+      const shown = { name: picked.name, size: picked.size, mimeType: picked.mimeType, fileName };
+      const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      addMessage(channelId, {
+        id: localId,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+        plaintext: '',
+        isMine: true,
+        status: 'sending',
+        file: { ...shown, state: 'uploading' },
+      });
+
+      let messageId: string;
+      try {
+        const { id, createdAt } = await transmit(
+          encodePayload({
+            // Only for builds that predate files, which would otherwise show
+            // an empty bubble. Newer ones draw the file and ignore this.
+            text: t('conversation.fileFallback', { name: picked.name }),
+            file: {
+              keyBase64: sealed.keyBase64,
+              name: picked.name,
+              size: picked.size,
+              mimeType: picked.mimeType,
+            },
+            localTtlSeconds: ttlSeconds,
+          }),
+          // Held by the server for a day at most, as a photo is.
+          { serverTtlSeconds: IMAGE_SERVER_TTL_SECONDS },
+        );
+        messageId = id;
+        const expiresAt = new Date(Date.parse(createdAt) + ttlSeconds * 1000).toISOString();
+        replaceMessage(channelId, localId, {
+          id,
+          createdAt,
+          expiresAt,
+          plaintext: '',
+          isMine: true,
+          status: 'sent',
+          file: { ...shown, state: 'uploading' },
+        });
+        scheduleExpiry(id, expiresAt);
+      } catch (error) {
+        console.error('[ConversationScreen] failed to send file message', error);
+        setMessageStatus(channelId, localId, 'failed');
+        updateMessageFile(channelId, localId, { state: 'failed' });
+        return;
+      }
+
+      try {
+        await uploadSealed(messageId, sealed.sealedUri);
+        updateMessageFile(channelId, messageId, { state: undefined });
+      } catch (error) {
+        console.error('[ConversationScreen] failed to upload file', error);
+        updateMessageFile(channelId, messageId, { state: 'failed' });
+      }
+    },
+    [
+      channelId,
+      transmit,
+      ttlSeconds,
+      addMessage,
+      replaceMessage,
+      setMessageStatus,
+      updateMessageFile,
+      scheduleExpiry,
+      t,
+    ],
+  );
+
+  /**
+   * Lets the person choose a file, then says plainly what a file can carry
+   * before anything is sent. Asked every time on purpose: what is hidden in
+   * a document differs from one document to the next, and the person sending
+   * it is the only one who can judge it.
+   */
+  const sendFile = useCallback(async () => {
+    setSendError(null);
+    let picked: Awaited<ReturnType<typeof pickFile>>;
+    try {
+      picked = await pickFile();
+    } catch (error) {
+      console.error('[ConversationScreen] could not open the file picker', error);
+      setSendError(t('conversation.filePickFailed'));
+      return;
+    }
+    if (picked.kind === 'cancelled') return;
+    if (picked.kind === 'tooLarge') {
+      Alert.alert(t('conversation.fileTooLargeTitle'), t('conversation.fileTooLargeBody', { name: picked.name }));
+      return;
+    }
+    const file = picked.file;
+    Alert.alert(t('conversation.fileWarningTitle'), t('conversation.fileWarningBody', { name: file.name }), [
+      {
+        text: t('conversation.cancel'),
+        style: 'cancel',
+        // Nothing was sent, so the picker's copy has no reason to stay.
+        onPress: () => void FileSystem.deleteAsync(file.uri, { idempotent: true }),
+      },
+      { text: t('conversation.fileWarningSend'), onPress: () => void sendPickedFile(file) },
+    ]);
+  }, [sendPickedFile, t]);
+
   /** Takes a photo, or lets the person choose one, and sends it. */
   const sendImage = useCallback(
     async (source: 'camera' | 'library') => {
@@ -914,9 +1064,10 @@ export function ConversationScreen({ route, navigation }: Props) {
     Alert.alert(t('conversation.attachTitle'), undefined, [
       { text: t('conversation.attachCamera'), onPress: () => void sendImage('camera') },
       { text: t('conversation.attachLibrary'), onPress: () => void sendImage('library') },
+      { text: t('conversation.attachFile'), onPress: () => void sendFile() },
       { text: t('conversation.cancel'), style: 'cancel' },
     ]);
-  }, [sendImage, t]);
+  }, [sendImage, sendFile, t]);
 
   const startRecording = useCallback(async () => {
     // Checked before asking, to tell "never asked" from "already refused".
@@ -1134,9 +1285,23 @@ export function ConversationScreen({ route, navigation }: Props) {
     ]);
   }, [channelId, clearChannel, removeConversation, navigation, t]);
 
-  const handleAddMember = useCallback(async () => {
-    const peerId = newMemberId.trim();
-    if (!peerId) return;
+  /**
+   * Adds someone, by the ID typed or pasted, or by a contact chosen from the
+   * list. Errors land in the sheet: they used to go to sendError, drawn on the
+   * conversation behind it, where nobody could see them.
+   */
+  const handleAddMember = useCallback(async (chosenId?: string) => {
+    const typed = chosenId ?? newMemberId;
+    if (!typed.trim()) return;
+    const peerId = findPeerId(typed);
+    if (!peerId) {
+      setMembersNotice(null);
+      setMemberNotAnId(true);
+      return;
+    }
+    setMemberNotAnId(false);
+    setMembersNotice(null);
+    setAddingMember(true);
     try {
       await addGroupMember(channelId, peerId);
       setNewMemberId('');
@@ -1148,9 +1313,35 @@ export function ConversationScreen({ route, navigation }: Props) {
       const currentName = conversation?.nickname?.trim();
       if (currentName) await handleRenameGroup(currentName);
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : String(error));
+      let text: string;
+      if (isPeerNotFoundError(error)) text = t('peerId.notFound');
+      else if (isGroupFullError(error)) text = t('peerId.groupFull');
+      else if (isBlockedMemberError(error)) text = t('peerId.memberBlocked');
+      else text = error instanceof Error ? error.message : String(error);
+      setMembersNotice({ kind: 'error', text });
+    } finally {
+      setAddingMember(false);
     }
-  }, [channelId, newMemberId, refreshMembers]);
+  }, [channelId, newMemberId, refreshMembers, t]);
+
+  /**
+   * People this phone already talks to one-to-one, who are not in the group
+   * yet: almost always who someone wants to add, and choosing them needs no ID
+   * at all. Blocked people and the demo contact are left out, since the
+   * server would refuse the first and the second cannot read a group.
+   */
+  const memberCandidates = useMemo(() => {
+    if (!conversation?.isGroup) return [];
+    const inGroup = new Set(groupMemberIds ?? []);
+    const seen = new Set<string>();
+    return allConversations.filter((other) => {
+      if (other.isGroup || !other.peerUserId) return false;
+      if (inGroup.has(other.peerUserId) || seen.has(other.peerUserId)) return false;
+      if (other.peerUserId === DEMO_ACCOUNT_ID || blockedPeerIds.includes(other.peerUserId)) return false;
+      seen.add(other.peerUserId);
+      return true;
+    });
+  }, [allConversations, blockedPeerIds, conversation?.isGroup, groupMemberIds]);
 
   /**
    * Blocks one member of a group, for this device only.
@@ -1378,9 +1569,10 @@ export function ConversationScreen({ route, navigation }: Props) {
         message?.isMine === true &&
         !messageId.startsWith('local-') &&
         !message.audioBase64 &&
-        // Nor for images: there is no text to change, and an edit would
-        // replace the picture with an empty message.
-        !message.image;
+        // Nor for images or files: there is no text to change, and an edit
+        // would replace them with an empty message.
+        !message.image &&
+        !message.file;
 
       Alert.alert(t('conversation.messageActionsTitle'), undefined, [
         {
@@ -1430,6 +1622,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                     messageId,
                     isMine: message.isMine === true,
                     sentAt: message.createdAt,
+                    attachment: message.file ? 'file' : message.image ? 'photo' : undefined,
                   }),
               },
             ]
@@ -1839,6 +2032,20 @@ export function ConversationScreen({ route, navigation }: Props) {
                   tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
                   onLongPress={() => handleMessageActions(item.id)}
                 />
+              ) : item.file ? (
+                <FileMessage
+                  file={item.file}
+                  tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
+                  onOpen={() => {
+                    const opened = item.file?.fileName;
+                    if (!opened) return;
+                    openFile(opened, item.file?.mimeType).catch((error) => {
+                      console.error('[ConversationScreen] could not open the file', error);
+                      setSendError(t('conversation.fileOpenFailed'));
+                    });
+                  }}
+                  onLongPress={() => handleMessageActions(item.id)}
+                />
               ) : item.audioBase64 ? (
                 <VoiceMessage
                   messageId={item.id}
@@ -1899,7 +2106,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                   image's text is empty -- it would go out as a blank message.
                   A failed picture says so on itself; sending it again is
                   choosing it again. */}
-              {item.status === 'failed' && !item.image ? (
+              {item.status === 'failed' && !item.image && !item.file ? (
                 <Pressable onPress={() => handleRetry(item)} hitSlop={8}>
                   <Text style={[styles.retryText, { color: colors.onAccent }]}>
                     {t('conversation.retrySend')}
@@ -2027,7 +2234,27 @@ export function ConversationScreen({ route, navigation }: Props) {
               accessibilityRole="button"
               accessibilityLabel={t('conversation.attachImage')}
             >
-              <ImageIcon size={22} color={colors.textSecondary} />
+              <PaperclipIcon size={22} color={colors.textSecondary} />
+            </Pressable>
+          ) : null}
+          {/* Cancelling a recording used to be a small grey "×" right beside
+              the large red "Parar e enviar": easy to miss, easy to hit the
+              wrong one, and VoiceOver read it as a multiplication sign. It now
+              says what it does, and sits at the opposite end from sending, in
+              the place the attach button leaves empty while recording. */}
+          {recording ? (
+            <Pressable
+              onPress={() => void stopRecording(false)}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.discardButton,
+                { borderColor: colors.danger, opacity: pressed ? 0.6 : 1 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t('conversation.cancelRecordingLabel')}
+            >
+              <TrashIcon size={18} color={colors.danger} />
+              <Text style={{ color: colors.danger, fontWeight: '600' }}>{t('conversation.cancelRecording')}</Text>
             </Pressable>
           ) : null}
           <TextInput
@@ -2048,12 +2275,6 @@ export function ConversationScreen({ route, navigation }: Props) {
             multiline
             blurOnSubmit={false}
           />
-          {recording ? (
-            <Pressable onPress={() => void stopRecording(false)} hitSlop={8} style={styles.discardButton}>
-              <Text style={{ color: colors.textSecondary, fontSize: 18 }}>×</Text>
-            </Pressable>
-          ) : null}
-
           {!inputText.trim() ? (
             <Pressable
               onPress={() => (recording ? void stopRecording(true) : void startRecording())}
@@ -2223,25 +2444,71 @@ export function ConversationScreen({ route, navigation }: Props) {
                 </View>
               ) : null}
 
+              {isOwner && memberCandidates.length > 0 ? (
+                <View style={styles.candidates}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                    {t('peerId.fromContacts')}
+                  </Text>
+                  <ScrollView style={styles.candidateList} nestedScrollEnabled>
+                    {memberCandidates.map((candidate) => (
+                      <View key={candidate.peerUserId} style={styles.memberRow}>
+                        <Text style={{ color: colors.textPrimary, fontSize: 14, flex: 1 }} numberOfLines={1}>
+                          {candidate.nickname?.trim() || `${candidate.peerUserId.slice(0, 8)}…`}
+                        </Text>
+                        <Pressable
+                          disabled={addingMember}
+                          onPress={() => void handleAddMember(candidate.peerUserId)}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                        >
+                          <Text style={{ color: colors.accent, fontSize: 13, fontWeight: '600' }}>
+                            {t('conversation.addMemberButton')}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
+
               {isOwner ? (
-                <View style={styles.addMemberRow}>
+                <View>
                   <TextInput
-                    style={[styles.addMemberInput, { color: colors.textPrimary, borderColor: colors.border }]}
+                    style={[styles.addMemberInput, styles.addMemberInputAlone, { color: colors.textPrimary, borderColor: colors.border }]}
                     placeholder={t('conversation.addMemberPlaceholder')}
                     placeholderTextColor={colors.textSecondary}
                     value={newMemberId}
-                    onChangeText={setNewMemberId}
+                    onChangeText={(text) => {
+                      setNewMemberId(text);
+                      setMemberNotAnId(false);
+                    }}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    editable={!addingMember}
                   />
-                  <Pressable
-                    onPress={handleAddMember}
-                    style={[styles.sendButton, { backgroundColor: colors.accent }]}
-                  >
-                    <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
-                      {t('conversation.addMemberButton')}
-                    </Text>
-                  </Pressable>
+                  {/* Paste and Add on a row of their own: beside the field
+                      they left it too narrow to read an ID in. */}
+                  <View style={styles.addMemberRow}>
+                    <PasteButton
+                      disabled={addingMember}
+                      onPaste={(text) => {
+                        const found = findPeerId(text);
+                        setNewMemberId(found ?? text.trim());
+                        setMembersNotice(null);
+                        setMemberNotAnId(!found);
+                      }}
+                    />
+                    <Pressable
+                      disabled={addingMember}
+                      onPress={() => void handleAddMember()}
+                      style={[styles.sendButton, { backgroundColor: colors.accent }, addingMember && styles.sendButtonDisabled]}
+                    >
+                      <Text style={{ color: colors.onAccent, fontWeight: '600' }}>
+                        {t('conversation.addMemberButton')}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {memberNotAnId ? <NotAnIdHelp style={styles.memberHelp} /> : null}
                 </View>
               ) : (
                 <Text style={[styles.membersNote, { color: colors.textSecondary }]}>
@@ -2351,7 +2618,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   discardButton: {
-    paddingHorizontal: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   modalBackdrop: {
     flex: 1,
@@ -2391,6 +2664,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginTop: 8,
+  },
+  candidates: {
+    gap: 4,
+    marginTop: 4,
+  },
+  candidateList: {
+    maxHeight: 160,
+  },
+  addMemberInputAlone: {
+    flex: 0,
+    marginTop: 8,
+  },
+  memberHelp: {
+    marginTop: 10,
+    marginBottom: 0,
   },
   addMemberInput: {
     flex: 1,

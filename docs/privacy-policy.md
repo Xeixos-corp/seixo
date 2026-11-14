@@ -1,6 +1,6 @@
 # Seixo: Política de privacidade
 
-**Última atualização: 7 de novembro de 2026**
+**Última atualização: 14 de novembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -35,12 +35,14 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 - **Quem enviou:** numa conversa a dois, **não fica guardado na nossa base de dados**. Mas o servidor sabe quem és no momento em que envias, e os registos do alojamento guardam que a tua conta enviou algo àquela hora, o que permite, enquanto esses registos e a mensagem existirem, saber quem a enviou. **Num grupo, o servidor consegue ver quem enviou cada mensagem** enquanto essa mensagem existir, porque quem a recebe precisa de saber com que chave a decifrar.
 - **Os nomes dos grupos e os nomes que dás aos contactos** nunca chegam ao servidor em texto legível.
 
-**Sobre as fotografias que envias:**
+**Sobre as fotografias e os ficheiros que envias:**
 
 - **Cada fotografia é cifrada no teu telemóvel** com uma chave feita só para ela, e guardada como um ficheiro com o nome da mensagem a que pertence. A chave viaja dentro da mensagem cifrada: o servidor nunca a tem e não consegue abrir o ficheiro.
 - **Do ficheiro, o servidor vê:** o tamanho (arredondado para cima, para não revelar o tamanho real da fotografia), quando foi guardado e **quando foi descarregado** pela última vez. Esta última informação é quase um aviso de leitura: diz, aproximadamente, quando a outra pessoa recebeu a fotografia. Não a conseguimos impedir, porque é escrita pelo serviço de armazenamento; existe apenas enquanto o ficheiro existir.
 - **Na base de dados, não fica registado quem enviou o ficheiro.** O serviço de armazenamento tenta guardá-lo; nós apagamo-lo antes de ser gravado. (Os registos do alojamento, como para as mensagens, registam o envio.)
 - **Antes de sair do telemóvel, a fotografia é refeita** sem a localização, o modelo do telemóvel, a data e os outros dados que as fotografias costumam trazer. A app verifica o resultado e **recusa enviar** se algum desses dados tiver ficado.
+- **Um ficheiro (um PDF, um Word, um Excel, até 10 MB) é cifrado e guardado da mesma forma.** O nome e o tipo do ficheiro viajam só dentro da mensagem cifrada: o servidor vê apenas o tamanho arredondado, como numa fotografia.
+- **Um ficheiro não é limpo.** Ao contrário de uma fotografia, a app não o consegue refazer, e um documento pode levar escondidos o nome de quem o escreveu, o nome do computador, datas, versões anteriores, comentários ou fotografias com localização. Tudo isso vai cifrado e só quem recebe o pode ler, mas vai. A app avisa disto antes de cada envio.
 
 **Só se criares uma cópia de segurança:**
 
@@ -71,10 +73,13 @@ Não escrevemos esse registo nem lhe podemos tocar. Fica guardado pelo fornecedo
 
 A app não esconde o teu IP. Se isso for importante para ti, usa uma VPN ou Tor.
 
+**Ver o que o alojamento vê.** Em Definições, «O que o servidor sabe», um botão mostra-te o endereço IP com que o teu pedido chega ao servidor naquele momento. Quem responde é uma função nossa, que se limita a devolver-te o endereço que chegou com o pedido: não guarda nada, não regista nada e não pergunta a nenhum serviço externo onde fica o teu IP. O país, a cidade e o fornecedor ficam na camada de entrada do alojamento e não chegam a essa função, por isso o botão não os mostra. Só corre quando carregas no botão. O próprio pedido fica nos registos do alojamento, como qualquer outro.
+
 ## Permissões do telemóvel
 
 - **Câmara**: para ler o código QR de um contacto e para tirares fotografias que decides enviar. Um código QR é lido no telemóvel e nunca é enviado nem guardado; uma fotografia só sai se a enviares, cifrada.
 - **Fotografias**: nenhum acesso à tua galeria. Quando escolhes uma fotografia para enviar, é o próprio iPhone que te mostra a galeria e entrega à app apenas a que escolheste.
+- **Ficheiros**: nenhum acesso aos teus ficheiros. Quando escolhes um para enviar, é o próprio iPhone que te mostra os ficheiros e entrega à app apenas o que escolheste.
 - **Microfone**: só para gravares mensagens de voz, quando carregas no botão. A gravação é cifrada no telemóvel antes de sair.
 - **Face ID**: só para desbloquear a app, se ativares o bloqueio. É tratado pelo próprio sistema do telemóvel; nada sai do aparelho.
 - **Notificações**: para saberes que chegou uma mensagem.
@@ -87,7 +92,7 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 
 - **Mensagens**: apagadas do servidor quando acaba o temporizador que escolheres (entre 30 segundos e 1 semana, para a conversa ou só para uma mensagem), mesmo que ninguém abra a app.
 - **Mensagens de voz**: no servidor, no máximo **24 horas**, ou menos se o temporizador for mais curto. Quem não abrir a app nesse prazo não as recebe.
-- **Fotografias**: no servidor, no máximo **24 horas**, ou menos se o temporizador for mais curto, e são apagadas cerca de um minuto depois da mensagem a que pertencem. Quem não abrir a app nesse prazo não as recebe. No telemóvel de quem as recebe, duram o tempo que o temporizador da conversa indicar.
+- **Fotografias e ficheiros**: no servidor, no máximo **24 horas**, ou menos se o temporizador for mais curto, e são apagadas cerca de um minuto depois da mensagem a que pertencem. Quem não abrir a app nesse prazo não as recebe. No telemóvel de quem as recebe, duram o tempo que o temporizador da conversa indicar. Um ficheiro pode ser guardado ou aberto noutra app por quem o recebe, e aí já não depende do temporizador.
 - **Conversas**: uma conversa que nunca chegou a ter uma mensagem é apagada ao fim de **7 dias**. Uma conversa que já foi usada fica no servidor enquanto existirem as contas de quem a tem (mesmo depois de todas as mensagens terem expirado), para não desaparecer só por ter estado em silêncio.
 - **Chaves temporárias nunca usadas**: 30 dias.
 - **Contas**: apagadas ao fim de **6 meses sem abrires a app**, com tudo o que lhes pertence. Uma cópia de segurança dessa conta deixa de funcionar.
@@ -98,7 +103,7 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 ## Quem mais tem acesso aos teus dados
 
 - **As pessoas da conversa**: só elas conseguem decifrar o conteúdo, nos telemóveis delas.
-- **Supabase Inc.**, que aloja a base de dados, o servidor e os ficheiros cifrados das fotografias na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler, bem como ao conteúdo das mensagens denunciadas. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política: texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
+- **Supabase Inc.**, que aloja a base de dados, o servidor e os ficheiros cifrados das fotografias e dos ficheiros enviados na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler, bem como ao conteúdo das mensagens denunciadas. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política: texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
 - **Expo (650 Industries, Inc.) e Apple**, que encaminham as notificações até ao teu telemóvel. Recebem o token e o texto genérico da notificação: nunca o conteúdo nem o remetente.
 - **Proton AG**, só se nos escreveres para seixo.app@proton.me.
 - **Resend (Resend, Inc.)**, que envia ao programador o email de aviso de cada denúncia. Esse email diz apenas que chegou uma denúncia, quantas pessoas denunciaram a conta e se ela está suspensa: nunca o texto denunciado nem identificadores.
@@ -108,14 +113,14 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 
 Podes denunciar uma mensagem ou uma pessoa. É a **única forma de o conteúdo de uma mensagem chegar ao servidor em texto legível** (fora o que se escreve à conta de demonstração, mais abaixo), e só acontece porque quem a recebeu decide mostrá-la.
 
-- **Uma denúncia guarda:** quem denunciou, a conta denunciada, a conversa, e a mensagem denunciada: o texto, ou a própria fotografia ou mensagem de voz, que quem denuncia escolhe enviar. Numa conversa a dois, isto revela também quem enviou essa mensagem, algo que o servidor normalmente não guarda.
+- **Uma denúncia guarda:** quem denunciou, a conta denunciada, a conversa, e a mensagem denunciada: o texto, ou a própria fotografia ou mensagem de voz, que quem denuncia escolhe enviar. De um ficheiro denunciado, só segue o nome: o ficheiro em si não é enviado. Numa conversa a dois, isto revela também quem enviou essa mensagem, algo que o servidor normalmente não guarda.
 - **Quem a vê:** só o programador, numa página a que se chega pela ligação do email de aviso. O email em si diz apenas que chegou uma denúncia: nunca o conteúdo nem os identificadores. Uma fotografia ou mensagem de voz denunciada fica num espaço privado do servidor, e a página só a mostra através de uma ligação que expira em 10 minutos.
 - **Durante quanto tempo:** a denúncia é apagada **90 dias** depois de ser feita.
 - **O que pode acontecer à conta denunciada:** se três pessoas diferentes a denunciarem, fica suspensa automaticamente até ser analisada. Se a denúncia se confirmar, a conta é expulsa. Uma conta suspensa ou expulsa fica marcada no servidor enquanto existir, e é a única que consegue ver essa marca.
 
 ## Conta de demonstração
 
-Existe uma conta automática de demonstração, para que a app possa ser experimentada num só telemóvel: é usada sobretudo pela equipa de revisão da App Store. O ID dela não aparece em lado nenhum da app: só lhe escreves se alguém to der.
+Existe uma conta automática de demonstração, para que a app possa ser experimentada num só telemóvel: é usada sobretudo pela equipa de revisão da App Store. Desde a versão 1.14 a app oferece-a, num cartão na lista de conversas, a quem ainda não tem nenhuma conversa: só lhe escreves se escolheres experimentá-la.
 
 - **É nossa, e o servidor faz de telemóvel dela.** Por isso, ao contrário de qualquer outra conversa, **o que escreves à conta de demonstração é decifrado pelo nosso servidor**: ele é a outra ponta da conversa. Lê cada mensagem só para responder, com mensagens de exemplo sempre iguais (uma delas com linguagem ofensiva, para mostrar o filtro), e não guarda nem regista o que leu.
 - **O que guarda:** as chaves da própria conta e, de cada pessoa que lhe escreve, o ID, a sessão cifrada com ela, se já recebeu as mensagens de exemplo e quantas respostas recebeu nesse dia.

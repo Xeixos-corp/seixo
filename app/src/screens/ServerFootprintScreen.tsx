@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { SettingsGroup, SettingsRow } from '../components/SettingsGroup';
 import { fetchServerFootprint, type ServerFootprint } from '../transport/serverFootprint';
+import { fetchWhatTheHostSees, type WhatTheHostSees } from '../transport/whatTheHostSees';
 import { registerIdentity } from '../identity/registerIdentity';
 import { NOTIFICATION_SOUNDS } from '../notifications/sounds';
 
@@ -27,9 +28,11 @@ import { NOTIFICATION_SOUNDS } from '../notifications/sounds';
  * other query -- see transport/serverFootprint.ts.
  *
  * It says what it cannot see. The database is not the whole picture: the
- * hosting layer keeps a request log for 24 hours that this app cannot read,
- * write or delete. A screen that claimed to show everything and stopped at
- * the database would be the most misleading thing in the app.
+ * hosting layer keeps a request log, under its own rules, that this app cannot
+ * read, write or delete. A screen that claimed to show everything and stopped
+ * at the database would be the most misleading thing in the app. What that
+ * log records about the request being made right now, though, the app can be
+ * told, and the last section shows it on request.
  */
 export function ServerFootprintScreen() {
   const { colors } = useAppTheme();
@@ -37,6 +40,36 @@ export function ServerFootprintScreen() {
   const [footprint, setFootprint] = useState<ServerFootprint | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Asked for only when the button is pressed, never on opening the screen:
+  // it is a request of its own, logged like any other.
+  const [hostView, setHostView] = useState<WhatTheHostSees | null>(null);
+  const [hostLoading, setHostLoading] = useState(false);
+  const [hostError, setHostError] = useState(false);
+
+  const loadHostView = useCallback(async () => {
+    setHostLoading(true);
+    setHostError(false);
+    try {
+      setHostView(await fetchWhatTheHostSees());
+    } catch (cause) {
+      console.error('[ServerFootprint] failed to ask what the host sees', cause);
+      setHostView(null);
+      setHostError(true);
+    } finally {
+      setHostLoading(false);
+    }
+  }, []);
+
+  /** "Portugal" where the engine can name it, otherwise the code itself. */
+  const countryName = (code: string) => {
+    try {
+      const DisplayNames = (Intl as unknown as { DisplayNames?: new (locales: string[], options: { type: 'region' }) => { of: (code: string) => string | undefined } }).DisplayNames;
+      if (DisplayNames) return new DisplayNames([i18n.language], { type: 'region' }).of(code) ?? code;
+    } catch {
+      // Hermes may not have it; the code is still the truth.
+    }
+    return code;
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -203,6 +236,58 @@ export function ServerFootprintScreen() {
             <Text style={[styles.footnote, { color: colors.textSecondary }]}>
               {t('serverFootprint.hostingNote')}
             </Text>
+
+            <View style={styles.hostGroup}>
+              <SettingsGroup
+                title={t('serverFootprint.hostNowSection')}
+                footer={t('serverFootprint.hostNowFooter')}
+              >
+                {hostView
+                  ? [
+                      <SettingsRow key="ip" label={t('serverFootprint.hostIp')} value={hostView.ip ?? t('serverFootprint.hostUnknown')} />,
+                      // Today only the address reaches the function; the
+                      // place stays in the entry layer (see the comment in
+                      // supabase/functions/what-the-host-sees). Shown if it
+                      // ever arrives, never as an empty "unknown".
+                      ...(hostView.tor || hostView.country
+                        ? [
+                            <SettingsRow
+                              key="country"
+                              label={t('serverFootprint.hostCountry')}
+                              value={hostView.tor ? t('serverFootprint.hostTor') : countryName(hostView.country as string)}
+                            />,
+                          ]
+                        : []),
+                      ...(hostView.region
+                        ? [<SettingsRow key="region" label={t('serverFootprint.hostRegion')} value={hostView.region} />]
+                        : []),
+                      ...(hostView.city
+                        ? [<SettingsRow key="city" label={t('serverFootprint.hostCity')} value={hostView.city} />]
+                        : []),
+                      ...(hostView.postalCode
+                        ? [<SettingsRow key="postal" label={t('serverFootprint.hostPostalCode')} value={hostView.postalCode} />]
+                        : []),
+                      <SettingsRow
+                        key="again"
+                        label={hostLoading ? t('serverFootprint.hostAsking') : t('serverFootprint.hostAskAgain')}
+                        onPress={hostLoading ? undefined : () => void loadHostView()}
+                      />,
+                    ]
+                  : (
+                    <SettingsRow
+                      label={
+                        hostLoading
+                          ? t('serverFootprint.hostAsking')
+                          : hostError
+                            ? t('serverFootprint.hostFailed')
+                            : t('serverFootprint.hostAsk')
+                      }
+                      hint={hostError ? undefined : t('serverFootprint.hostAskHint')}
+                      onPress={hostLoading ? undefined : () => void loadHostView()}
+                    />
+                  )}
+              </SettingsGroup>
+            </View>
           </>
         ) : null}
       </ScrollView>
@@ -225,6 +310,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 15 },
   errorDetail: { fontSize: 12, lineHeight: 17 },
   footnote: { fontSize: 12, lineHeight: 17, marginTop: 16, marginLeft: 4 },
+  hostGroup: { marginTop: 20 },
 });
 
 /** "340 KB", "1,2 MB" -- enough precision to be honest, not enough to be noise. */

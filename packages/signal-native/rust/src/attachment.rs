@@ -1,4 +1,9 @@
-//! Sealing images before they leave the phone.
+//! Sealing images and files before they leave the phone.
+//!
+//! Both work the same way; "image" below stands for either. Files (a PDF, a
+//! spreadsheet) were added later with the same sealing: nothing about it
+//! depends on what the bytes are, and the message says what they are, inside
+//! its own encryption.
 //!
 //! An image is not sent through the Signal Protocol the way text is. A group
 //! message is one row carrying a separately encrypted copy for every member,
@@ -44,12 +49,18 @@ const MAGIC: &[u8] = b"SEIXOIMG1";
 /// enough that a typical photo does not grow by more than a small fraction.
 const PAD_UNIT: usize = 64 * 1024;
 
-/// The storage bucket refuses anything over 2 MiB (migration 0027). The
-/// largest padded body that still fits with the header and tag is 31 units,
-/// and this is the plaintext that pads to exactly that. Refused here so a
-/// photo that is somehow too large fails with a reason on the phone, rather
-/// than as an unexplained upload error.
-const MAX_PADDED: usize = 31 * PAD_UNIT;
+/// The largest file the app offers to send: 10 MiB. Chosen for the cost that
+/// matters, which is not storage (everything is gone within a day) but
+/// download traffic, paid once per recipient. A photo, re-encoded to 1600
+/// pixels, is far below it.
+pub const MAX_FILE_BYTES: usize = 10 * 1024 * 1024;
+
+/// The smallest whole number of units that holds the largest file and its
+/// length prefix: 161. The storage bucket allows one unit more than that
+/// sealed (migration 0035), so this, not the bucket, is the limit anyone
+/// meets, and it fails on the phone with a reason rather than as an
+/// unexplained upload error.
+const MAX_PADDED: usize = (MAX_FILE_BYTES + LENGTH_PREFIX).div_ceil(PAD_UNIT) * PAD_UNIT;
 pub const MAX_ATTACHMENT_BYTES: usize = MAX_PADDED - LENGTH_PREFIX;
 
 /// A sealed image and the key that opens it.
@@ -67,11 +78,11 @@ pub struct SealedAttachment {
 #[uniffi::export]
 pub fn seal_attachment(plaintext: Vec<u8>) -> Result<SealedAttachment, SignalNativeError> {
     if plaintext.is_empty() {
-        return Err(SignalNativeError::Storage("the image is empty".into()));
+        return Err(SignalNativeError::Storage("the attachment is empty".into()));
     }
     if plaintext.len() > MAX_ATTACHMENT_BYTES {
         return Err(SignalNativeError::Storage(format!(
-            "the image is too large to send ({} bytes, the limit is {})",
+            "the attachment is too large to send ({} bytes, the limit is {})",
             plaintext.len(),
             MAX_ATTACHMENT_BYTES
         )));
@@ -97,7 +108,7 @@ pub fn seal_attachment(plaintext: Vec<u8>) -> Result<SealedAttachment, SignalNat
                 aad: MAGIC,
             },
         )
-        .map_err(|_| SignalNativeError::Storage("could not seal the image".into()))?;
+        .map_err(|_| SignalNativeError::Storage("could not seal the attachment".into()))?;
 
     let mut sealed = Vec::with_capacity(MAGIC.len() + NONCE_LEN + ciphertext.len());
     sealed.extend_from_slice(MAGIC);
@@ -113,7 +124,7 @@ pub fn seal_attachment(plaintext: Vec<u8>) -> Result<SealedAttachment, SignalNat
 /// way. The caller only needs to know the image cannot be shown.
 #[uniffi::export]
 pub fn open_attachment(key: Vec<u8>, sealed: Vec<u8>) -> Result<Vec<u8>, SignalNativeError> {
-    let unavailable = || SignalNativeError::Storage("this image cannot be opened".into());
+    let unavailable = || SignalNativeError::Storage("this attachment cannot be opened".into());
 
     if key.len() != KEY_LEN {
         return Err(unavailable());
@@ -197,9 +208,18 @@ mod tests {
     }
 
     #[test]
-    fn largest_image_still_fits_the_bucket() {
+    fn largest_attachment_still_fits_the_bucket() {
+        // migration 0035: file_size_limit = 162 units of 64 KiB.
         let sealed = seal_attachment(bytes(MAX_ATTACHMENT_BYTES)).unwrap().sealed;
-        assert!(sealed.len() <= 2 * 1024 * 1024, "sealed {} bytes", sealed.len());
+        assert!(sealed.len() <= 162 * PAD_UNIT, "sealed {} bytes", sealed.len());
+    }
+
+    #[test]
+    fn a_ten_megabyte_file_is_accepted() {
+        assert!(MAX_ATTACHMENT_BYTES >= MAX_FILE_BYTES);
+        let original = bytes(MAX_FILE_BYTES);
+        let sealed = seal_attachment(original.clone()).expect("seal");
+        assert_eq!(open_attachment(sealed.key, sealed.sealed).expect("open"), original);
     }
 
     #[test]

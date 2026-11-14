@@ -138,6 +138,29 @@ class SignalNativeExpoModule : Module() {
       "file://" + output.absolutePath
     }
 
+    // A file rather than a photo, opened under its own name in a directory of
+    // its own. The name came from the sender's phone, so only a plain last
+    // path component is kept. Mirrors the iOS module.
+    AsyncFunction("openAttachmentFileNamed") { sealedUri: String, keyBase64: String, fileName: String ->
+      val key = try {
+        Base64.decode(keyBase64, Base64.NO_WRAP)
+      } catch (e: IllegalArgumentException) {
+        throw CodedException("ERR_INVALID_KEY", "the attachment key is not valid base64", e)
+      }
+      val plaintext = openAttachment(key, attachmentFile(sealedUri).readBytes())
+      val directory = File(attachmentDirectory("opened"), UUID.randomUUID().toString())
+      directory.mkdirs()
+      var safe = fileName.substringAfterLast('/').substringAfterLast('\\')
+        .filter { !it.isISOControl() && it != ':' }
+        .trim()
+        .trimStart('.')
+      if (safe.isEmpty()) safe = "ficheiro"
+      if (safe.length > 120) safe = safe.takeLast(120)
+      val output = File(directory, safe)
+      output.writeBytes(plaintext)
+      "file://" + output.absolutePath
+    }
+
     Function("clearAttachmentFiles") {
       listOf("sealed", "opened").forEach { attachmentDirectory(it).deleteRecursively() }
     }

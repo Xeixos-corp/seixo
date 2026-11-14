@@ -128,6 +128,26 @@ public class SignalNativeExpoModule: Module {
       return output.absoluteString
     }
 
+    // A file rather than a photo: opened under its own name, so the share
+    // sheet and Quick Look show "Relatorio.pdf" and know what kind of file it
+    // is. Each one gets a directory of its own, so two files with the same
+    // name never meet. The name came inside the encrypted message, from the
+    // sender's phone, so it is reduced to a plain last path component first:
+    // it must not be able to point anywhere but that directory.
+    AsyncFunction("openAttachmentFileNamed") { (sealedUri: String, keyBase64: String, fileName: String) -> String in
+      guard let key = Data(base64Encoded: keyBase64) else {
+        throw SignalNativeExpoError.invalidEnvelope
+      }
+      let sealed = try Data(contentsOf: try Self.fileURL(sealedUri))
+      let plaintext = try openAttachment(key: key, sealed: sealed)
+      let directory = try Self.attachmentDirectory("opened")
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+      try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+      let output = directory.appendingPathComponent(Self.safeFileName(fileName))
+      try plaintext.write(to: output, options: [.atomic, .completeFileProtection])
+      return output.absoluteString
+    }
+
     // Everything in both directories, for the app to call when it clears its
     // caches. Decrypted pictures must not outlive the messages they came from,
     // and a crash between opening one and its message expiring would
@@ -355,6 +375,24 @@ extension SignalNativeExpoModule {
       throw SignalNativeExpoError.invalidFileUri
     }
     return URL(fileURLWithPath: uriOrPath)
+  }
+
+  /// A name that can only ever be a file name: no directories, no "..", no
+  /// control characters, not empty, not absurdly long.
+  static func safeFileName(_ name: String) -> String {
+    let lastComponent = (name as NSString).lastPathComponent
+    let allowed = lastComponent.unicodeScalars.filter {
+      !CharacterSet.controlCharacters.contains($0) && $0 != "/" && $0 != ":" && $0 != "\\"
+    }
+    var cleaned = String(String.UnicodeScalarView(allowed)).trimmingCharacters(in: .whitespaces)
+    while cleaned.hasPrefix(".") { cleaned.removeFirst() }
+    if cleaned.isEmpty { cleaned = "ficheiro" }
+    if cleaned.count > 120 {
+      let ext = (cleaned as NSString).pathExtension
+      let stem = String((cleaned as NSString).deletingPathExtension.prefix(100))
+      cleaned = ext.isEmpty ? stem : stem + "." + String(ext.prefix(10))
+    }
+    return cleaned
   }
 
   /// A subdirectory of Caches. Caches rather than Documents on purpose: iOS

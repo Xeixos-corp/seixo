@@ -8,14 +8,11 @@ import { useAppTheme } from '../theme/ThemeProvider';
 import { startConversationWithPeer, SelfConversationError } from '../identity/startConversation';
 import { isBlockedChannelError } from '../transport/blocking';
 import { isUntrustedIdentityError } from '../crypto';
+import { PEER_ID_PATTERN, isPeerNotFoundError } from '../identity/peerId';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ScanQr'>;
 
-// A scanned QR only makes sense here if it's shaped like the user_id
-// (uuid) MyIdCard.tsx encodes — rejects unrelated QR codes (a URL, a wifi
-// QR, someone else's app) before ever treating the payload as a peer id.
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function ScanQrScreen({ navigation }: Props) {
   const { colors } = useAppTheme();
@@ -35,7 +32,10 @@ export function ScanQrScreen({ navigation }: Props) {
   const handleBarcodeScanned = async ({ data }: BarcodeScanningResult) => {
     if (scannedRef.current || starting) return;
     const peerUserId = data.trim();
-    if (!UUID_PATTERN.test(peerUserId)) return;
+    // A scanned QR only makes sense here if it is an ID on its own, as
+    // MyIdCard.tsx encodes it: unrelated codes (a URL, a wifi QR, another
+    // app's) are ignored before ever being treated as a peer.
+    if (!PEER_ID_PATTERN.test(peerUserId)) return;
 
     scannedRef.current = true;
     setScanned(true);
@@ -51,6 +51,8 @@ export function ScanQrScreen({ navigation }: Props) {
         setErrorMessage(t('conversationList.untrustedIdentityError', { peerId: peerUserId }));
       } else if (isBlockedChannelError(error)) {
         setErrorMessage(t('conversationList.blockedChannelError'));
+      } else if (isPeerNotFoundError(error)) {
+        setErrorMessage(t('peerId.notFound'));
       } else {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }

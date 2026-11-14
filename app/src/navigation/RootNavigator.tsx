@@ -40,7 +40,13 @@ export type RootStackParamList = {
   ServerFootprint: undefined;
   AppLockSettings: undefined;
   /** One message as the server holds it. `sentAt` for when the row is already gone. */
-  MessageServerView: { messageId: string; isMine: boolean; sentAt: string };
+  MessageServerView: {
+    messageId: string;
+    isMine: boolean;
+    sentAt: string;
+    /** What the stored object is, which only the phone knows: the server sees opaque bytes. */
+    attachment?: 'photo' | 'file';
+  };
   ScanQr: undefined;
   Backup: undefined;
   RestoreBackup: undefined;

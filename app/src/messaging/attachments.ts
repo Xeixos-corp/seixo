@@ -1,5 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import SignalNativeExpoModule from '../../modules/signal-native-expo/src/SignalNativeExpoModule';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../transport/supabaseClient';
@@ -7,7 +9,12 @@ import { useMessagesStore } from '../store/messagesStore';
 import { base64ToBytes, inspectJpegMetadata } from './jpegMetadata';
 
 /**
- * Images: choosing, preparing, sealing, moving and forgetting them.
+ * Images and files: choosing, preparing, sealing, moving and forgetting them.
+ *
+ * Files (a PDF, a spreadsheet) came later and take the same road as images,
+ * minus the preparing: a photo can be rebuilt from its pixels with nothing
+ * else in it, a document cannot, so the person is warned before sending one
+ * instead (see sendPickedFile in ConversationScreen.tsx).
  *
  * The shape of it, which docs/plans-deferred.md argues for at length: a photo
  * is re-encoded on the phone, sealed once under a key made for it
@@ -86,6 +93,83 @@ export async function pickImage(source: 'camera' | 'library'): Promise<PickResul
   const asset = result.canceled ? undefined : result.assets?.[0];
   if (!asset) return { kind: 'cancelled' };
   return { kind: 'picked', uri: asset.uri, width: asset.width, height: asset.height };
+}
+
+/**
+ * The largest file offered for sending, matching MAX_FILE_BYTES in
+ * packages/signal-native/rust/src/attachment.rs. Checked here first so the
+ * person is told before anything is sealed or sent.
+ */
+export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+export type PickedFile = { uri: string; name: string; size: number; mimeType?: string };
+
+export type FilePickResult =
+  | { kind: 'picked'; file: PickedFile }
+  | { kind: 'cancelled' }
+  | { kind: 'tooLarge'; name: string };
+
+/**
+ * Lets the person choose a file. The system picker runs outside the app and
+ * hands back only the file chosen, copied into the app's cache, so it needs
+ * no permission and Seixo never sees anything else.
+ */
+export async function pickFile(): Promise<FilePickResult> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: '*/*',
+    copyToCacheDirectory: true,
+    multiple: false,
+  });
+  const asset = result.canceled ? undefined : result.assets?.[0];
+  if (!asset) return { kind: 'cancelled' };
+
+  // The picker usually knows the size; when it does not, the copy on disk does.
+  let size = asset.size ?? 0;
+  if (!size) {
+    const info = await FileSystem.getInfoAsync(asset.uri);
+    size = info.exists && !info.isDirectory ? info.size : 0;
+  }
+  if (size > MAX_FILE_BYTES) {
+    await FileSystem.deleteAsync(asset.uri, { idempotent: true });
+    return { kind: 'tooLarge', name: asset.name };
+  }
+  return {
+    kind: 'picked',
+    file: { uri: asset.uri, name: asset.name || 'ficheiro', size, mimeType: asset.mimeType ?? undefined },
+  };
+}
+
+/**
+ * Keeps the sender's own copy of a file, under its own name in a directory of
+ * its own, the same layout the native module uses for received files. Returns
+ * the path relative to the opened directory.
+ */
+export async function keepOwnFileCopy(uri: string, name: string): Promise<string> {
+  const directory = randomName();
+  await FileSystem.makeDirectoryAsync(`${OPENED_DIR}${directory}/`, { intermediates: true });
+  const relative = `${directory}/${safeFileName(name)}`;
+  await FileSystem.moveAsync({ from: uri, to: OPENED_DIR + relative });
+  return relative;
+}
+
+/**
+ * Opens a file the way iOS opens anything: the share sheet, from which it can
+ * be previewed, opened in another app or saved. Saving puts a copy beyond the
+ * message's timer, which is unavoidable for a file to be of any use; the
+ * warning before sending says the file is the sender's to judge.
+ */
+export async function openFile(fileName: string, mimeType?: string): Promise<void> {
+  await Sharing.shareAsync(OPENED_DIR + fileName, {
+    mimeType: mimeType || 'application/octet-stream',
+    dialogTitle: 'Seixo',
+  });
+}
+
+/** "84 KB", "3,2 MB". */
+export function formatFileSize(bytes: number, language: string): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  const megabytes = (bytes / (1024 * 1024)).toLocaleString(language, { maximumFractionDigits: 1 });
+  return `${megabytes} MB`;
 }
 
 // ── Preparing ─────────────────────────────────────────────────────────────
@@ -250,7 +334,7 @@ export async function uploadSealed(messageId: string, sealedUri: string): Promis
  * The download lands straight on disk and is opened there; the sealed copy is
  * deleted whether or not that worked.
  */
-export async function fetchAndOpen(messageId: string, keyBase64: string): Promise<string> {
+export async function fetchAndOpen(messageId: string, keyBase64: string, fileName?: string): Promise<string> {
   const token = await accessToken();
   await FileSystem.makeDirectoryAsync(ROOT, { intermediates: true });
   const sealedPath = `${ROOT}download-${randomName()}.bin`;
@@ -262,6 +346,20 @@ export async function fetchAndOpen(messageId: string, keyBase64: string): Promis
     );
     if (response.status !== 200) {
       throw new Error(`download refused (${response.status})`);
+    }
+    if (fileName !== undefined) {
+      // A file: "<directory>/<name>", relative to the opened directory.
+      const openedUri = await SignalNativeExpoModule.openAttachmentFileNamed(sealedPath, keyBase64, fileName);
+      const parts = openedUri.split('/');
+      // iOS returns a percent-encoded URL; Android a plain path, where a
+      // name such as "100%.pdf" is not valid encoding and stays as it is.
+      let name = parts[parts.length - 1];
+      try {
+        name = decodeURIComponent(name);
+      } catch {
+        // Already plain.
+      }
+      return `${parts[parts.length - 2]}/${name}`;
     }
     const openedUri = await SignalNativeExpoModule.openAttachmentFile(sealedPath, keyBase64);
     return openedUri.substring(openedUri.lastIndexOf('/') + 1);
@@ -306,6 +404,41 @@ export function fetchImageInBackground(channelId: string, messageId: string, key
         }
       }
       store.updateMessageImage(channelId, messageId, { state: 'unavailable' });
+    } finally {
+      inFlight.delete(messageId);
+    }
+  })();
+}
+
+/** fetchImageInBackground for a file: same retries, same rule about the key. */
+export function fetchFileInBackground(
+  channelId: string,
+  messageId: string,
+  keyBase64: string,
+  name: string,
+): void {
+  if (inFlight.has(messageId)) return;
+  inFlight.add(messageId);
+
+  void (async () => {
+    const store = useMessagesStore.getState();
+    try {
+      for (const delay of RETRY_DELAYS_MS) {
+        if (delay) await sleep(delay);
+        if (!findMessage(channelId, messageId)) return;
+        try {
+          const fileName = await fetchAndOpen(messageId, keyBase64, name);
+          store.updateMessageFile(channelId, messageId, {
+            fileName,
+            keyBase64: undefined,
+            state: undefined,
+          });
+          return;
+        } catch {
+          // Most likely not uploaded yet. Try again after the next delay.
+        }
+      }
+      store.updateMessageFile(channelId, messageId, { state: 'unavailable' });
     } finally {
       inFlight.delete(messageId);
     }
@@ -361,7 +494,8 @@ export function startImageJanitor(): () => void {
 }
 
 /**
- * Picks up pictures that were still being fetched when the app last closed.
+ * Picks up pictures and files that were still being fetched when the app
+ * last closed.
  * Without this, a message received moments before the app was swiped away
  * would show its blurred preview for ever, holding a key it never used.
  */
@@ -372,6 +506,10 @@ function resumePendingImages(): void {
       const image = message.image;
       if (image?.keyBase64 && !image.fileName && image.state !== 'unavailable') {
         fetchImageInBackground(channelId, message.id, image.keyBase64);
+      }
+      const file = message.file;
+      if (file?.keyBase64 && !file.fileName && file.state !== 'unavailable') {
+        fetchFileInBackground(channelId, message.id, file.keyBase64, file.name);
       }
     }
   }
@@ -410,6 +548,9 @@ function referencedFileNames(
   for (const messages of Object.values(byChannel)) {
     for (const message of messages) {
       if (message.image?.fileName) names.add(message.image.fileName);
+      // Files live in a directory of their own; the directory is the entry
+      // in the opened folder, so that is what counts as referenced.
+      if (message.file?.fileName) names.add(message.file.fileName.split('/')[0]);
     }
   }
   return names;
@@ -426,6 +567,25 @@ async function accessToken(): Promise<string> {
   const token = data.session?.access_token;
   if (!token) throw new Error('not signed in');
   return token;
+}
+
+/**
+ * The same cleaning the native module applies to a received name, for the
+ * sender's own copy: a plain last path component, never empty, never hidden.
+ */
+function safeFileName(name: string): string {
+  let cleaned = (name.split(/[\\/]/).pop() ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f:]/g, '')
+    .trim()
+    .replace(/^\.+/, '');
+  if (!cleaned) cleaned = 'ficheiro';
+  if (cleaned.length > 120) {
+    const dot = cleaned.lastIndexOf('.');
+    const ext = dot > 0 ? cleaned.slice(dot, dot + 11) : '';
+    cleaned = cleaned.slice(0, 100) + ext;
+  }
+  return cleaned;
 }
 
 function randomName(): string {

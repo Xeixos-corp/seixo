@@ -1,5 +1,5 @@
 import { decryptMessage, isUntrustedIdentityError } from '../crypto';
-import { fetchImageInBackground } from './attachments';
+import { fetchImageInBackground, fetchFileInBackground } from './attachments';
 import { useMessagesStore } from '../store/messagesStore';
 import { useBlockedPeersStore } from '../store/blockedPeersStore';
 import { useSecurityWarningsStore } from '../store/securityWarningsStore';
@@ -148,6 +148,7 @@ export function ingestFetchedMessage(
       localTtlSeconds,
       groupName,
       image,
+      file,
     } = decodePayload(raw);
 
     // The row's expires_at is only how long the *server* held it. When the
@@ -234,7 +235,7 @@ export function ingestFetchedMessage(
     // by a bug -- retrying a failed voice message used to send exactly this --
     // and a blank bubble helps nobody. Remembered, so it is not decrypted
     // again on the next fetch.
-    if (!text.trim() && !audioBase64 && !image) {
+    if (!text.trim() && !audioBase64 && !image && !file) {
       rememberControlMessage(channelId, fetched);
       return;
     }
@@ -249,9 +250,9 @@ export function ingestFetchedMessage(
       id: fetched.id,
       createdAt: fetched.createdAt,
       expiresAt,
-      // An image's text is only a fallback for builds that predate images;
-      // here the picture speaks for itself.
-      plaintext: image ? '' : text,
+      // An image's or a file's text is only a fallback for builds that
+      // predate them; here the picture or the file speaks for itself.
+      plaintext: image || file ? '' : text,
       isMine: false,
       replyToId,
       audioBase64,
@@ -265,12 +266,21 @@ export function ingestFetchedMessage(
             previewBase64: image.previewBase64,
           }
         : undefined,
+      file: file
+        ? {
+            keyBase64: file.keyBase64,
+            name: file.name,
+            size: file.size,
+            mimeType: file.mimeType,
+          }
+        : undefined,
     });
 
     // Fetched straight away rather than when the conversation is opened. The
     // server keeps the picture for a day at most, and a message someone
     // received and only looked at the next evening should still have it.
     if (image) fetchImageInBackground(channelId, fetched.id, image.keyBase64);
+    if (file) fetchFileInBackground(channelId, fetched.id, file.keyBase64, file.name);
   } catch (error) {
     failedThisSession.add(fetched.id);
     if (isUntrustedIdentityError(error)) {

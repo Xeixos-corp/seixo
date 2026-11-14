@@ -53,6 +53,48 @@ export function ChevronIcon({ size, color }: IconProps) {
   );
 }
 
+/** A bin: throw this away, as with a recording that should not be sent. */
+export function TrashIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 7h16" />
+      <Path d="M9 7V4.5h6V7" />
+      <Path d="M6 7l1 13h10l1-13" />
+      <Line x1={10} y1={11} x2={10} y2={16.5} />
+      <Line x1={14} y1={11} x2={14} y2={16.5} />
+    </Svg>
+  );
+}
+
+/** A sheet with a folded corner: a document, either to send or in a message. */
+export function FileIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <Path d="M14 3v5h5" />
+    </Svg>
+  );
+}
+
+/** A paperclip: attach something, a photo or a file. */
+export function PaperclipIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M20.5 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" />
+    </Svg>
+  );
+}
+
+/** A clipboard: put in what was copied. */
+export function PasteIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={5} y={4.5} width={14} height={16.5} rx={2} />
+      <Rect x={9} y={3} width={6} height={3.5} rx={1} />
+    </Svg>
+  );
+}
+
 /** A framed landscape: an image, either to send or in a message. */
 export function ImageIcon({ size, color }: IconProps) {
   return (

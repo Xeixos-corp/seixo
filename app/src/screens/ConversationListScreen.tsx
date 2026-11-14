@@ -29,6 +29,9 @@ import { useMessagesStore } from '../store/messagesStore';
 import { isBlockedChannelError } from '../transport/blocking';
 import { isUntrustedIdentityError } from '../crypto';
 import { MyIdCard } from '../components/MyIdCard';
+import { PasteButton } from '../components/PasteButton';
+import { NotAnIdHelp } from '../components/NotAnIdHelp';
+import { findPeerId, isPeerNotFoundError } from '../identity/peerId';
 import { ConversationRow } from '../components/ConversationRow';
 import { lastVisibleMessage } from '../messaging/lastMessage';
 import { useRegisterPushToken } from '../notifications/usePushRegistration';
@@ -102,6 +105,32 @@ export function ConversationListScreen({ navigation }: Props) {
   const [peerUserId, setPeerUserId] = useState('');
   const [starting, setStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Something was entered that has no ID in it: a name, most likely.
+  const [notAnId, setNotAnId] = useState(false);
+  // The field holds an ID taken out of a longer pasted message, so say so:
+  // otherwise the text someone pasted seems to have been changed under them.
+  const [idFromPaste, setIdFromPaste] = useState(false);
+
+  const changePeerUserId = (text: string) => {
+    setPeerUserId(text);
+    setNotAnId(false);
+    setIdFromPaste(false);
+    setErrorMessage(null);
+  };
+
+  const handlePaste = (text: string) => {
+    const found = findPeerId(text);
+    setErrorMessage(null);
+    if (found) {
+      setPeerUserId(found);
+      setNotAnId(false);
+      setIdFromPaste(found !== text.trim().toLowerCase());
+    } else {
+      setPeerUserId(text.trim());
+      setIdFromPaste(false);
+      setNotAnId(true);
+    }
+  };
 
   // Rename flow. Long-pressing a row opens this; the label is stored locally
   // only (see conversationsStore) and never leaves the device.
@@ -270,14 +299,23 @@ export function ConversationListScreen({ navigation }: Props) {
   };
 
   const handleStartConversation = async () => {
-    const trimmedPeerId = peerUserId.trim();
-    if (!trimmedPeerId) return;
+    if (!peerUserId.trim()) return;
+    // Checked here, not by the server: a name never leaves the phone, and the
+    // answer is a sentence about IDs rather than a database error.
+    const trimmedPeerId = findPeerId(peerUserId);
+    if (!trimmedPeerId) {
+      setErrorMessage(null);
+      setNotAnId(true);
+      return;
+    }
 
     setStarting(true);
     setErrorMessage(null);
+    setNotAnId(false);
     try {
       const conversation = await startConversationWithPeer(trimmedPeerId);
       setPeerUserId('');
+      setIdFromPaste(false);
       navigation.navigate('Conversation', conversation);
     } catch (error) {
       if (error instanceof SelfConversationError) {
@@ -286,6 +324,8 @@ export function ConversationListScreen({ navigation }: Props) {
         setErrorMessage(t('conversationList.untrustedIdentityError', { peerId: trimmedPeerId }));
       } else if (isBlockedChannelError(error)) {
         setErrorMessage(t('conversationList.blockedChannelError'));
+      } else if (isPeerNotFoundError(error)) {
+        setErrorMessage(t('peerId.notFound'));
       } else {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
@@ -395,11 +435,12 @@ export function ConversationListScreen({ navigation }: Props) {
           placeholder={t('conversationList.peerIdPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           value={peerUserId}
-          onChangeText={setPeerUserId}
+          onChangeText={changePeerUserId}
           autoCapitalize="none"
           autoCorrect={false}
           editable={!starting}
         />
+        <PasteButton onPaste={handlePaste} disabled={starting} />
         <Pressable
           disabled={starting || !peerUserId.trim()}
           style={({ pressed }) => [
@@ -416,6 +457,10 @@ export function ConversationListScreen({ navigation }: Props) {
           )}
         </Pressable>
       </View>
+      {idFromPaste ? (
+        <Text style={[styles.pasteNote, { color: colors.success }]}>{t('peerId.foundInPaste')}</Text>
+      ) : null}
+      {notAnId ? <NotAnIdHelp onScanQr={() => navigation.navigate('ScanQr')} /> : null}
       {/* Side by side and equally weighted: these are two ways of starting
           something, not a main action and a footnote. Stacked as plain text
           links they read as leftovers under the input rather than as things
@@ -566,6 +611,10 @@ export function ConversationListScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  pasteNote: {
+    fontSize: 13,
+    marginBottom: 8,
+  },
   conversationName: {
     fontSize: 16,
     flexShrink: 1,

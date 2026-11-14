@@ -23,7 +23,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'MessageServerView'>;
  * database would be the most misleading thing here.
  */
 export function MessageServerViewScreen({ route }: Props) {
-  const { messageId, isMine } = route.params;
+  const { messageId, isMine, attachment } = route.params;
+  const isDocument = attachment === 'file';
   const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
   const [view, setView] = useState<MessageServerView | null>(null);
@@ -126,10 +127,13 @@ export function MessageServerViewScreen({ route }: Props) {
             </SettingsGroup>
 
             {view.file ? (
-              <SettingsGroup title={t('messageServerView.fileSection')} footer={t('messageServerView.fileFooter')}>
+              <SettingsGroup
+                title={isDocument ? t('messageServerView.documentSection') : t('messageServerView.fileSection')}
+                footer={t('messageServerView.fileFooter')}
+              >
                 <SettingsRow
                   label={t('messageServerView.fileSize')}
-                  hint={t('messageServerView.fileSizeHint')}
+                  hint={isDocument ? t('messageServerView.documentSizeHint') : t('messageServerView.fileSizeHint')}
                   value={bytes(view.file.bytes)}
                 />
                 {view.file.lastAccessedAt ? (

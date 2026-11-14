@@ -118,6 +118,24 @@ type Encoded = {
    * tiny blurred preview to show while the real thing downloads.
    */
   i?: EncodedImage;
+  /**
+   * A file: a PDF, a spreadsheet, a document. Stored and sealed exactly like
+   * an image; what travels here is what opens it and what to call it. The
+   * name and kind live only inside the encryption, so the server never learns
+   * that someone sent "Contrato.pdf".
+   */
+  f?: EncodedFile;
+};
+
+type EncodedFile = {
+  /** The key that opens the stored object. */
+  k: string;
+  /** The name it had on the sender's phone. */
+  n: string;
+  /** Its real size in bytes, before padding. */
+  s: number;
+  /** Its MIME type, when the sender's phone knew it. */
+  m?: string;
 };
 
 type EncodedImage = {
@@ -134,6 +152,13 @@ export type ImagePayload = {
   width: number;
   height: number;
   previewBase64?: string;
+};
+
+export type FilePayload = {
+  keyBase64: string;
+  name: string;
+  size: number;
+  mimeType?: string;
 };
 
 export type MessagePayload = {
@@ -154,6 +179,7 @@ export type MessagePayload = {
   /** A group name being announced to the members. */
   groupName?: string;
   image?: ImagePayload;
+  file?: FilePayload;
 };
 
 /**
@@ -173,7 +199,8 @@ export function encodePayload(payload: MessagePayload): string {
     !payload.audioBase64 &&
     !payload.localTtlSeconds &&
     payload.groupName === undefined &&
-    !payload.image
+    !payload.image &&
+    !payload.file
   ) {
     // Unchanged wire format for the overwhelmingly common case.
     return payload.text;
@@ -193,6 +220,15 @@ export function encodePayload(payload: MessagePayload): string {
       w: payload.image.width,
       h: payload.image.height,
       b: payload.image.previewBase64,
+    };
+  }
+
+  if (payload.file) {
+    encoded.f = {
+      k: payload.file.keyBase64,
+      n: payload.file.name,
+      s: payload.file.size,
+      m: payload.file.mimeType,
     };
   }
 
@@ -230,6 +266,7 @@ export function decodePayload(raw: string): MessagePayload {
       localTtlSeconds: typeof parsed.l === 'number' ? parsed.l : undefined,
       groupName: typeof parsed.n === 'string' ? parsed.n : undefined,
       image: decodeImage(parsed.i),
+      file: decodeFile(parsed.f),
     };
   } catch {
     // Genuinely just a message that starts with a brace.
@@ -259,5 +296,30 @@ function decodeImage(raw: unknown): ImagePayload | undefined {
     width: image.w,
     height: image.h,
     previewBase64: typeof image.b === 'string' ? image.b : undefined,
+  };
+}
+
+/**
+ * Same rule as images: a file reference is accepted only whole. A name is
+ * required to be non-empty text; it is cleaned again on the phone before it
+ * becomes a file name (the native module keeps only a last path component).
+ */
+function decodeFile(raw: unknown): FilePayload | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const file = raw as Partial<EncodedFile>;
+  if (
+    typeof file.k !== 'string' ||
+    typeof file.n !== 'string' ||
+    !file.n.trim() ||
+    typeof file.s !== 'number' ||
+    file.s < 0
+  ) {
+    return undefined;
+  }
+  return {
+    keyBase64: file.k,
+    name: file.n.trim().slice(0, 200),
+    size: file.s,
+    mimeType: typeof file.m === 'string' ? file.m : undefined,
   };
 }

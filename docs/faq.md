@@ -1,6 +1,6 @@
 # Seixo: Perguntas frequentes
 
-**Última atualização: 7 de novembro de 2026**
+**Última atualização: 14 de novembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -52,7 +52,9 @@ Se houver uma coisa a fazer depois de ler esta página, é a cópia de seguranç
 
 É o teu endereço dentro da Seixo: uma sequência aleatória que não diz nada sobre ti, nem nome, nem país, nem telefone, porque a app nunca soube nada disso.
 
-Encontra-lo em **«O meu ID»**, com um código QR. Quem estiver a teu lado lê o código; quem estiver longe recebe o ID copiado por onde te der jeito.
+Encontra-lo em **«O meu ID»**, na lista de conversas, com um código QR. Quem estiver a teu lado lê o código; quem estiver longe recebe o ID copiado por onde te der jeito.
+
+**Não há nomes de utilizador nem números de telefone.** Para falares com alguém, precisas do ID dessa pessoa: escrever o nome dela não serve. Se te mandarem a mensagem inteira («O meu ID da Seixo: …»), podes colá-la toda no campo, com o botão **Colar**: a app encontra o ID lá dentro. Num grupo, quem já é teu contacto escolhe-se da lista, sem ID.
 
 Podes dá-lo a quem quiseres. A única coisa que permite é iniciar uma conversa contigo, e se essa pessoa se tornar incómoda, bloqueia-la e deixa de te conseguir escrever.
 
@@ -89,6 +91,16 @@ Três coisas mais que convém saberes:
 - **As fotografias desaparecem como as mensagens.** No servidor ficam no máximo 24 horas, e são apagadas cerca de um minuto depois da mensagem a que pertencem.
 - **Não há botão para guardar uma fotografia recebida.** Seria a forma mais fácil de a tirar do alcance do temporizador. Quem quiser mesmo guardá-la pode tirar uma captura de ecrã, mas aí é uma decisão, não um toque por engano, e a outra pessoa fica a saber.
 
+## Posso enviar ficheiros, como um PDF ou um Excel?
+
+Sim, até **10 MB** cada. Carrega no clipe ao lado da caixa de texto e escolhe **«Escolher ficheiro»**.
+
+O ficheiro é cifrado no teu telemóvel, como uma fotografia, e o servidor nunca vê o conteúdo, o nome nem o tipo: só o tamanho arredondado. Fica no servidor no máximo 24 horas.
+
+Há uma diferença importante, e por isso a app avisa antes de cada envio: **um ficheiro não é limpo.** Uma fotografia, a app refá-la de raiz e tira-lhe a localização. Um PDF, um Word ou um Excel não se consegue refazer, e pode levar escondidos o nome de quem o escreveu, o nome do computador, datas, versões anteriores, comentários ou fotografias com localização. Tudo isso vai cifrado e só quem recebe o pode ver, mas vai. Se o ficheiro for sensível, vale a pena limpá-lo antes, por exemplo exportando-o de novo como PDF.
+
+E quem recebe um ficheiro pode guardá-lo ou abri-lo noutra app. A partir daí, já não depende do temporizador da conversa.
+
 ## A outra pessoa sabe se eu fizer uma captura de ecrã?
 
 Sim. Se fizeres uma captura de ecrã dentro de uma conversa, aparece nessa conversa, para todos, uma linha a dizer que o fizeste. Não gera notificação.
@@ -122,11 +134,11 @@ O que ele **vê**, e que dizemos por inteiro na [política de privacidade](index
 - Que conversas existem e quem pertence a cada uma: é o mínimo para saber a quem entregar cada mensagem.
 - De cada mensagem: a que conversa pertence, a hora e o tamanho. Nunca o conteúdo: a não ser o de uma mensagem que alguém nos denuncie, e só essa.
 - Numa conversa a dois, **não guarda quem enviou na base de dados**, mas os registos do alojamento permitem sabê-lo enquanto existirem. **Num grupo, guarda**: quem recebe precisa de saber com que chave decifrar. Dizemos isto porque é verdade, não porque nos agrade.
-- Das fotografias: um ficheiro cifrado por fotografia, com o tamanho arredondado, e **quando foi descarregado**. Isto último é quase um aviso de leitura, e não o conseguimos impedir, mas existe só enquanto o ficheiro existir, no máximo um dia.
+- Das fotografias e dos ficheiros: um objecto cifrado por cada um, com o tamanho arredondado, e **quando foi descarregado**. O nome e o tipo de um ficheiro nunca lá chegam. Isto último é quase um aviso de leitura, e não o conseguimos impedir, mas existe só enquanto o ficheiro existir, no máximo um dia.
 - O teu endereço IP. Aqui há uma distinção que vale a pena: na nossa base de dados o IP é apagado a cada minuto, mas os registos de entrada do alojamento, que não controlamos, guardam o IP, a cidade e o código postal aproximados, o teu fornecedor de internet, o que foi pedido (nunca o conteúdo) e, na maioria dos casos, o identificador da tua conta. Ficam guardados segundo as regras do fornecedor. A app não esconde o teu IP; se isso te importa, usa uma VPN.
 
 Os nomes que dás aos contactos e os nomes dos grupos nunca chegam ao servidor em texto legível.
-E não tens de acreditar só no que aqui escrevemos. Em qualquer mensagem, mantém o dedo e escolhe **«O que o servidor viu»**: a app lê essa mensagem no servidor nesse momento e mostra-te exactamente o que lá está. Em Definições, **«O que o servidor sabe»** faz o mesmo para a tua conta inteira.
+E não tens de acreditar só no que aqui escrevemos. Em qualquer mensagem, mantém o dedo e escolhe **«O que o servidor viu»**: a app lê essa mensagem no servidor nesse momento e mostra-te exactamente o que lá está. Em Definições, **«O que o servidor sabe»** faz o mesmo para a tua conta inteira, e no fim tem um botão que te mostra o endereço IP com que o alojamento te vê nesse momento. Com uma VPN, vês o endereço da VPN.
 
 ## O que é a conta de demonstração?
 
