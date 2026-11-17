@@ -17,7 +17,11 @@
       "bundleIdentifier": "com.xeixos.seixo",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it."
+        "NSMicrophoneUsageDescription": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it.",
+        "LSApplicationQueriesSchemes": [
+          "comgooglemaps",
+          "waze"
+        ]
       }
     },
     "android": {
@@ -84,6 +88,17 @@
         "expo-audio",
         {
           "microphonePermission": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Seixo uses your location only when you choose to send it to a conversation, once. It is encrypted on your phone before it leaves; Seixo never sees it and never follows where you go.",
+          "locationAlwaysPermission": false,
+          "locationAlwaysAndWhenInUsePermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
         }
       ]
     ],

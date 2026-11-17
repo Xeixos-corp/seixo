@@ -176,6 +176,24 @@
     "attachCamera": "Take photo",
     "attachLibrary": "Choose from library",
     "attachFile": "Choose a file",
+    "attachLocation": "Send my location",
+    "locationTitle": "Location",
+    "locationAccuracy": "accurate to about {{meters}} m",
+    "locationOpen": "Open in a map",
+    "locationOpenTitle": "Open in",
+    "mapApple": "Maps",
+    "mapGoogle": "Google Maps",
+    "mapWaze": "Waze",
+    "locationCopy": "Copy coordinates",
+    "locationCopied": "Coordinates copied.",
+    "locationOpenFailed": "Could not open the map.",
+    "locationConfirmTitle": "Send your location?",
+    "locationConfirmBody": "Your position right now, accurate to about {{meters}} m, goes encrypted to this conversation only. Seixo and the server cannot see it. It is sent once: it does not follow where you go.",
+    "locationConfirmBodyNoAccuracy": "Your position right now goes encrypted to this conversation only. Seixo and the server cannot see it. It is sent once: it does not follow where you go.",
+    "locationConfirmSend": "Send",
+    "locationDenied": "Without access to your location, there is nothing to send.",
+    "locationUnavailable": "Could not find where you are. Check that Location Services are on and try again.",
+    "locationFallback": "Location: {{coordinates}} (update Seixo to open it in a map)",
     "imageFallback": "Photo",
     "imageQuote": "Photo",
     "fileQuote": "File: {{name}}",
@@ -228,12 +246,14 @@
     "reportLimit": "You have sent many reports today. Try tomorrow, or write to us at seixo.app@proton.me.",
     "reportPhotoPlaceholder": "[photo]",
     "reportFilePlaceholder": "[file: {{name}}]",
+    "reportLocationPlaceholder": "[location]",
     "reportVoicePlaceholder": "[voice message]",
     "hiddenMessage": "Message hidden because it contains offensive language. Tap to view.",
     "imageTapToView": "Tap to view the photo",
     "accountRestricted": "Your account was suspended after reports and cannot send messages. If you think this is a mistake, write to us at seixo.app@proton.me.",
     "reportPhotoBody": "This photo and the ID of whoever sent it are sent to the Seixo team. It is the only way we can ever see it: you choose to show it to us. We review every report within 24 hours and expel anyone who breaks the terms.",
     "reportFileBody": "The name of this file and the ID of whoever sent it are sent to the Seixo team. The file itself is not sent. We review every report within 24 hours and expel anyone who breaks the terms.",
+    "reportLocationBody": "This message is reported without the location: only the ID of whoever sent it goes. We review every report within 24 hours and expel anyone who breaks the terms.",
     "reportVoiceBody": "This voice message and the ID of whoever sent it are sent to the Seixo team. It is the only way we can ever hear it: you choose to show it to us. We review every report within 24 hours and expel anyone who breaks the terms."
   },
   "blockedPeers": {
@@ -375,7 +395,9 @@
     "microphoneBlockedTitle": "Microphone off",
     "microphoneBlockedBody": "You turned off microphone access. To record voice messages, turn it on in iPhone Settings, under Seixo.",
     "cameraBlockedTitle": "Camera turned off",
-    "cameraBlockedBody": "You declined camera access. To take photos, turn it on in the phone’s Settings. Choosing from the library still works without it."
+    "cameraBlockedBody": "You declined camera access. To take photos, turn it on in the phone’s Settings. Choosing from the library still works without it.",
+    "locationBlockedTitle": "Location turned off",
+    "locationBlockedBody": "You declined location access. To send it, turn it on in the phone's Settings, under Seixo. Seixo only reads it when you choose to send it."
   },
   "share": {
     "intro": "Choose a conversation. The content goes into the text box and is only sent when you press send.",
@@ -526,5 +548,9 @@
     "groupFull": "The group already has the maximum of 10 members.",
     "memberBlocked": "You can't add this person: one of you has blocked the other.",
     "fromContacts": "Add from your contacts"
+  },
+  "announcement": {
+    "tag": "New",
+    "dismiss": "Dismiss this notice"
   }
 }

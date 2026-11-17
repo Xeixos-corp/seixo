@@ -125,6 +125,19 @@ type Encoded = {
    * that someone sent "Contrato.pdf".
    */
   f?: EncodedFile;
+  /**
+   * A location, sent once on purpose from the paperclip menu. Only here,
+   * inside the encryption: the server never learns where anyone is.
+   */
+  g?: EncodedLocation;
+};
+
+type EncodedLocation = {
+  /** Latitude and longitude, in degrees, to five decimals (about a metre). */
+  a: number;
+  o: number;
+  /** Horizontal accuracy in metres, as the phone reported it. */
+  c?: number;
 };
 
 type EncodedFile = {
@@ -161,6 +174,12 @@ export type FilePayload = {
   mimeType?: string;
 };
 
+export type LocationPayload = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number;
+};
+
 export type MessagePayload = {
   text: string;
   replyToId?: string;
@@ -180,6 +199,7 @@ export type MessagePayload = {
   groupName?: string;
   image?: ImagePayload;
   file?: FilePayload;
+  location?: LocationPayload;
 };
 
 /**
@@ -200,7 +220,8 @@ export function encodePayload(payload: MessagePayload): string {
     !payload.localTtlSeconds &&
     payload.groupName === undefined &&
     !payload.image &&
-    !payload.file
+    !payload.file &&
+    !payload.location
   ) {
     // Unchanged wire format for the overwhelmingly common case.
     return payload.text;
@@ -229,6 +250,14 @@ export function encodePayload(payload: MessagePayload): string {
       n: payload.file.name,
       s: payload.file.size,
       m: payload.file.mimeType,
+    };
+  }
+
+  if (payload.location) {
+    encoded.g = {
+      a: Math.round(payload.location.latitude * 1e5) / 1e5,
+      o: Math.round(payload.location.longitude * 1e5) / 1e5,
+      c: payload.location.accuracyMeters !== undefined ? Math.round(payload.location.accuracyMeters) : undefined,
     };
   }
 
@@ -267,6 +296,7 @@ export function decodePayload(raw: string): MessagePayload {
       groupName: typeof parsed.n === 'string' ? parsed.n : undefined,
       image: decodeImage(parsed.i),
       file: decodeFile(parsed.f),
+      location: decodeLocation(parsed.g),
     };
   } catch {
     // Genuinely just a message that starts with a brace.
@@ -321,5 +351,27 @@ function decodeFile(raw: unknown): FilePayload | undefined {
     name: file.n.trim().slice(0, 200),
     size: file.s,
     mimeType: typeof file.m === 'string' ? file.m : undefined,
+  };
+}
+
+/** A location is accepted only with real coordinates in range. */
+function decodeLocation(raw: unknown): LocationPayload | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const location = raw as Partial<EncodedLocation>;
+  if (
+    typeof location.a !== 'number' ||
+    typeof location.o !== 'number' ||
+    !Number.isFinite(location.a) ||
+    !Number.isFinite(location.o) ||
+    Math.abs(location.a) > 90 ||
+    Math.abs(location.o) > 180
+  ) {
+    return undefined;
+  }
+  return {
+    latitude: location.a,
+    longitude: location.o,
+    accuracyMeters:
+      typeof location.c === 'number' && Number.isFinite(location.c) && location.c >= 0 ? location.c : undefined,
   };
 }

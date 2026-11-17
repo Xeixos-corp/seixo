@@ -1,6 +1,6 @@
 # Seixo: Perguntas frequentes
 
-**Última atualização: 14 de novembro de 2026**
+**Última atualização: 17 de novembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -101,6 +101,16 @@ Há uma diferença importante, e por isso a app avisa antes de cada envio: **um 
 
 E quem recebe um ficheiro pode guardá-lo ou abri-lo noutra app. A partir daí, já não depende do temporizador da conversa.
 
+## Posso enviar a minha localização?
+
+Sim, uma vez de cada vez. Carrega no clipe e escolhe **«Enviar a minha localização»**. A app mostra-te o que vai acontecer e só envia se confirmares.
+
+A localização vai cifrada só para aquela conversa, como uma mensagem: o servidor nunca a vê. É a posição desse momento, não acompanha os teus movimentos, e desaparece com o temporizador da conversa. O Seixo só pede acesso à localização «durante a utilização» e nunca a lê em segundo plano.
+
+Quem recebe vê as coordenadas e um botão **«Abrir num mapa»**, que oferece o Mapas e, se estiverem instalados, o Google Maps e o Waze. Só nesse momento a empresa do mapa escolhido fica a saber de que sítio se trata, porque é ela que desenha o mapa. Por isso a app não mostra um mapa logo na conversa.
+
+**Numa emergência, não contes com o Seixo.** Liga para o 112 ou usa a Emergência SOS do iPhone, que também envia a tua localização aos teus contactos de emergência. Uma mensagem depende de a outra pessoa ter o telemóvel ligado e ver a notificação.
+
 ## A outra pessoa sabe se eu fizer uma captura de ecrã?
 
 Sim. Se fizeres uma captura de ecrã dentro de uma conversa, aparece nessa conversa, para todos, uma linha a dizer que o fizeste. Não gera notificação.
@@ -139,6 +149,8 @@ O que ele **vê**, e que dizemos por inteiro na [política de privacidade](index
 
 Os nomes que dás aos contactos e os nomes dos grupos nunca chegam ao servidor em texto legível.
 E não tens de acreditar só no que aqui escrevemos. Em qualquer mensagem, mantém o dedo e escolhe **«O que o servidor viu»**: a app lê essa mensagem no servidor nesse momento e mostra-te exactamente o que lá está. Em Definições, **«O que o servidor sabe»** faz o mesmo para a tua conta inteira, e no fim tem um botão que te mostra o endereço IP com que o alojamento te vê nesse momento. Com uma VPN, vês o endereço da VPN.
+
+As **novidades** que às vezes aparecem no topo da lista de conversas vêm de uma lista pública, igual para toda a gente. A app vai buscá-la sem dizer quem és, e se a viste ou fechaste fica só no teu telemóvel.
 
 ## O que é a conta de demonstração?
 

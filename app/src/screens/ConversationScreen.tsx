@@ -66,6 +66,14 @@ import { VoiceMessage } from '../components/VoiceMessage';
 import { ImageMessage } from '../components/ImageMessage';
 import { PaperclipIcon, TrashIcon } from '../components/icons';
 import { FileMessage } from '../components/FileMessage';
+import { LocationMessage } from '../components/LocationMessage';
+import {
+  availableMapApps,
+  openInMap,
+  plainCoordinates,
+  readCurrentLocation,
+  type MapApp,
+} from '../messaging/location';
 import { PasteButton } from '../components/PasteButton';
 import { NotAnIdHelp } from '../components/NotAnIdHelp';
 import { findPeerId, isBlockedMemberError, isGroupFullError, isPeerNotFoundError } from '../identity/peerId';
@@ -125,6 +133,7 @@ function quotePreview(message: DecryptedMessage | undefined, t: TFunction): stri
   if (message.audioBase64) return t('conversation.voiceMessage');
   if (message.image) return t('conversation.imageQuote');
   if (message.file) return t('conversation.fileQuote', { name: message.file.name });
+  if (message.location) return t('conversation.locationTitle');
   return message.plaintext;
 }
 
@@ -338,7 +347,9 @@ export function ConversationScreen({ route, navigation }: Props) {
               ? t('conversation.reportPhotoPlaceholder')
               : message.file
                 ? t('conversation.reportFilePlaceholder', { name: message.file.name })
-                : message.audioBase64
+                : message.location
+                  ? t('conversation.reportLocationPlaceholder')
+                  : message.audioBase64
                 ? t('conversation.reportVoicePlaceholder')
                 : message.plaintext
             : undefined,
@@ -390,7 +401,9 @@ export function ConversationScreen({ route, navigation }: Props) {
         ? t('conversation.reportPhotoBody')
         : message.file
           ? t('conversation.reportFileBody')
-          : message.audioBase64
+          : message.location
+            ? t('conversation.reportLocationBody')
+            : message.audioBase64
           ? t('conversation.reportVoiceBody')
           : t('conversation.reportMessageBody');
       Alert.alert(t('conversation.reportMessageTitle'), body, [
@@ -1018,6 +1031,125 @@ export function ConversationScreen({ route, navigation }: Props) {
     ]);
   }, [sendPickedFile, t]);
 
+  /**
+   * Sends where this phone is, once, after saying plainly what will happen.
+   *
+   * The position is read before the question, so the question is about
+   * something real and the send that follows is instant; nothing has left the
+   * phone until Send is pressed. It goes out like any message, under the
+   * conversation's timer, and the server holds only ciphertext.
+   */
+  const sendLocation = useCallback(async () => {
+    setSendError(null);
+    const current = await readCurrentLocation();
+    if (current.kind === 'denied') {
+      if (!current.canAskAgain) {
+        Alert.alert(t('permissions.locationBlockedTitle'), t('permissions.locationBlockedBody'), [
+          { text: t('conversation.cancel'), style: 'cancel' },
+          { text: t('permissions.openSettings'), onPress: () => void Linking.openSettings() },
+        ]);
+      } else {
+        setSendError(t('conversation.locationDenied'));
+      }
+      return;
+    }
+    if (current.kind === 'unavailable') {
+      setSendError(t('conversation.locationUnavailable'));
+      return;
+    }
+
+    const location = {
+      latitude: current.latitude,
+      longitude: current.longitude,
+      accuracyMeters: current.accuracyMeters,
+    };
+    const accuracy = location.accuracyMeters !== undefined ? Math.max(1, Math.round(location.accuracyMeters)) : undefined;
+    Alert.alert(
+      t('conversation.locationConfirmTitle'),
+      accuracy !== undefined
+        ? t('conversation.locationConfirmBody', { meters: accuracy })
+        : t('conversation.locationConfirmBodyNoAccuracy'),
+      [
+        { text: t('conversation.cancel'), style: 'cancel' },
+        {
+          text: t('conversation.locationConfirmSend'),
+          onPress: () => {
+            void (async () => {
+              const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+              addMessage(channelId, {
+                id: localId,
+                createdAt: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+                plaintext: '',
+                isMine: true,
+                status: 'sending',
+                location,
+              });
+              try {
+                const { id, createdAt } = await transmit(
+                  encodePayload({
+                    // Only for builds that predate locations.
+                    text: t('conversation.locationFallback', {
+                      coordinates: plainCoordinates(location.latitude, location.longitude),
+                    }),
+                    location,
+                  }),
+                );
+                const expiresAt = new Date(Date.parse(createdAt) + ttlSeconds * 1000).toISOString();
+                replaceMessage(channelId, localId, {
+                  id,
+                  createdAt,
+                  expiresAt,
+                  plaintext: '',
+                  isMine: true,
+                  status: 'sent',
+                  location,
+                });
+                scheduleExpiry(id, expiresAt);
+              } catch (error) {
+                console.error('[ConversationScreen] failed to send location', error);
+                setMessageStatus(channelId, localId, 'failed');
+              }
+            })();
+          },
+        },
+      ],
+    );
+  }, [channelId, transmit, ttlSeconds, addMessage, replaceMessage, setMessageStatus, scheduleExpiry, t]);
+
+  /**
+   * Lets the recipient choose where to look at a location: Apple Maps, or
+   * Google Maps and Waze when installed, or copy the coordinates. Only the map
+   * chosen ever learns the place, and only because someone chose to look.
+   */
+  const chooseMapFor = useCallback(
+    async (latitude: number, longitude: number) => {
+      const apps = await availableMapApps();
+      const label: Record<MapApp, string> = {
+        apple: t('conversation.mapApple'),
+        google: t('conversation.mapGoogle'),
+        waze: t('conversation.mapWaze'),
+      };
+      Alert.alert(t('conversation.locationOpenTitle'), undefined, [
+        ...apps.map((app) => ({
+          text: label[app],
+          onPress: () => {
+            openInMap(app, latitude, longitude).catch((error) => {
+              console.error('[ConversationScreen] could not open the map', error);
+              setSendError(t('conversation.locationOpenFailed'));
+            });
+          },
+        })),
+        {
+          text: t('conversation.locationCopy'),
+          onPress: () => void copyToClipboard(plainCoordinates(latitude, longitude), t('conversation.locationCopied')),
+        },
+        { text: t('conversation.cancel'), style: 'cancel' as const },
+      ]);
+    },
+    [copyToClipboard, t],
+  );
+
   /** Takes a photo, or lets the person choose one, and sends it. */
   const sendImage = useCallback(
     async (source: 'camera' | 'library') => {
@@ -1065,9 +1197,10 @@ export function ConversationScreen({ route, navigation }: Props) {
       { text: t('conversation.attachCamera'), onPress: () => void sendImage('camera') },
       { text: t('conversation.attachLibrary'), onPress: () => void sendImage('library') },
       { text: t('conversation.attachFile'), onPress: () => void sendFile() },
+      { text: t('conversation.attachLocation'), onPress: () => void sendLocation() },
       { text: t('conversation.cancel'), style: 'cancel' },
     ]);
-  }, [sendImage, sendFile, t]);
+  }, [sendImage, sendFile, sendLocation, t]);
 
   const startRecording = useCallback(async () => {
     // Checked before asking, to tell "never asked" from "already refused".
@@ -1572,7 +1705,8 @@ export function ConversationScreen({ route, navigation }: Props) {
         // Nor for images or files: there is no text to change, and an edit
         // would replace them with an empty message.
         !message.image &&
-        !message.file;
+        !message.file &&
+        !message.location;
 
       Alert.alert(t('conversation.messageActionsTitle'), undefined, [
         {
@@ -2032,6 +2166,17 @@ export function ConversationScreen({ route, navigation }: Props) {
                   tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
                   onLongPress={() => handleMessageActions(item.id)}
                 />
+              ) : item.location ? (
+                <LocationMessage
+                  latitude={item.location.latitude}
+                  longitude={item.location.longitude}
+                  accuracyMeters={item.location.accuracyMeters}
+                  tint={item.isMine === true ? colors.onAccent : colors.textPrimary}
+                  onOpen={() => {
+                    if (item.location) void chooseMapFor(item.location.latitude, item.location.longitude);
+                  }}
+                  onLongPress={() => handleMessageActions(item.id)}
+                />
               ) : item.file ? (
                 <FileMessage
                   file={item.file}
@@ -2106,7 +2251,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                   image's text is empty -- it would go out as a blank message.
                   A failed picture says so on itself; sending it again is
                   choosing it again. */}
-              {item.status === 'failed' && !item.image && !item.file ? (
+              {item.status === 'failed' && !item.image && !item.file && !item.location ? (
                 <Pressable onPress={() => handleRetry(item)} hitSlop={8}>
                   <Text style={[styles.retryText, { color: colors.onAccent }]}>
                     {t('conversation.retrySend')}

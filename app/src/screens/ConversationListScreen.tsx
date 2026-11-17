@@ -31,6 +31,7 @@ import { isUntrustedIdentityError } from '../crypto';
 import { MyIdCard } from '../components/MyIdCard';
 import { PasteButton } from '../components/PasteButton';
 import { NotAnIdHelp } from '../components/NotAnIdHelp';
+import { AnnouncementCard } from '../components/AnnouncementCard';
 import { findPeerId, isPeerNotFoundError } from '../identity/peerId';
 import { ConversationRow } from '../components/ConversationRow';
 import { lastVisibleMessage } from '../messaging/lastMessage';
@@ -509,6 +510,11 @@ export function ConversationListScreen({ navigation }: Props) {
           clearButtonMode="while-editing"
         />
       ) : null}
+
+      {/* Above the list rather than inside it, so it shows the same way
+          whether there are conversations or not; hidden while searching,
+          where it would only be in the way. */}
+      {!searchQuery ? <AnnouncementCard /> : null}
 
       <FlatList
         data={matchingConversations}

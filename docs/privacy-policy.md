@@ -1,6 +1,6 @@
 # Seixo: Política de privacidade
 
-**Última atualização: 14 de novembro de 2026**
+**Última atualização: 17 de novembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -42,6 +42,7 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 - **Na base de dados, não fica registado quem enviou o ficheiro.** O serviço de armazenamento tenta guardá-lo; nós apagamo-lo antes de ser gravado. (Os registos do alojamento, como para as mensagens, registam o envio.)
 - **Antes de sair do telemóvel, a fotografia é refeita** sem a localização, o modelo do telemóvel, a data e os outros dados que as fotografias costumam trazer. A app verifica o resultado e **recusa enviar** se algum desses dados tiver ficado.
 - **Um ficheiro (um PDF, um Word, um Excel, até 10 MB) é cifrado e guardado da mesma forma.** O nome e o tipo do ficheiro viajam só dentro da mensagem cifrada: o servidor vê apenas o tamanho arredondado, como numa fotografia.
+- **Uma localização que envies** (no clipe, «Enviar a minha localização») vai só dentro da mensagem cifrada, uma vez, quando a escolhes enviar. O servidor nunca a vê. A app não acompanha por onde andas e não lê a localização em segundo plano.
 - **Um ficheiro não é limpo.** Ao contrário de uma fotografia, a app não o consegue refazer, e um documento pode levar escondidos o nome de quem o escreveu, o nome do computador, datas, versões anteriores, comentários ou fotografias com localização. Tudo isso vai cifrado e só quem recebe o pode ler, mas vai. A app avisa disto antes de cada envio.
 
 **Só se criares uma cópia de segurança:**
@@ -75,18 +76,21 @@ A app não esconde o teu IP. Se isso for importante para ti, usa uma VPN ou Tor.
 
 **Ver o que o alojamento vê.** Em Definições, «O que o servidor sabe», um botão mostra-te o endereço IP com que o teu pedido chega ao servidor naquele momento. Quem responde é uma função nossa, que se limita a devolver-te o endereço que chegou com o pedido: não guarda nada, não regista nada e não pergunta a nenhum serviço externo onde fica o teu IP. O país, a cidade e o fornecedor ficam na camada de entrada do alojamento e não chegam a essa função, por isso o botão não os mostra. Só corre quando carregas no botão. O próprio pedido fica nos registos do alojamento, como qualquer outro.
 
+**Novidades.** Ao abrir, a app pergunta ao servidor se há alguma novidade para mostrar no topo da lista de conversas. Esse pedido vai **sem a identificação da tua conta**: a lista é pública e igual para toda a gente, e os registos do alojamento ficam só com o IP, não com a conta. Se viste, fechaste ou abriste uma novidade fica guardado só no teu telemóvel. Não temos estatísticas sobre isso.
+
 ## Permissões do telemóvel
 
 - **Câmara**: para ler o código QR de um contacto e para tirares fotografias que decides enviar. Um código QR é lido no telemóvel e nunca é enviado nem guardado; uma fotografia só sai se a enviares, cifrada.
 - **Fotografias**: nenhum acesso à tua galeria. Quando escolhes uma fotografia para enviar, é o próprio iPhone que te mostra a galeria e entrega à app apenas a que escolheste.
 - **Ficheiros**: nenhum acesso aos teus ficheiros. Quando escolhes um para enviar, é o próprio iPhone que te mostra os ficheiros e entrega à app apenas o que escolheste.
+- **Localização**: só «durante a utilização», e só quando escolhes enviar a tua localização a uma conversa. É lida uma vez, nesse momento, e vai cifrada. Nunca em segundo plano.
 - **Microfone**: só para gravares mensagens de voz, quando carregas no botão. A gravação é cifrada no telemóvel antes de sair.
 - **Face ID**: só para desbloquear a app, se ativares o bloqueio. É tratado pelo próprio sistema do telemóvel; nada sai do aparelho.
 - **Notificações**: para saberes que chegou uma mensagem.
 
 ## O que não recolhemos
 
-Número de telefone, nome, email real (exceto se nos escreveres para suporte), lista de contactos do telemóvel, localização, fotografias e identificadores de publicidade. Não usamos nenhum SDK de análise, rastreio ou publicidade.
+Número de telefone, nome, email real (exceto se nos escreveres para suporte), lista de contactos do telemóvel, localização (a que envias numa conversa vai cifrada e não a conseguimos ler), fotografias e identificadores de publicidade. Não usamos nenhum SDK de análise, rastreio ou publicidade.
 
 ## Durante quanto tempo guardamos os dados
 
@@ -113,7 +117,7 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 
 Podes denunciar uma mensagem ou uma pessoa. É a **única forma de o conteúdo de uma mensagem chegar ao servidor em texto legível** (fora o que se escreve à conta de demonstração, mais abaixo), e só acontece porque quem a recebeu decide mostrá-la.
 
-- **Uma denúncia guarda:** quem denunciou, a conta denunciada, a conversa, e a mensagem denunciada: o texto, ou a própria fotografia ou mensagem de voz, que quem denuncia escolhe enviar. De um ficheiro denunciado, só segue o nome: o ficheiro em si não é enviado. Numa conversa a dois, isto revela também quem enviou essa mensagem, algo que o servidor normalmente não guarda.
+- **Uma denúncia guarda:** quem denunciou, a conta denunciada, a conversa, e a mensagem denunciada: o texto, ou a própria fotografia ou mensagem de voz, que quem denuncia escolhe enviar. De um ficheiro denunciado, só segue o nome: o ficheiro em si não é enviado. De uma localização denunciada, não segue a localização. Numa conversa a dois, isto revela também quem enviou essa mensagem, algo que o servidor normalmente não guarda.
 - **Quem a vê:** só o programador, numa página a que se chega pela ligação do email de aviso. O email em si diz apenas que chegou uma denúncia: nunca o conteúdo nem os identificadores. Uma fotografia ou mensagem de voz denunciada fica num espaço privado do servidor, e a página só a mostra através de uma ligação que expira em 10 minutos.
 - **Durante quanto tempo:** a denúncia é apagada **90 dias** depois de ser feita.
 - **O que pode acontecer à conta denunciada:** se três pessoas diferentes a denunciarem, fica suspensa automaticamente até ser analisada. Se a denúncia se confirmar, a conta é expulsa. Uma conta suspensa ou expulsa fica marcada no servidor enquanto existir, e é a única que consegue ver essa marca.

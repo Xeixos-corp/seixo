@@ -148,6 +148,8 @@ export type DecryptedMessage = {
   image?: StoredImage;
   /** A file. `plaintext` is empty for these, as for images. */
   file?: StoredFile;
+  /** A location sent once. `plaintext` is empty for these. */
+  location?: { latitude: number; longitude: number; accuracyMeters?: number };
   /**
    * Who sent it, in a group. Undefined in a one-to-one conversation, where
    * `isMine` already says everything there is to say.

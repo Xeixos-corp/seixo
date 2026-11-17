@@ -85,6 +85,16 @@ export function PaperclipIcon({ size, color }: IconProps) {
   );
 }
 
+/** A map pin: a place, sent once. */
+export function MapPinIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
+      <Circle cx={12} cy={10} r={2.4} />
+    </Svg>
+  );
+}
+
 /** A clipboard: put in what was copied. */
 export function PasteIcon({ size, color }: IconProps) {
   return (

@@ -149,6 +149,7 @@ export function ingestFetchedMessage(
       groupName,
       image,
       file,
+      location,
     } = decodePayload(raw);
 
     // The row's expires_at is only how long the *server* held it. When the
@@ -235,7 +236,7 @@ export function ingestFetchedMessage(
     // by a bug -- retrying a failed voice message used to send exactly this --
     // and a blank bubble helps nobody. Remembered, so it is not decrypted
     // again on the next fetch.
-    if (!text.trim() && !audioBase64 && !image && !file) {
+    if (!text.trim() && !audioBase64 && !image && !file && !location) {
       rememberControlMessage(channelId, fetched);
       return;
     }
@@ -252,7 +253,7 @@ export function ingestFetchedMessage(
       expiresAt,
       // An image's or a file's text is only a fallback for builds that
       // predate them; here the picture or the file speaks for itself.
-      plaintext: image || file ? '' : text,
+      plaintext: image || file || location ? '' : text,
       isMine: false,
       replyToId,
       audioBase64,
@@ -274,6 +275,7 @@ export function ingestFetchedMessage(
             mimeType: file.mimeType,
           }
         : undefined,
+      location,
     });
 
     // Fetched straight away rather than when the conversation is opened. The

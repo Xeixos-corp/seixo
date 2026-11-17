@@ -1,6 +1,6 @@
 # Seixo: Termos de utilização
 
-**Última atualização: 14 de novembro de 2026**
+**Última atualização: 17 de novembro de 2026**
 
 > Fonte de revisão. A versão publicada (também em inglês e espanhol) vive no
 > repositório público `Xeixos-corp/Seixo-Legal`, ao lado da política de
@@ -59,7 +59,7 @@ O que envias é teu. Não reclamamos nenhum direito sobre isso, e és responsáv
 
 ## 7. Mensagens temporárias
 
-As mensagens apagam-se do servidor e da app no tempo que escolheres. Isso não impede que quem as recebe faça uma captura de ecrã, as fotografe com outro aparelho, as copie ou guarde um ficheiro que lhe enviaste. Não prometemos que uma mensagem deixa de existir em todo o lado.
+As mensagens apagam-se do servidor e da app no tempo que escolheres. Isso não impede que quem as recebe faça uma captura de ecrã, as fotografe com outro aparelho, as copie ou guarde um ficheiro que lhe enviaste. E o Seixo não é um serviço de emergência: numa emergência, liga para o 112. Não prometemos que uma mensagem deixa de existir em todo o lado.
 
 ## 8. O serviço
 

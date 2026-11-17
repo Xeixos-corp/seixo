@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { BellOffIcon, FileIcon, ImageIcon, MicIcon, PeopleIcon } from './icons';
+import { BellOffIcon, FileIcon, ImageIcon, MapPinIcon, MicIcon, PeopleIcon } from './icons';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { avatarColorFor, initialsFor } from '../theme/avatarColors';
@@ -77,6 +77,7 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
     const isVoice = Boolean(last.audioBase64 || last.audioDurationMs);
     const isImage = Boolean(last.image);
     const isFile = Boolean(last.file);
+    const isLocation = Boolean(last.location);
     const body = last.notice === 'screenshot'
       ? last.isMine
         ? t('conversation.screenshotNoticeMine')
@@ -85,6 +86,8 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
       ? t('conversationList.imagePreview')
       : last.file
       ? last.file.name
+      : isLocation
+      ? t('conversation.locationTitle')
       : !last.isMine && isObjectionable(last.plaintext)
       ? t('conversationList.hiddenPreview')
       : isVoice
@@ -97,6 +100,8 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
           <ImageIcon size={14} color={previewColor} />
         ) : isFile ? (
           <FileIcon size={14} color={previewColor} />
+        ) : isLocation ? (
+          <MapPinIcon size={14} color={previewColor} />
         ) : isVoice ? (
           <MicIcon size={14} color={previewColor} />
         ) : null}

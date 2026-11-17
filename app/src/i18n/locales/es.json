@@ -176,6 +176,24 @@
     "attachCamera": "Hacer foto",
     "attachLibrary": "Elegir de la galería",
     "attachFile": "Elegir un archivo",
+    "attachLocation": "Enviar mi ubicación",
+    "locationTitle": "Ubicación",
+    "locationAccuracy": "precisión de unos {{meters}} m",
+    "locationOpen": "Abrir en un mapa",
+    "locationOpenTitle": "Abrir en",
+    "mapApple": "Mapas",
+    "mapGoogle": "Google Maps",
+    "mapWaze": "Waze",
+    "locationCopy": "Copiar coordenadas",
+    "locationCopied": "Coordenadas copiadas.",
+    "locationOpenFailed": "No se pudo abrir el mapa.",
+    "locationConfirmTitle": "¿Enviar tu ubicación?",
+    "locationConfirmBody": "Tu posición de ahora, con una precisión de unos {{meters}} m, va cifrada solo para esta conversación. Seixo y el servidor no la ven. Se envía una vez: no sigue tus movimientos.",
+    "locationConfirmBodyNoAccuracy": "Tu posición de ahora va cifrada solo para esta conversación. Seixo y el servidor no la ven. Se envía una vez: no sigue tus movimientos.",
+    "locationConfirmSend": "Enviar",
+    "locationDenied": "Sin acceso a la ubicación, no hay nada que enviar.",
+    "locationUnavailable": "No se pudo saber dónde estás. Comprueba que la Localización está activada y vuelve a intentarlo.",
+    "locationFallback": "Ubicación: {{coordinates}} (actualiza Seixo para abrirla en un mapa)",
     "imageFallback": "Foto",
     "imageQuote": "Foto",
     "fileQuote": "Archivo: {{name}}",
@@ -228,12 +246,14 @@
     "reportLimit": "Has enviado muchas denuncias hoy. Inténtalo mañana o escríbenos a seixo.app@proton.me.",
     "reportPhotoPlaceholder": "[foto]",
     "reportFilePlaceholder": "[archivo: {{name}}]",
+    "reportLocationPlaceholder": "[ubicación]",
     "reportVoicePlaceholder": "[mensaje de voz]",
     "hiddenMessage": "Mensaje oculto por contener lenguaje ofensivo. Toca para verlo.",
     "imageTapToView": "Toca para ver la foto",
     "accountRestricted": "Tu cuenta fue suspendida tras varias denuncias y no puede enviar mensajes. Si crees que es un error, escríbenos a seixo.app@proton.me.",
     "reportPhotoBody": "Esta foto y el identificador de quien la envió se envían al equipo de Seixo. Es la única forma de que la veamos: tú decides mostrárnosla. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos.",
     "reportFileBody": "El nombre de este archivo y el identificador de quien lo envió se envían al equipo de Seixo. El archivo en sí no se envía. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos.",
+    "reportLocationBody": "Este mensaje se denuncia sin la ubicación: solo se envía el identificador de quien lo envió. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos.",
     "reportVoiceBody": "Este mensaje de voz y el identificador de quien lo envió se envían al equipo de Seixo. Es la única forma de que lo escuchemos: tú decides mostrárnoslo. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos."
   },
   "blockedPeers": {
@@ -375,7 +395,9 @@
     "microphoneBlockedTitle": "Micrófono desactivado",
     "microphoneBlockedBody": "Denegaste el acceso al micrófono. Para grabar mensajes de voz, actívalo en los Ajustes del iPhone, en Seixo.",
     "cameraBlockedTitle": "Cámara desactivada",
-    "cameraBlockedBody": "Rechazaste el acceso a la cámara. Para hacer fotos, actívala en los Ajustes del teléfono. Elegir de la galería sigue funcionando sin eso."
+    "cameraBlockedBody": "Rechazaste el acceso a la cámara. Para hacer fotos, actívala en los Ajustes del teléfono. Elegir de la galería sigue funcionando sin eso.",
+    "locationBlockedTitle": "Ubicación desactivada",
+    "locationBlockedBody": "Rechazaste el acceso a la ubicación. Para enviarla, actívala en los Ajustes del teléfono, en Seixo. Seixo solo la lee cuando decides enviarla."
   },
   "share": {
     "intro": "Elige la conversación. El contenido queda en el cuadro de texto y solo se envía cuando pulses enviar.",
@@ -526,5 +548,9 @@
     "groupFull": "El grupo ya tiene el máximo de 10 miembros.",
     "memberBlocked": "No se puede añadir a esta persona: uno de los dos ha bloqueado al otro.",
     "fromContacts": "Añadir de tus contactos"
+  },
+  "announcement": {
+    "tag": "Novedad",
+    "dismiss": "Cerrar esta novedad"
   }
 }
