@@ -210,3 +210,35 @@ public.** If this project is ever made private again, that basis no longer
 applies, and `ITSAppUsesNonExemptEncryption` in `app/app.json` must be
 revisited before any further App Store submission. See
 `docs/threat-model.md` for the full history of how this was determined.
+
+## License
+
+Copyright (C) 2026 Bruno Rodrigues da Silva
+
+Seixo is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License as published by the Free
+Software Foundation, version 3 of the License (AGPL-3.0-only). See
+[`LICENSE`](LICENSE) for the full text.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
+
+**Why this licence.** Seixo's encryption is
+[`signalapp/libsignal`](https://github.com/signalapp/libsignal) (Copyright
+Signal Messenger, LLC), licensed under the AGPL-3.0. The app links it, and so
+does the server-side demo account (compiled to WebAssembly in
+`supabase/functions/demo-account`). A work that includes AGPL code has to be
+offered, as a whole, under the same licence.
+
+**Where the source is.** The complete source of the iPhone app, the Rust
+crate, the database migrations and the Edge Functions, including the demo
+account that people interact with over the network, is this repository:
+<https://github.com/Xeixos-corp/seixo>.
+
+Third-party components keep their own licences. Checked on 2026-11-20: the
+app's direct dependencies are MIT or Apache-2.0, and the Rust dependencies are
+MIT, Apache-2.0, BSD, ISC, Zlib, CC0, MPL-2.0 or dual-licensed under these,
+all compatible with the AGPL-3.0. `app/LICENSE` is the MIT licence of the Expo
+template the app was started from, and applies only to that template code.

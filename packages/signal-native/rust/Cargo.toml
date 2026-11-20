@@ -3,6 +3,7 @@ name = "signal_native"
 version = "0.1.0"
 edition = "2021"
 publish = false
+license = "AGPL-3.0-only"
 
 # Real libsignal-protocol integration (see README.md for status). Bridged to
 # the app as an Expo Module (packages/signal-native-expo) using uniffi's
