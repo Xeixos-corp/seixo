@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import {
   initSignalDevice,
   generatePrekeyBundle,
@@ -196,25 +197,19 @@ async function doRegister(allowCreate: boolean): Promise<RegisteredIdentity> {
   return { userId, identityPublicKeyBase64: publicKey };
 }
 
-/** The parts of registration that run whether or not keys were just published. */
-async function finishRegistration(userId: string): Promise<void> {
-  // Recorded before anything else here: group message ingest needs it
-  // synchronously, and cannot wait on this function to finish.
-  setCurrentUserId(userId);
-
-
-  const blockedPeerIds = await fetchBlockedPeerIds(userId);
-  useBlockedPeersStore.getState().setBlockedPeerIds(blockedPeerIds);
-
-  // Keeps the account out of the abandoned-account purge. Fire-and-forget:
-  // it must never delay or fail startup.
-  void markAccountActive(userId);
-
-  // Reconcile against the server before subscribing. The subscription below
-  // only ever reports *new* memberships, so anything already on the server but
-  // missing locally would stay invisible forever -- see fetchMyChannels.
-  // Non-fatal: a failure here costs a conversation being absent until the next
-  // launch, which is not worth blocking startup over.
+/**
+ * Brings the local conversation list in line with the server: adds what the
+ * server has and this phone does not (someone started a conversation, or
+ * accepted an invite, while the app was away or the realtime connection was
+ * down) and drops what the server no longer has.
+ *
+ * It used to run once per launch only, which left a conversation started by
+ * someone else invisible until the app was closed and opened again whenever
+ * the realtime event was missed. Found on 2026-11-21 while testing invites:
+ * the inviter's phone never showed the conversation the invite had opened.
+ * Now it also runs whenever the app comes back to the foreground.
+ */
+export async function reconcileConversations(userId: string): Promise<void> {
   try {
     const serverChannels = await fetchMyChannelsDetailed(userId);
     const { addConversation, setGroupMembers, setConversationMuted, setConversationKind, hasConversation, hasReconciled } =
@@ -274,6 +269,44 @@ async function finishRegistration(userId: string): Promise<void> {
   } catch (error) {
     console.error('[registerIdentity] failed to reconcile channels', error);
   }
+}
+
+let foregroundSubscription: { remove: () => void } | null = null;
+let lastForegroundReconcile = 0;
+
+/** Re-runs the reconcile when the app returns to the foreground, at most every 10 s. */
+function reconcileWhenForegrounded(userId: string): void {
+  foregroundSubscription?.remove();
+  foregroundSubscription = AppState.addEventListener('change', (state) => {
+    if (state !== 'active') return;
+    const now = Date.now();
+    if (now - lastForegroundReconcile < 10_000) return;
+    lastForegroundReconcile = now;
+    void reconcileConversations(userId);
+  });
+}
+
+/** The parts of registration that run whether or not keys were just published. */
+async function finishRegistration(userId: string): Promise<void> {
+  // Recorded before anything else here: group message ingest needs it
+  // synchronously, and cannot wait on this function to finish.
+  setCurrentUserId(userId);
+
+
+  const blockedPeerIds = await fetchBlockedPeerIds(userId);
+  useBlockedPeersStore.getState().setBlockedPeerIds(blockedPeerIds);
+
+  // Keeps the account out of the abandoned-account purge. Fire-and-forget:
+  // it must never delay or fail startup.
+  void markAccountActive(userId);
+
+  // Reconcile against the server before subscribing. The subscription below
+  // only ever reports *new* memberships, so anything already on the server but
+  // missing locally would stay invisible forever -- see fetchMyChannels.
+  // Non-fatal: a failure here costs a conversation being absent until the next
+  // reconcile, which is not worth blocking startup over.
+  await reconcileConversations(userId);
+  reconcileWhenForegrounded(userId);
 
   // Detect conversations other people start with us (the receiving side of
   // createDirectChannel — see app/src/transport/channels.ts).
