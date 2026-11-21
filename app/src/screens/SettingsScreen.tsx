@@ -83,6 +83,15 @@ export function SettingsScreen({ navigation }: Props) {
           <MyIdCard />
         </View>
 
+        <SettingsGroup>
+          <SettingsRow
+            label={t('settings.invitesRow')}
+            hint={t('settings.invitesRowHint')}
+            onPress={() => navigation.navigate('Invites')}
+            opensScreen
+          />
+        </SettingsGroup>
+
         <SettingsGroup title={t('settings.privacySection')}>
           {/* A screen of its own now that there are two kinds of lock and a
               panic code: a switch could only ever say on or off. */}
@@ -208,6 +217,11 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsRow
             label={t('settings.termsOfUse')}
             onPress={() => Linking.openURL(TERMS_URL)}
+            opensScreen
+          />
+          <SettingsRow
+            label={t('settings.openSource')}
+            onPress={() => navigation.navigate('OpenSource')}
             opensScreen
           />
           <SettingsRow label={t('settings.version')} value={appVersionLabel()} />

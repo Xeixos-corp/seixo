@@ -11,6 +11,8 @@ import { ConversationScreen } from '../screens/ConversationScreen';
 import { BlockedPeersScreen } from '../screens/BlockedPeersScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ScanQrScreen } from '../screens/ScanQrScreen';
+import { InvitesScreen } from '../screens/InvitesScreen';
+import { OpenSourceScreen } from '../screens/OpenSourceScreen';
 import { BackupScreen } from '../screens/BackupScreen';
 import { NotificationSoundScreen } from '../screens/NotificationSoundScreen';
 import { ServerFootprintScreen } from '../screens/ServerFootprintScreen';
@@ -48,6 +50,8 @@ export type RootStackParamList = {
     attachment?: 'photo' | 'file';
   };
   ScanQr: undefined;
+  Invites: undefined;
+  OpenSource: undefined;
   Backup: undefined;
   RestoreBackup: undefined;
   ShareTarget: undefined;
@@ -123,6 +127,8 @@ export function RootNavigator() {
           options={{ title: t('navigation.messageServerView') }}
         />
         <Stack.Screen name="ScanQr" component={ScanQrScreen} options={{ title: t('navigation.scanQr') }} />
+        <Stack.Screen name="Invites" component={InvitesScreen} options={{ title: t('navigation.invites') }} />
+        <Stack.Screen name="OpenSource" component={OpenSourceScreen} options={{ title: t('navigation.openSource') }} />
         <Stack.Screen name="Backup" component={BackupScreen} options={{ title: t('navigation.backup') }} />
         <Stack.Screen
           name="ShareTarget"

@@ -40,3 +40,12 @@ export const FAQ_URL = 'https://xeixos-corp.github.io/Seixo-Legal/faq.html';
 // Unlike any person, it is read by our server; the app says so before
 // starting it, and the privacy policy says so too.
 export const DEMO_ACCOUNT_ID = '72e983a1-ea2b-474a-a416-08c178f2bb7f';
+
+/**
+ * Seixo is licensed under the AGPL-3.0, because it includes libsignal, which
+ * is (see LICENSE and the README's License section). The licence asks that
+ * the app show it and point to the complete source: OpenSourceScreen.tsx.
+ */
+export const SOURCE_CODE_URL = 'https://github.com/Xeixos-corp/seixo';
+export const LICENSE_URL = 'https://github.com/Xeixos-corp/seixo/blob/main/LICENSE';
+export const LIBSIGNAL_URL = 'https://github.com/signalapp/libsignal';

@@ -1,6 +1,6 @@
 # Seixo: Política de privacidade
 
-**Última atualização: 17 de novembro de 2026**
+**Última atualização: 21 de novembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -34,6 +34,13 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 - **As mensagens, sempre cifradas.** De cada uma, o servidor vê a conversa a que pertence, a hora exata, o tamanho e se deve gerar notificação: nunca o conteúdo, a não ser que alguém denuncie essa mensagem (ver «Denúncias»).
 - **Quem enviou:** numa conversa a dois, **não fica guardado na nossa base de dados**. Mas o servidor sabe quem és no momento em que envias, e os registos do alojamento guardam que a tua conta enviou algo àquela hora, o que permite, enquanto esses registos e a mensagem existirem, saber quem a enviou. **Num grupo, o servidor consegue ver quem enviou cada mensagem** enquanto essa mensagem existir, porque quem a recebe precisa de saber com que chave a decifrar.
 - **Os nomes dos grupos e os nomes que dás aos contactos** nunca chegam ao servidor em texto legível.
+
+**Sobre os convites:**
+
+- **Quando crias um convite**, o servidor guarda que a tua conta o criou, quando, e quando expira (7 dias depois). Do código do convite guarda só uma impressão irreversível (hash): o código em si nunca lá chega quando o crias.
+- **Quando alguém o usa**, o servidor guarda que foi usado e quando, **mas não quem o usou**. A conversa que se abre a seguir fica no servidor como qualquer outra.
+- **Os convites usados ou expirados são apagados** um dia depois.
+- **O link** aponta para uma página nossa alojada no GitHub. O código vai na parte do link depois de «#», que o navegador nunca envia a nenhum servidor: o GitHub vê que alguém abriu a página (com o IP, como em qualquer site), mas não vê o convite. A página não tem rastreio nem cookies.
 
 **Sobre as fotografias e os ficheiros que envias:**
 

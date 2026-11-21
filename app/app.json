@@ -22,7 +22,10 @@
           "comgooglemaps",
           "waze"
         ]
-      }
+      },
+      "associatedDomains": [
+        "applinks:xeixos-corp.github.io"
+      ]
     },
     "android": {
       "adaptiveIcon": {

@@ -42,7 +42,9 @@ export async function fetchCurrentAnnouncement(
   appVersion: string,
 ): Promise<Announcement | null> {
   try {
-    const lang = language === 'en' || language === 'es' ? language : 'pt';
+    // The app's own language, which is always one of the three; anything
+    // else would mean English, as in i18n/index.ts.
+    const lang = language === 'pt' || language === 'es' ? language : 'en';
     const response = await fetch(
       `${SUPABASE_URL}/rest/v1/announcements?select=*&order=starts_at.desc&limit=10`,
       {

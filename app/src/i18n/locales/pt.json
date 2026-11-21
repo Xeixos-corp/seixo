@@ -5,6 +5,8 @@
     "blockedPeers": "Contactos bloqueados",
     "settings": "Definições",
     "scanQr": "Ler código QR",
+    "invites": "Os teus convites",
+    "openSource": "Código aberto e licenças",
     "backup": "Cópia de segurança",
     "restoreBackup": "Recuperar conta",
     "shareTarget": "Partilhar em…",
@@ -303,7 +305,10 @@
     "appLockRow": "Bloqueio da app",
     "appLockRowHint": "Face ID, ou um código só do Seixo com código de pânico.",
     "hideFromRecordingLabel": "Esconder das gravações de ecrã",
-    "hideFromRecordingHint": "Quando está ligado, uma gravação do ecrã, ou o espelhamento para outro ecrã, mostra o Seixo a preto. As capturas de ecrã não são afectadas: numa conversa, são avisadas a todos."
+    "hideFromRecordingHint": "Quando está ligado, uma gravação do ecrã, ou o espelhamento para outro ecrã, mostra o Seixo a preto. As capturas de ecrã não são afectadas: numa conversa, são avisadas a todos.",
+    "invitesRow": "Os teus convites",
+    "invitesRowHint": "Ver, voltar a partilhar ou cancelar os convites que criaste.",
+    "openSource": "Código aberto e licenças"
   },
   "screenshotWarning": {
     "title": "Captura de ecrã",
@@ -552,5 +557,50 @@
   "announcement": {
     "tag": "Novidade",
     "dismiss": "Fechar esta novidade"
+  },
+  "invite": {
+    "button": "Convidar alguém",
+    "listLink": "Ver os teus convites",
+    "shareMessage": "Fala comigo no Seixo, a app de mensagens privadas sem número de telefone: {{link}}",
+    "acceptTitle": "Começar uma conversa?",
+    "acceptBody": "Alguém convidou-te para falar no Seixo. Ao aceitar, a conversa abre-se dos dois lados e o convite deixa de servir.",
+    "acceptLater": "Agora não",
+    "acceptStart": "Começar",
+    "listIntro": "Cada convite serve uma vez e expira ao fim de 7 dias. Não sabemos a quem o enviaste nem quem o usou: só se já foi usado.",
+    "listEmpty": "Ainda não criaste nenhum convite.",
+    "createdOn": "Criado a {{date}}",
+    "expiresOn": "Expira a {{date}}",
+    "shareAgain": "Partilhar",
+    "cancel": "Cancelar",
+    "cancelTitle": "Cancelar este convite?",
+    "cancelBody": "O link deixa de funcionar para quem o tiver.",
+    "cancelKeep": "Manter",
+    "cancelConfirm": "Cancelar convite",
+    "status": {
+      "open": "Por usar",
+      "used": "Usado",
+      "expired": "Expirado"
+    },
+    "error": {
+      "notValid": "Este convite já não serve: foi usado, cancelado ou expirou. Pede um novo a quem to enviou.",
+      "own": "Este convite é teu. Envia-o a outra pessoa.",
+      "blocked": "Não é possível começar esta conversa: um de vocês bloqueou o outro.",
+      "failed": "Não foi possível aceitar o convite. Verifica a ligação e tenta outra vez.",
+      "createFailed": "Não foi possível criar o convite. Verifica a ligação e tenta outra vez.",
+      "tooMany": "Já tens 20 convites por usar. Cancela algum em «Os teus convites» antes de criar outro.",
+      "loadFailed": "Não foi possível ler os convites. Tocar para tentar outra vez.",
+      "cancelFailed": "Não foi possível cancelar o convite."
+    }
+  },
+  "openSource": {
+    "lead": "O Seixo é software livre. Qualquer pessoa pode ler o código, verificar o que a app faz e usá-lo nos termos da licença.",
+    "notice": "Copyright (C) 2026 Bruno Rodrigues da Silva. Distribuído sob a GNU Affero General Public License, versão 3 (AGPL-3.0), sem qualquer garantia.",
+    "sourceSection": "O código do Seixo",
+    "sourceRow": "Código fonte completo",
+    "licenseRow": "Texto da licença",
+    "cryptoSection": "A cifra",
+    "cryptoFooter": "As mensagens são cifradas com a libsignal, a mesma biblioteca do Signal. É por a incluir que o Seixo usa a mesma licença.",
+    "componentsSection": "Outros componentes",
+    "componentsFooter": "Cada componente mantém a sua própria licença, compatível com a AGPL-3.0. A lista completa e os textos estão no código fonte."
   }
 }

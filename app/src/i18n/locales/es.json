@@ -5,6 +5,8 @@
     "blockedPeers": "Contactos bloqueados",
     "settings": "Ajustes",
     "scanQr": "Escanear código QR",
+    "invites": "Tus invitaciones",
+    "openSource": "Código abierto y licencias",
     "backup": "Copia de seguridad",
     "restoreBackup": "Recuperar cuenta",
     "shareTarget": "Compartir en…",
@@ -303,7 +305,10 @@
     "appLockRow": "Bloqueo de la app",
     "appLockRowHint": "Face ID, o un código solo de Seixo con código de pánico.",
     "hideFromRecordingLabel": "Ocultar en grabaciones de pantalla",
-    "hideFromRecordingHint": "Cuando está activado, una grabación de pantalla, o la duplicación en otra pantalla, muestra Seixo en negro. Las capturas de pantalla no se ven afectadas: en una conversación, se avisa a todos."
+    "hideFromRecordingHint": "Cuando está activado, una grabación de pantalla, o la duplicación en otra pantalla, muestra Seixo en negro. Las capturas de pantalla no se ven afectadas: en una conversación, se avisa a todos.",
+    "invitesRow": "Tus invitaciones",
+    "invitesRowHint": "Ver, volver a compartir o cancelar las invitaciones que creaste.",
+    "openSource": "Código abierto y licencias"
   },
   "screenshotWarning": {
     "title": "Captura de pantalla",
@@ -552,5 +557,50 @@
   "announcement": {
     "tag": "Novedad",
     "dismiss": "Cerrar esta novedad"
+  },
+  "invite": {
+    "button": "Invitar a alguien",
+    "listLink": "Ver tus invitaciones",
+    "shareMessage": "Habla conmigo en Seixo, la app de mensajes privados sin número de teléfono: {{link}}",
+    "acceptTitle": "¿Empezar una conversación?",
+    "acceptBody": "Alguien te invitó a hablar en Seixo. Al aceptar, la conversación se abre en ambos lados y la invitación deja de servir.",
+    "acceptLater": "Ahora no",
+    "acceptStart": "Empezar",
+    "listIntro": "Cada invitación sirve una vez y caduca a los 7 días. No sabemos a quién se la enviaste ni quién la usó: solo si ya se usó.",
+    "listEmpty": "Aún no has creado ninguna invitación.",
+    "createdOn": "Creada el {{date}}",
+    "expiresOn": "Caduca el {{date}}",
+    "shareAgain": "Compartir",
+    "cancel": "Cancelar",
+    "cancelTitle": "¿Cancelar esta invitación?",
+    "cancelBody": "El enlace deja de funcionar para quien lo tenga.",
+    "cancelKeep": "Mantener",
+    "cancelConfirm": "Cancelar invitación",
+    "status": {
+      "open": "Sin usar",
+      "used": "Usada",
+      "expired": "Caducada"
+    },
+    "error": {
+      "notValid": "Esta invitación ya no sirve: se usó, se canceló o caducó. Pide una nueva a quien te la envió.",
+      "own": "Esta invitación es tuya. Envíala a otra persona.",
+      "blocked": "No se puede empezar esta conversación: uno de los dos ha bloqueado al otro.",
+      "failed": "No se pudo aceptar la invitación. Comprueba la conexión y vuelve a intentarlo.",
+      "createFailed": "No se pudo crear la invitación. Comprueba la conexión y vuelve a intentarlo.",
+      "tooMany": "Ya tienes 20 invitaciones sin usar. Cancela alguna en «Tus invitaciones» antes de crear otra.",
+      "loadFailed": "No se pudieron cargar las invitaciones. Toca para intentarlo de nuevo.",
+      "cancelFailed": "No se pudo cancelar la invitación."
+    }
+  },
+  "openSource": {
+    "lead": "Seixo es software libre. Cualquier persona puede leer el código, comprobar lo que hace la app y usarlo según los términos de la licencia.",
+    "notice": "Copyright (C) 2026 Bruno Rodrigues da Silva. Distribuido bajo la GNU Affero General Public License, versión 3 (AGPL-3.0), sin ninguna garantía.",
+    "sourceSection": "El código de Seixo",
+    "sourceRow": "Código fuente completo",
+    "licenseRow": "Texto de la licencia",
+    "cryptoSection": "El cifrado",
+    "cryptoFooter": "Los mensajes se cifran con libsignal, la misma biblioteca que usa Signal. Incluirla es la razón por la que Seixo usa la misma licencia.",
+    "componentsSection": "Otros componentes",
+    "componentsFooter": "Cada componente mantiene su propia licencia, compatible con la AGPL-3.0. La lista completa y los textos están en el código fuente."
   }
 }

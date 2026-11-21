@@ -15,6 +15,7 @@ import { usePushRegistration } from './src/notifications/usePushRegistration';
 import { clearVoiceCache } from './src/audio/voiceFiles';
 import { ShareIntentProvider } from 'expo-share-intent';
 import { SharedContentListener } from './src/components/SharedContentListener';
+import { InviteLinkListener } from './src/components/InviteLinkListener';
 import { useAppBadge } from './src/notifications/useAppBadge';
 import { startImageJanitor } from './src/messaging/attachments';
 
@@ -87,6 +88,8 @@ export default function App() {
         {/* Only parks what was shared; choosing where it goes happens
             behind the lock and the terms, in the conversation list. */}
         <SharedContentListener />
+        {/* Same idea for invite links: parked here, answered in the list. */}
+        <InviteLinkListener />
         {/* Inside ThemeProvider (the lock screen needs colours) but outside
             the navigator, so nothing behind the lock is ever mounted or
             briefly visible. Message sync above stays running regardless --

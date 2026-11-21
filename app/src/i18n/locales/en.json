@@ -5,6 +5,8 @@
     "blockedPeers": "Blocked contacts",
     "settings": "Settings",
     "scanQr": "Scan QR code",
+    "invites": "Your invites",
+    "openSource": "Open source and licences",
     "backup": "Backup",
     "restoreBackup": "Restore account",
     "shareTarget": "Share to…",
@@ -303,7 +305,10 @@
     "appLockRow": "App lock",
     "appLockRowHint": "Face ID, or a Seixo-only code with a panic code.",
     "hideFromRecordingLabel": "Hide from screen recordings",
-    "hideFromRecordingHint": "When on, a screen recording, or mirroring to another screen, shows Seixo as black. Screenshots are not affected: in a conversation, everyone is told about them."
+    "hideFromRecordingHint": "When on, a screen recording, or mirroring to another screen, shows Seixo as black. Screenshots are not affected: in a conversation, everyone is told about them.",
+    "invitesRow": "Your invites",
+    "invitesRowHint": "See, share again or cancel the invites you made.",
+    "openSource": "Open source and licences"
   },
   "screenshotWarning": {
     "title": "Screenshot",
@@ -552,5 +557,50 @@
   "announcement": {
     "tag": "New",
     "dismiss": "Dismiss this notice"
+  },
+  "invite": {
+    "button": "Invite someone",
+    "listLink": "See your invites",
+    "shareMessage": "Talk to me on Seixo, the private messenger with no phone number: {{link}}",
+    "acceptTitle": "Start a conversation?",
+    "acceptBody": "Someone invited you to talk on Seixo. If you accept, the conversation opens on both sides and the invite stops working.",
+    "acceptLater": "Not now",
+    "acceptStart": "Start",
+    "listIntro": "Each invite works once and expires after 7 days. We don't know who you sent it to or who used it: only whether it was used.",
+    "listEmpty": "You haven't made any invites yet.",
+    "createdOn": "Made on {{date}}",
+    "expiresOn": "Expires on {{date}}",
+    "shareAgain": "Share",
+    "cancel": "Cancel",
+    "cancelTitle": "Cancel this invite?",
+    "cancelBody": "The link stops working for whoever has it.",
+    "cancelKeep": "Keep",
+    "cancelConfirm": "Cancel invite",
+    "status": {
+      "open": "Not used yet",
+      "used": "Used",
+      "expired": "Expired"
+    },
+    "error": {
+      "notValid": "This invite no longer works: it was used, cancelled or has expired. Ask whoever sent it for a new one.",
+      "own": "This invite is yours. Send it to someone else.",
+      "blocked": "You can't start this conversation: one of you has blocked the other.",
+      "failed": "Couldn't accept the invite. Check your connection and try again.",
+      "createFailed": "Couldn't make the invite. Check your connection and try again.",
+      "tooMany": "You already have 20 unused invites. Cancel one in \"Your invites\" before making another.",
+      "loadFailed": "Couldn't load your invites. Tap to try again.",
+      "cancelFailed": "Couldn't cancel the invite."
+    }
+  },
+  "openSource": {
+    "lead": "Seixo is free software. Anyone can read the code, check what the app does and use it under the terms of the licence.",
+    "notice": "Copyright (C) 2026 Bruno Rodrigues da Silva. Distributed under the GNU Affero General Public License, version 3 (AGPL-3.0), without any warranty.",
+    "sourceSection": "Seixo's code",
+    "sourceRow": "Complete source code",
+    "licenseRow": "Licence text",
+    "cryptoSection": "The encryption",
+    "cryptoFooter": "Messages are encrypted with libsignal, the same library Signal uses. Including it is why Seixo uses the same licence.",
+    "componentsSection": "Other components",
+    "componentsFooter": "Each component keeps its own licence, compatible with the AGPL-3.0. The full list and texts are in the source code."
   }
 }

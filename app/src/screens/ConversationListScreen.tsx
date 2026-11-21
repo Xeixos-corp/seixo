@@ -5,6 +5,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -33,6 +34,8 @@ import { PasteButton } from '../components/PasteButton';
 import { NotAnIdHelp } from '../components/NotAnIdHelp';
 import { AnnouncementCard } from '../components/AnnouncementCard';
 import { findPeerId, isPeerNotFoundError } from '../identity/peerId';
+import { createInvite, findInviteCode, redeemInvite, RedeemError, TooManyInvitesError } from '../transport/invites';
+import { usePendingInviteStore } from '../store/pendingInviteStore';
 import { ConversationRow } from '../components/ConversationRow';
 import { lastVisibleMessage } from '../messaging/lastMessage';
 import { useRegisterPushToken } from '../notifications/usePushRegistration';
@@ -120,8 +123,14 @@ export function ConversationListScreen({ navigation }: Props) {
   };
 
   const handlePaste = (text: string) => {
-    const found = findPeerId(text);
     setErrorMessage(null);
+    // An invite link pasted here is answered as if it had been tapped.
+    const invite = findInviteCode(text);
+    if (invite) {
+      askToAcceptInvite(invite);
+      return;
+    }
+    const found = findPeerId(text);
     if (found) {
       setPeerUserId(found);
       setNotAnId(false);
@@ -130,6 +139,72 @@ export function ConversationListScreen({ navigation }: Props) {
       setPeerUserId(text.trim());
       setIdFromPaste(false);
       setNotAnId(true);
+    }
+  };
+
+  /**
+   * An invite, from a tapped link or a pasted one: asked about first, because
+   * accepting starts a conversation with someone the person cannot see yet.
+   * The inviter's account id comes back from the server only once the code
+   * checks out, and then everything is as if that ID had been typed.
+   */
+  const acceptInvite = async (code: string) => {
+    setStarting(true);
+    setErrorMessage(null);
+    try {
+      const inviterId = await redeemInvite(code);
+      const conversation = await startConversationWithPeer(inviterId);
+      navigation.navigate('Conversation', conversation);
+    } catch (error) {
+      if (error instanceof RedeemError) {
+        setErrorMessage(t(`invite.error.${error.reason}`));
+      } else if (isBlockedChannelError(error)) {
+        setErrorMessage(t('conversationList.blockedChannelError'));
+      } else {
+        setErrorMessage(t('invite.error.failed'));
+        console.error('[ConversationList] could not accept the invite', error);
+      }
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const askToAcceptInvite = (code: string) => {
+    Alert.alert(t('invite.acceptTitle'), t('invite.acceptBody'), [
+      { text: t('invite.acceptLater'), style: 'cancel' },
+      { text: t('invite.acceptStart'), onPress: () => void acceptInvite(code) },
+    ]);
+  };
+
+  // A link tapped before this screen existed (the app was closed, or had
+  // just been installed) waits in the store until here: behind the lock, the
+  // terms and an identity, like a shared link.
+  const pendingInvite = usePendingInviteStore((state) => state.code);
+  const takePendingInvite = usePendingInviteStore((state) => state.take);
+  useEffect(() => {
+    if (!pendingInvite) return;
+    const code = takePendingInvite();
+    if (code) askToAcceptInvite(code);
+    // askToAcceptInvite is rebuilt each render; the code is what matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingInvite, takePendingInvite]);
+
+  const [inviting, setInviting] = useState(false);
+  /**
+   * Makes an invite and opens the share sheet with it. The link goes through
+   * whichever app the person chooses; Seixo never sees where.
+   */
+  const handleInvite = async () => {
+    setInviting(true);
+    setErrorMessage(null);
+    try {
+      const { link } = await createInvite();
+      await Share.share({ message: t('invite.shareMessage', { link }) });
+    } catch (error) {
+      setErrorMessage(error instanceof TooManyInvitesError ? t('invite.error.tooMany') : t('invite.error.createFailed'));
+      if (!(error instanceof TooManyInvitesError)) console.error('[ConversationList] could not create an invite', error);
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -461,6 +536,27 @@ export function ConversationListScreen({ navigation }: Props) {
       {idFromPaste ? (
         <Text style={[styles.pasteNote, { color: colors.success }]}>{t('peerId.foundInPaste')}</Text>
       ) : null}
+      {/* The easiest way in: a link a friend taps. The ID field above stays
+          for anyone who prefers it, and for the QR code. */}
+      <Pressable
+        onPress={() => void handleInvite()}
+        disabled={inviting}
+        style={({ pressed }) => [
+          styles.inviteButton,
+          { backgroundColor: pressed ? colors.accentPressed : colors.accent },
+          inviting && styles.newConversationButtonDisabled,
+        ]}
+        accessibilityRole="button"
+      >
+        {inviting ? (
+          <ActivityIndicator color={colors.onAccent} size="small" />
+        ) : (
+          <Text style={[styles.inviteButtonText, { color: colors.onAccent }]}>{t('invite.button')}</Text>
+        )}
+      </Pressable>
+      <Pressable onPress={() => navigation.navigate('Invites')} hitSlop={6} style={styles.inviteListLink}>
+        <Text style={{ color: colors.accent, fontSize: 13 }}>{t('invite.listLink')}</Text>
+      </Pressable>
       {notAnId ? <NotAnIdHelp onScanQr={() => navigation.navigate('ScanQr')} /> : null}
       {/* Side by side and equally weighted: these are two ways of starting
           something, not a main action and a footnote. Stacked as plain text
@@ -617,6 +713,21 @@ export function ConversationListScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  inviteButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  inviteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  inviteListLink: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    marginBottom: 6,
+  },
   pasteNote: {
     fontSize: 13,
     marginBottom: 8,

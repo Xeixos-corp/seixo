@@ -1,6 +1,6 @@
 # Seixo: Perguntas frequentes
 
-**Última atualização: 17 de novembro de 2026**
+**Última atualização: 21 de novembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado
@@ -53,6 +53,8 @@ Se houver uma coisa a fazer depois de ler esta página, é a cópia de seguranç
 É o teu endereço dentro da Seixo: uma sequência aleatória que não diz nada sobre ti, nem nome, nem país, nem telefone, porque a app nunca soube nada disso.
 
 Encontra-lo em **«O meu ID»**, na lista de conversas, com um código QR. Quem estiver a teu lado lê o código; quem estiver longe recebe o ID copiado por onde te der jeito.
+
+**A forma mais simples de começar é um convite.** Na lista de conversas, carrega em **«Convidar alguém»** e envia o link por onde quiseres. Quando a outra pessoa tocar nele, a conversa abre-se. Se ainda não tiver o Seixo, o link explica como o instalar. Cada convite serve uma vez e expira ao fim de 7 dias, e em **«Os teus convites»** podes cancelar os que ainda não foram usados.
 
 **Não há nomes de utilizador nem números de telefone.** Para falares com alguém, precisas do ID dessa pessoa: escrever o nome dela não serve. Se te mandarem a mensagem inteira («O meu ID da Seixo: …»), podes colá-la toda no campo, com o botão **Colar**: a app encontra o ID lá dentro. Num grupo, quem já é teu contacto escolhe-se da lista, sem ID.
 
