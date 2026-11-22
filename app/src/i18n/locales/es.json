@@ -602,5 +602,45 @@
     "cryptoFooter": "Los mensajes se cifran con libsignal, la misma biblioteca que usa Signal. Incluirla es la razón por la que Seixo usa la misma licencia.",
     "componentsSection": "Otros componentes",
     "componentsFooter": "Cada componente mantiene su propia licencia, compatible con la AGPL-3.0. La lista completa y los textos están en el código fuente."
+  },
+  "call": {
+    "olderAppFallback": "Intenté llamarte por Seixo. Actualiza la app para poder contestar llamadas.",
+    "startButton": "Llamar",
+    "calling": "Llamando…",
+    "incoming": "Llamada de Seixo",
+    "connecting": "Conectando…",
+    "encryptedNote": "Cifrada de extremo a extremo",
+    "decline": "Rechazar",
+    "accept": "Contestar",
+    "mute": "Silenciar",
+    "unmute": "Activar sonido",
+    "speaker": "Altavoz",
+    "hangUp": "Colgar",
+    "microphoneDenied": "Para hacer llamadas, Seixo necesita el micrófono.",
+    "startFailed": "No se pudo hacer la llamada. Comprueba la conexión y vuelve a intentarlo.",
+    "ended": {
+      "ended": "Llamada finalizada",
+      "answered": "Llamada finalizada",
+      "missed": "Sin respuesta",
+      "declined": "Llamada rechazada",
+      "busy": "Ocupado en otra llamada",
+      "failed": "No se pudo conectar"
+    },
+    "log": {
+      "outgoingAnswered": "Llamada de voz · {{duration}}",
+      "incomingAnswered": "Llamada de voz recibida · {{duration}}",
+      "outgoing": {
+        "missed": "Llamada sin respuesta",
+        "declined": "Llamada rechazada",
+        "busy": "Llamada: ocupado",
+        "failed": "Llamada fallida"
+      },
+      "incoming": {
+        "missed": "Llamada perdida",
+        "declined": "Llamada rechazada",
+        "busy": "Llamada perdida",
+        "failed": "Llamada fallida"
+      }
+    }
   }
 }

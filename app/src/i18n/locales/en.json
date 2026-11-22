@@ -602,5 +602,45 @@
     "cryptoFooter": "Messages are encrypted with libsignal, the same library Signal uses. Including it is why Seixo uses the same licence.",
     "componentsSection": "Other components",
     "componentsFooter": "Each component keeps its own licence, compatible with the AGPL-3.0. The full list and texts are in the source code."
+  },
+  "call": {
+    "olderAppFallback": "I tried to call you on Seixo. Update the app to answer calls.",
+    "startButton": "Call",
+    "calling": "Calling…",
+    "incoming": "Seixo call",
+    "connecting": "Connecting…",
+    "encryptedNote": "End-to-end encrypted",
+    "decline": "Decline",
+    "accept": "Accept",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "speaker": "Speaker",
+    "hangUp": "End",
+    "microphoneDenied": "Seixo needs the microphone to make calls.",
+    "startFailed": "Couldn't place the call. Check your connection and try again.",
+    "ended": {
+      "ended": "Call ended",
+      "answered": "Call ended",
+      "missed": "No answer",
+      "declined": "Call declined",
+      "busy": "On another call",
+      "failed": "Couldn't connect"
+    },
+    "log": {
+      "outgoingAnswered": "Voice call · {{duration}}",
+      "incomingAnswered": "Incoming voice call · {{duration}}",
+      "outgoing": {
+        "missed": "No answer",
+        "declined": "Call declined",
+        "busy": "Call: busy",
+        "failed": "Call failed"
+      },
+      "incoming": {
+        "missed": "Missed call",
+        "declined": "Call declined",
+        "busy": "Missed call",
+        "failed": "Call failed"
+      }
+    }
   }
 }

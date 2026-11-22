@@ -17,7 +17,7 @@
       "bundleIdentifier": "com.xeixos.seixo",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it.",
+        "NSMicrophoneUsageDescription": "Seixo uses the microphone only for voice messages and voice calls, when you record or are on a call. Your voice is encrypted on your phone before it leaves.",
         "LSApplicationQueriesSchemes": [
           "comgooglemaps",
           "waze"
@@ -78,7 +78,7 @@
         {
           "photosPermission": "Seixo only sees the photo you choose to send, never your library. The image is encrypted on your phone before it leaves, without its location or other photo data.",
           "cameraPermission": "Seixo uses the camera to scan a contact's QR code and to take photos you choose to send. Photos are encrypted on your phone before they leave it.",
-          "microphonePermission": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it."
+          "microphonePermission": "Seixo uses the microphone only for voice messages and voice calls, when you record or are on a call. Your voice is encrypted on your phone before it leaves."
         }
       ],
       [
@@ -90,7 +90,14 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Seixo uses the microphone only to record voice messages. Recordings are encrypted on your phone before they leave, and nothing is sent unless you send it."
+          "microphonePermission": "Seixo uses the microphone only for voice messages and voice calls, when you record or are on a call. Your voice is encrypted on your phone before it leaves."
+        }
+      ],
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Seixo uses the camera to scan a contact's QR code and to take photos you choose to send. Photos are encrypted on your phone before they leave it.",
+          "microphonePermission": "Seixo uses the microphone only for voice messages and voice calls, when you record or are on a call. Your voice is encrypted on your phone before it leaves."
         }
       ],
       [

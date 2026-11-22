@@ -115,3 +115,44 @@ export function ImageIcon({ size, color }: IconProps) {
     </Svg>
   );
 }
+
+/** A telephone handset: start a call, answer one. */
+export function PhoneIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" />
+    </Svg>
+  );
+}
+
+/** The handset turned down: hang up, decline. */
+export function HangUpIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M3.7 14.9l-1.4-1.4a1.8 1.8 0 0 1 .1-2.6C5 8.6 8.4 7.4 12 7.4s7 1.2 9.6 3.5a1.8 1.8 0 0 1 .1 2.6l-1.4 1.4a1.8 1.8 0 0 1-2.3.2l-1.9-1.3a1.8 1.8 0 0 1-.8-1.5v-1.6a12 12 0 0 0-6.6 0v1.6a1.8 1.8 0 0 1-.8 1.5L6 15.1a1.8 1.8 0 0 1-2.3-.2z" />
+    </Svg>
+  );
+}
+
+/** A loudspeaker with sound waves. */
+export function SpeakerIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M11 5L6 9H2v6h4l5 4V5z" />
+      <Path d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <Path d="M19 5a10 10 0 0 1 0 14" />
+    </Svg>
+  );
+}
+
+/** A microphone with a line through it: muted. */
+export function MicOffIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round">
+      <Rect x={9} y={3} width={6} height={11} rx={3} />
+      <Path d="M5 11a7 7 0 0 0 14 0" />
+      <Line x1={12} y1={18} x2={12} y2={21} />
+      <Line x1={3} y1={3} x2={21} y2={21} />
+    </Svg>
+  );
+}

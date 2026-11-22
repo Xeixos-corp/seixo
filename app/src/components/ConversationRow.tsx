@@ -9,6 +9,7 @@ import type { DecryptedMessage } from '../store/messagesStore';
 import { usePrivacyPreferencesStore } from '../store/privacyPreferencesStore';
 import { isObjectionable } from '../messaging/contentFilter';
 import { lastVisibleMessage } from '../messaging/lastMessage';
+import { callNoticeText } from '../calls/callNotice';
 
 type Props = {
   conversation: Conversation;
@@ -78,7 +79,9 @@ export function ConversationRow({ conversation, messages, unread, onPress, onLon
     const isImage = Boolean(last.image);
     const isFile = Boolean(last.file);
     const isLocation = Boolean(last.location);
-    const body = last.notice === 'screenshot'
+    const body = last.notice === 'call' && last.call
+      ? callNoticeText(t, last.isMine === true, last.call)
+      : last.notice === 'screenshot'
       ? last.isMine
         ? t('conversation.screenshotNoticeMine')
         : t('conversationList.screenshotPreview')

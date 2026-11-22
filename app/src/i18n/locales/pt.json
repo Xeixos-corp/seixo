@@ -602,5 +602,45 @@
     "cryptoFooter": "As mensagens são cifradas com a libsignal, a mesma biblioteca do Signal. É por a incluir que o Seixo usa a mesma licença.",
     "componentsSection": "Outros componentes",
     "componentsFooter": "Cada componente mantém a sua própria licença, compatível com a AGPL-3.0. A lista completa e os textos estão no código fonte."
+  },
+  "call": {
+    "olderAppFallback": "Tentei ligar-te pelo Seixo. Atualiza a app para poderes atender chamadas.",
+    "startButton": "Ligar",
+    "calling": "A chamar…",
+    "incoming": "Chamada do Seixo",
+    "connecting": "A ligar…",
+    "encryptedNote": "Cifrada de ponta a ponta",
+    "decline": "Recusar",
+    "accept": "Atender",
+    "mute": "Silenciar",
+    "unmute": "Ativar som",
+    "speaker": "Altifalante",
+    "hangUp": "Desligar",
+    "microphoneDenied": "Para fazer chamadas, o Seixo precisa do microfone.",
+    "startFailed": "Não foi possível fazer a chamada. Verifica a ligação e tenta outra vez.",
+    "ended": {
+      "ended": "Chamada terminada",
+      "answered": "Chamada terminada",
+      "missed": "Sem resposta",
+      "declined": "Chamada recusada",
+      "busy": "Ocupado noutra chamada",
+      "failed": "Não foi possível ligar"
+    },
+    "log": {
+      "outgoingAnswered": "Chamada de voz · {{duration}}",
+      "incomingAnswered": "Chamada de voz recebida · {{duration}}",
+      "outgoing": {
+        "missed": "Chamada sem resposta",
+        "declined": "Chamada recusada",
+        "busy": "Chamada: ocupado",
+        "failed": "Chamada falhada"
+      },
+      "incoming": {
+        "missed": "Chamada perdida",
+        "declined": "Chamada recusada",
+        "busy": "Chamada perdida",
+        "failed": "Chamada falhada"
+      }
+    }
   }
 }

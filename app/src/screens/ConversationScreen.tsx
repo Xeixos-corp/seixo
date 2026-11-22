@@ -64,7 +64,9 @@ import {
 } from '../../modules/audio-session-expo/src';
 import { VoiceMessage } from '../components/VoiceMessage';
 import { ImageMessage } from '../components/ImageMessage';
-import { PaperclipIcon, TrashIcon } from '../components/icons';
+import { PaperclipIcon, PhoneIcon, TrashIcon } from '../components/icons';
+import { startCall, useCallStore } from '../calls/callManager';
+import { callNoticeText } from '../calls/callNotice';
 import { FileMessage } from '../components/FileMessage';
 import { LocationMessage } from '../components/LocationMessage';
 import {
@@ -423,11 +425,41 @@ export function ConversationScreen({ route, navigation }: Props) {
     [isGroup, peerUserId, submitReport, blockPeerNow, t],
   );
 
+  const handleCall = useCallback(async () => {
+    if (useCallStore.getState().phase !== 'idle') return;
+    // Same permission handling as recording a voice message (startRecording).
+    const before = await getRecordingPermissionsAsync();
+    const permission = before.granted ? before : await requestRecordingPermissionsAsync();
+    if (!permission.granted) {
+      if (!before.canAskAgain) {
+        Alert.alert(t('permissions.microphoneBlockedTitle'), t('permissions.microphoneBlockedBody'), [
+          { text: t('conversation.cancel'), style: 'cancel' },
+          { text: t('permissions.openSettings'), onPress: () => void Linking.openSettings() },
+        ]);
+      } else {
+        setSendError(t('call.microphoneDenied'));
+      }
+      return;
+    }
+    startCall(channelId, peerUserId).catch(() => setSendError(t('call.startFailed')));
+  }, [channelId, peerUserId, t]);
+
   useEffect(() => {
     navigation.setOptions({
       title: conversationName,
       headerRight: () => (
         <View style={styles.headerButtons}>
+          {/* Calls are one to one. */}
+          {!isGroup ? (
+            <Pressable
+              onPress={handleCall}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('call.startButton')}
+            >
+              <PhoneIcon size={19} color={colors.accent} />
+            </Pressable>
+          ) : null}
           {isGroup ? (
             <Pressable onPress={() => setShowMembers(true)} hitSlop={8}>
               <Text style={{ color: colors.accent, fontSize: 13 }}>
@@ -459,6 +491,7 @@ export function ConversationScreen({ route, navigation }: Props) {
     handleBlock,
     handleLeaveGroup,
     handleReport,
+    handleCall,
     isGroup,
     t,
     conversationName,
@@ -2105,7 +2138,20 @@ export function ConversationScreen({ route, navigation }: Props) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
           renderItem={({ item }) =>
-            item.notice === 'screenshot' ? (
+            item.notice === 'call' && item.call ? (
+              <View style={styles.noticeRow}>
+                <Text
+                  style={[
+                    styles.noticeText,
+                    { color: item.call.outcome === 'missed' && !item.isMine ? colors.danger : colors.textSecondary },
+                  ]}
+                >
+                  {callNoticeText(t, item.isMine === true, item.call)}
+                  {' · '}
+                  {formatSentAt(item.createdAt)}
+                </Text>
+              </View>
+            ) : item.notice === 'screenshot' ? (
               <View style={styles.noticeRow}>
                 <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
                   {item.isMine === true

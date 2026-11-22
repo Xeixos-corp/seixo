@@ -5,6 +5,9 @@ type AudioSessionModule = {
   configureForRecording(): Promise<void>;
   startEarpieceRouting(): Promise<void>;
   stopEarpieceRouting(): Promise<void>;
+  startCallAudio?(): Promise<void>;
+  stopCallAudio?(): Promise<void>;
+  setCallSpeaker?(on: boolean): Promise<void>;
   addListener?(event: 'onAudioInterruption', listener: () => void): { remove(): void };
 };
 
@@ -67,4 +70,18 @@ export function onAudioInterruption(listener: () => void): () => void {
     console.warn('[audioSession] could not listen for interruptions', error);
     return () => {};
   }
+}
+
+/** Session and routing for a voice call (calls/callManager.ts). */
+export async function startCallAudio(): Promise<void> {
+  await attempt('startCallAudio', native?.startCallAudio?.bind(native));
+}
+
+export async function stopCallAudio(): Promise<void> {
+  await attempt('stopCallAudio', native?.stopCallAudio?.bind(native));
+}
+
+export async function setCallSpeaker(on: boolean): Promise<void> {
+  const run = native?.setCallSpeaker?.bind(native);
+  await attempt('setCallSpeaker', run ? () => run(on) : undefined);
 }

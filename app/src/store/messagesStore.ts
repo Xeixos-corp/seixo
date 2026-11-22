@@ -51,6 +51,13 @@ export type StoredFile = {
   state?: 'uploading' | 'failed' | 'unavailable';
 };
 
+export type StoredCall = {
+  /** answered: talked; missed: rang and nobody picked up; declined; busy; failed: could not connect. */
+  outcome: 'answered' | 'missed' | 'declined' | 'busy' | 'failed';
+  /** Seconds of conversation, for an answered call. */
+  durationSeconds?: number;
+};
+
 export type DecryptedMessage = {
   id: string;
   createdAt: string;
@@ -115,7 +122,13 @@ export type DecryptedMessage = {
    * Not a message but a line about the conversation: someone took a
    * screenshot of it. `senderUserId` says who, when it was not this phone.
    */
-  notice?: 'screenshot';
+  notice?: 'screenshot' | 'call';
+  /**
+   * For a `call` notice: how the call went. One line per call, written by
+   * each phone when the call is over (calls/callManager.ts). `isMine` says
+   * who placed it.
+   */
+  call?: StoredCall;
   /**
    * Emoji reactions on this message, keyed by who reacted: 'mine' for this
    * device, 'theirs' for the other person. One reaction each, replaced rather

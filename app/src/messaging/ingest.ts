@@ -8,6 +8,7 @@ import { decodePayload } from './payload';
 import { decodeEnvelope } from '../crypto/messageCodec';
 import { unpackGroupMessage, isGroupMessage } from './groupEnvelope';
 import type { FetchedMessage } from '../transport/messages';
+import { handleCallSignal } from '../calls/callManager';
 
 const REMOTE_DEVICE_ID = 1; // single device per identity for now
 
@@ -150,6 +151,7 @@ export function ingestFetchedMessage(
       image,
       file,
       location,
+      call,
     } = decodePayload(raw);
 
     // The row's expires_at is only how long the *server* held it. When the
@@ -159,6 +161,15 @@ export function ingestFetchedMessage(
       ? new Date(Date.parse(fetched.createdAt) + localTtlSeconds * 1000).toISOString()
       : fetched.expiresAt;
     const store = useMessagesStore.getState();
+
+    if (call) {
+      // Not a message to show: the call manager rings, connects or hangs up,
+      // and writes the line about the call itself when it is over. Calls are
+      // one to one; a signal arriving in a group is ignored.
+      if (!isGroupMessage(fetched.ciphertext)) handleCallSignal(channelId, sender, call, fetched.createdAt);
+      rememberControlMessage(channelId, fetched);
+      return;
+    }
 
     if (groupName !== undefined) {
       // Applied as the local name, the same field a nickname uses -- so a

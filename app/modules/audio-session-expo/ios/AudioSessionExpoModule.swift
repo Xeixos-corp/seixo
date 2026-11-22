@@ -33,13 +33,18 @@ public class AudioSessionExpoModule: Module {
   /// screen timer back on while the other is still going.
   private static var recordingKeepsScreenOn = false
   private static var playbackKeepsScreenOn = false
+  private static var callKeepsScreenOn = false
+  /// Whether the person asked for the speaker during a call. Kept so it can be
+  /// put back when iOS resets the route (see applyCallRoute).
+  private static var callWantsSpeaker = false
+  private var callRouteObserver: NSObjectProtocol?
 
   /// Main thread only (UIApplication). iOS also clears it by itself when the
   /// app leaves the foreground, so nothing interrupted can pin the screen on
   /// for ever.
   private static func updateIdleTimer() {
     DispatchQueue.main.async {
-      UIApplication.shared.isIdleTimerDisabled = recordingKeepsScreenOn || playbackKeepsScreenOn
+      UIApplication.shared.isIdleTimerDisabled = recordingKeepsScreenOn || playbackKeepsScreenOn || callKeepsScreenOn
     }
   }
 
@@ -107,6 +112,26 @@ public class AudioSessionExpoModule: Module {
     let onSpeaker = session.currentRoute.outputs.contains { $0.portType == .builtInSpeaker }
     if nearEar == onSpeaker {
       try? session.overrideOutputAudioPort(nearEar ? .none : .speaker)
+    }
+  }
+
+  /// Where a call's sound goes: headphones when connected, otherwise the
+  /// earpiece, or the speaker when the person turned it on. An output override
+  /// is reset by iOS whenever the session is disturbed (see applyPlaybackRoute),
+  /// so this runs again on every route change while a call lasts.
+  private static func applyCallRoute() {
+    let session = AVAudioSession.sharedInstance()
+    if hasExternalOutput() {
+      UIDevice.current.isProximityMonitoringEnabled = false
+      try? session.overrideOutputAudioPort(.none)
+      return
+    }
+    // The screen goes dark at the ear, as on any phone call, but not on
+    // speaker, where the phone is usually held away or lying on a table.
+    UIDevice.current.isProximityMonitoringEnabled = !callWantsSpeaker
+    let onSpeaker = session.currentRoute.outputs.contains { $0.portType == .builtInSpeaker }
+    if onSpeaker != callWantsSpeaker {
+      try? session.overrideOutputAudioPort(callWantsSpeaker ? .speaker : .none)
     }
   }
 
@@ -319,6 +344,57 @@ public class AudioSessionExpoModule: Module {
           self.routeWatchdog = timer
         }
       }
+    }.runOnQueue(.main)
+
+    /// Prepares the session for a voice call: record and play, in the mode
+    /// iOS tunes for conversation (echo cancellation, the earpiece), with
+    /// Bluetooth headsets allowed. WebRTC sets the same category when its audio
+    /// starts; setting it first means the microphone is ready the moment the
+    /// call connects, and this module can then watch the route.
+    ///
+    /// The screen is kept on for the whole call. Without the `audio`
+    /// background mode, which comes with CallKit in a later phase, a locked
+    /// screen would send the app to the background and cut the call.
+    AsyncFunction("startCallAudio") { [weak self] in
+      let session = AVAudioSession.sharedInstance()
+      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+      try session.setActive(true)
+      AudioSessionExpoModule.callWantsSpeaker = false
+      AudioSessionExpoModule.callKeepsScreenOn = true
+      AudioSessionExpoModule.updateIdleTimer()
+      AudioSessionExpoModule.applyCallRoute()
+      if self?.callRouteObserver == nil {
+        self?.callRouteObserver = NotificationCenter.default.addObserver(
+          forName: AVAudioSession.routeChangeNotification,
+          object: nil,
+          queue: .main
+        ) { _ in
+          AudioSessionExpoModule.applyCallRoute()
+        }
+      }
+    }.runOnQueue(.main)
+
+    /// Speaker on or off during a call. Ignored while headphones are in:
+    /// they always win, as they do for voice messages.
+    AsyncFunction("setCallSpeaker") { (on: Bool) in
+      AudioSessionExpoModule.callWantsSpeaker = on
+      AudioSessionExpoModule.applyCallRoute()
+    }.runOnQueue(.main)
+
+    /// Undoes startCallAudio when the call ends.
+    AsyncFunction("stopCallAudio") { [weak self] in
+      if let observer = self?.callRouteObserver {
+        NotificationCenter.default.removeObserver(observer)
+        self?.callRouteObserver = nil
+      }
+      AudioSessionExpoModule.callWantsSpeaker = false
+      AudioSessionExpoModule.callKeepsScreenOn = false
+      AudioSessionExpoModule.updateIdleTimer()
+      UIDevice.current.isProximityMonitoringEnabled = false
+      let session = AVAudioSession.sharedInstance()
+      try? session.overrideOutputAudioPort(.none)
+      // Lets music or a podcast that the call interrupted carry on.
+      try? session.setActive(false, options: .notifyOthersOnDeactivation)
     }.runOnQueue(.main)
 
     /// Stops playback routing and turns the proximity sensor off. Leaving it

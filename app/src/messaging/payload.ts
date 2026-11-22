@@ -130,6 +130,24 @@ type Encoded = {
    * inside the encryption: the server never learns where anyone is.
    */
   g?: EncodedLocation;
+  /**
+   * A voice-call signal: starting a call, answering it, ending it. Calls
+   * travel as ordinary Seixo messages, encrypted like any other, so the server
+   * sees a row in the conversation and cannot tell a call from a message --
+   * not that one happened, not how long it lasted, not who hung up.
+   */
+  v?: EncodedCall;
+};
+
+type EncodedCall = {
+  /** The call's id, made on the caller's phone; ties the signals together. */
+  i: string;
+  /** o: offer (ringing), a: answer, e: end, r: declined, b: busy. */
+  y: 'o' | 'a' | 'e' | 'r' | 'b';
+  /** The WebRTC session description, for an offer or an answer. */
+  s?: string;
+  /** For an end: how long the call lasted, in seconds, when it was answered. */
+  d?: number;
 };
 
 type EncodedLocation = {
@@ -180,6 +198,23 @@ export type LocationPayload = {
   accuracyMeters?: number;
 };
 
+export type CallSignalKind = 'offer' | 'answer' | 'end' | 'declined' | 'busy';
+
+export type CallSignal = {
+  callId: string;
+  kind: CallSignalKind;
+  sdp?: string;
+  durationSeconds?: number;
+};
+
+const CALL_KIND_CODES: Record<CallSignalKind, EncodedCall['y']> = {
+  offer: 'o',
+  answer: 'a',
+  end: 'e',
+  declined: 'r',
+  busy: 'b',
+};
+
 export type MessagePayload = {
   text: string;
   replyToId?: string;
@@ -200,6 +235,7 @@ export type MessagePayload = {
   image?: ImagePayload;
   file?: FilePayload;
   location?: LocationPayload;
+  call?: CallSignal;
 };
 
 /**
@@ -221,7 +257,8 @@ export function encodePayload(payload: MessagePayload): string {
     payload.groupName === undefined &&
     !payload.image &&
     !payload.file &&
-    !payload.location
+    !payload.location &&
+    !payload.call
   ) {
     // Unchanged wire format for the overwhelmingly common case.
     return payload.text;
@@ -261,6 +298,15 @@ export function encodePayload(payload: MessagePayload): string {
     };
   }
 
+  if (payload.call) {
+    encoded.v = {
+      i: payload.call.callId,
+      y: CALL_KIND_CODES[payload.call.kind],
+      s: payload.call.sdp,
+      d: payload.call.durationSeconds,
+    };
+  }
+
   if (!payload.audioBase64) return JSON.stringify(encoded);
 
   encoded.a = payload.audioBase64;
@@ -297,6 +343,7 @@ export function decodePayload(raw: string): MessagePayload {
       image: decodeImage(parsed.i),
       file: decodeFile(parsed.f),
       location: decodeLocation(parsed.g),
+      call: decodeCall(parsed.v),
     };
   } catch {
     // Genuinely just a message that starts with a brace.
@@ -373,5 +420,22 @@ function decodeLocation(raw: unknown): LocationPayload | undefined {
     longitude: location.o,
     accuracyMeters:
       typeof location.c === 'number' && Number.isFinite(location.c) && location.c >= 0 ? location.c : undefined,
+  };
+}
+
+/** A call signal is accepted only whole: an id and a kind this build knows. */
+function decodeCall(raw: unknown): CallSignal | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const call = raw as Partial<EncodedCall>;
+  if (typeof call.i !== 'string' || !call.i || call.i.length > 64) return undefined;
+  const kind = (Object.keys(CALL_KIND_CODES) as CallSignalKind[]).find((k) => CALL_KIND_CODES[k] === call.y);
+  if (!kind) return undefined;
+  if ((kind === 'offer' || kind === 'answer') && typeof call.s !== 'string') return undefined;
+  return {
+    callId: call.i,
+    kind,
+    sdp: typeof call.s === 'string' ? call.s : undefined,
+    durationSeconds:
+      typeof call.d === 'number' && Number.isFinite(call.d) && call.d >= 0 ? Math.round(call.d) : undefined,
   };
 }

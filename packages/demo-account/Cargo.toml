@@ -41,3 +41,6 @@ signal_native = { path = "../signal-native/rust" }
 # Only for examples/live_check.rs, which talks to the real project.
 ureq = { version = "2", features = ["json"] }
 sha2 = "0.10"
+# Only for examples/call_check.rs: a second phone that answers voice calls.
+webrtc = "0.14"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }

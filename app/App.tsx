@@ -16,6 +16,7 @@ import { clearVoiceCache } from './src/audio/voiceFiles';
 import { ShareIntentProvider } from 'expo-share-intent';
 import { SharedContentListener } from './src/components/SharedContentListener';
 import { InviteLinkListener } from './src/components/InviteLinkListener';
+import { CallOverlay } from './src/components/CallOverlay';
 import { useAppBadge } from './src/notifications/useAppBadge';
 import { startImageJanitor } from './src/messaging/attachments';
 
@@ -100,6 +101,8 @@ export default function App() {
               they are accepted -- including restoring a backup. */}
           <TermsGate>
             <RootNavigator />
+            {/* Behind the lock and the terms, like every screen. */}
+            <CallOverlay />
           </TermsGate>
         </AppLockGate>
         <StatusBar style="auto" />
