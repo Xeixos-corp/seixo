@@ -1,4 +1,7 @@
 import { AppState } from 'react-native';
+import { startCallKitBridge } from '../calls/callManager';
+import { upsertVoipToken } from '../calls/callPush';
+import { getVoipToken, hasCallKit } from '../../modules/calls-expo/src';
 import {
   initSignalDevice,
   generatePrekeyBundle,
@@ -307,6 +310,18 @@ async function finishRegistration(userId: string): Promise<void> {
   // reconcile, which is not worth blocking startup over.
   await reconcileConversations(userId);
   reconcileWhenForegrounded(userId);
+
+  // Voice calls: iOS's call screen, and the token that lets a closed app ring.
+  // The token can arrive before this point (it is requested at launch) or
+  // after; both paths publish it. Failure only means calls ring when the app
+  // is open, so it never blocks anything.
+  const publishVoipToken = (token: string) => {
+    upsertVoipToken(userId, token).catch((error) => console.warn('[calls] could not store VoIP token', error));
+  };
+  startCallKitBridge(publishVoipToken);
+  const knownToken = getVoipToken();
+  if (__DEV__) console.log('[calls] CallKit in this build:', hasCallKit, 'VoIP token known:', Boolean(knownToken));
+  if (knownToken) publishVoipToken(knownToken);
 
   // Detect conversations other people start with us (the receiving side of
   // createDirectChannel — see app/src/transport/channels.ts).

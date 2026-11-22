@@ -115,23 +115,35 @@ public class AudioSessionExpoModule: Module {
     }
   }
 
-  /// Where a call's sound goes: headphones when connected, otherwise the
-  /// earpiece, or the speaker when the person turned it on. An output override
-  /// is reset by iOS whenever the session is disturbed (see applyPlaybackRoute),
-  /// so this runs again on every route change while a call lasts.
+  /// Puts a call's sound where the person asked: the speaker, or back to the
+  /// earpiece. Only when they ask (the app's speaker button). Headphones win.
   private static func applyCallRoute() {
     let session = AVAudioSession.sharedInstance()
     if hasExternalOutput() {
       UIDevice.current.isProximityMonitoringEnabled = false
-      try? session.overrideOutputAudioPort(.none)
       return
     }
-    // The screen goes dark at the ear, as on any phone call, but not on
-    // speaker, where the phone is usually held away or lying on a table.
     UIDevice.current.isProximityMonitoringEnabled = !callWantsSpeaker
-    let onSpeaker = session.currentRoute.outputs.contains { $0.portType == .builtInSpeaker }
-    if onSpeaker != callWantsSpeaker {
-      try? session.overrideOutputAudioPort(callWantsSpeaker ? .speaker : .none)
+    try? session.overrideOutputAudioPort(callWantsSpeaker ? .speaker : .none)
+  }
+
+  /// Follows a route change made somewhere else -- the speaker button on
+  /// iOS's own call screen, AirPods going in, a car. It used to "correct" the
+  /// route back to what the app last asked for, which fought the iOS button:
+  /// the sound jumped to the speaker and straight back to the earpiece
+  /// (2026-11-22). Now the route that iOS chose is taken as the person's
+  /// choice, and the app's button is told so.
+  private func followCallRoute() {
+    let onSpeaker = AVAudioSession.sharedInstance().currentRoute.outputs.contains {
+      $0.portType == .builtInSpeaker
+    }
+    let external = AudioSessionExpoModule.hasExternalOutput()
+    // The screen goes dark at the ear, as on any phone call, but not on
+    // speaker or with headphones.
+    UIDevice.current.isProximityMonitoringEnabled = !onSpeaker && !external
+    if AudioSessionExpoModule.callWantsSpeaker != onSpeaker {
+      AudioSessionExpoModule.callWantsSpeaker = onSpeaker
+      sendEvent("onCallRouteChange", ["speaker": onSpeaker])
     }
   }
 
@@ -143,7 +155,7 @@ public class AudioSessionExpoModule: Module {
     /// cannot carry on recording through it, and what it must not do is
     /// pretend nothing happened: that is how a voice message ends up with a
     /// silent hole in it.
-    Events("onAudioInterruption")
+    Events("onAudioInterruption", "onCallRouteChange")
 
     /// For playing a voice message: high-quality Bluetooth output (A2DP),
     /// speaker rather than earpiece by default.
@@ -355,21 +367,24 @@ public class AudioSessionExpoModule: Module {
     /// The screen is kept on for the whole call. Without the `audio`
     /// background mode, which comes with CallKit in a later phase, a locked
     /// screen would send the app to the background and cut the call.
-    AsyncFunction("startCallAudio") { [weak self] in
+    AsyncFunction("startCallAudio") { [weak self] (activate: Bool) in
       let session = AVAudioSession.sharedInstance()
       try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-      try session.setActive(true)
+      // Left to CallKit when it runs the call (see calls-expo).
+      if activate {
+        try session.setActive(true)
+      }
       AudioSessionExpoModule.callWantsSpeaker = false
       AudioSessionExpoModule.callKeepsScreenOn = true
       AudioSessionExpoModule.updateIdleTimer()
-      AudioSessionExpoModule.applyCallRoute()
+      UIDevice.current.isProximityMonitoringEnabled = !AudioSessionExpoModule.hasExternalOutput()
       if self?.callRouteObserver == nil {
         self?.callRouteObserver = NotificationCenter.default.addObserver(
           forName: AVAudioSession.routeChangeNotification,
           object: nil,
           queue: .main
-        ) { _ in
-          AudioSessionExpoModule.applyCallRoute()
+        ) { [weak self] _ in
+          self?.followCallRoute()
         }
       }
     }.runOnQueue(.main)

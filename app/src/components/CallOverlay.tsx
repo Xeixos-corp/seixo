@@ -6,6 +6,7 @@ import { useAppTheme } from '../theme/ThemeProvider';
 import { useCallStore, acceptCall, declineCall, hangUp, toggleMute, toggleSpeaker } from '../calls/callManager';
 import { useConversationsStore, conversationDisplayName } from '../store/conversationsStore';
 import { HangUpIcon, MicOffIcon, PhoneIcon, SpeakerIcon } from './icons';
+import { hasCallKit } from '../../modules/calls-expo/src';
 
 /** 0:07, 12:34, 1:02:03. */
 export function formatCallDuration(seconds: number): string {
@@ -42,7 +43,9 @@ export function CallOverlay() {
     return () => clearInterval(timer);
   }, [phase]);
 
-  const visible = phase !== 'idle' || endedReason !== null;
+  // With CallKit, a ringing call is iOS's own screen (lock screen, banner);
+  // this one takes over once the call is answered.
+  const visible = (phase !== 'idle' || endedReason !== null) && !(hasCallKit && phase === 'incoming');
   if (!visible) return null;
 
   const name = conversation ? conversationDisplayName(conversation) : '';

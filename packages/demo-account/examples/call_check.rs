@@ -335,8 +335,11 @@ fn main() {
         // phone; this phone makes its own from the iPhone's published keys,
         // as the app does when it writes first.
         phone.session_with(&peer);
-        std::thread::sleep(Duration::from_secs(3));
-        call_id = hex(&raw[..8]);
+        // Time to close Seixo Dev on the iPhone, so the call has to wake it.
+        let wait: u64 = std::env::var("DIAL_DELAY").ok().and_then(|v| v.parse().ok()).unwrap_or(60);
+        println!("Close Seixo Dev on the iPhone now (swipe it away). Calling in {wait} seconds...");
+        std::thread::sleep(Duration::from_secs(wait));
+        call_id = hex(&raw);
         let sdp = rt.block_on(async {
             start_echo(&echo).await;
             let offer = echo.pc.create_offer(None).await.unwrap();
@@ -347,6 +350,11 @@ fn main() {
         });
         let id = phone.send_call(&channel, &peer, json!({ "i": call_id, "y": "o", "s": sdp }));
         seen.push(id);
+        // Wake the iPhone if Seixo Dev is closed, as the app does after an offer.
+        match phone.api.req("POST", "/functions/v1/call-push").send_json(json!({ "channel_id": channel, "call_id": call_id })) {
+            Ok(r) => println!("call push: {}", r.into_string().unwrap_or_default()),
+            Err(e) => println!("call push failed: {e}"),
+        }
         println!("calling the iPhone (call {call_id}). Answer it there.");
     } else {
         println!("Now call this phone from the conversation on the iPhone.");

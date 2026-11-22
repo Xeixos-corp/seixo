@@ -5,10 +5,11 @@ type AudioSessionModule = {
   configureForRecording(): Promise<void>;
   startEarpieceRouting(): Promise<void>;
   stopEarpieceRouting(): Promise<void>;
-  startCallAudio?(): Promise<void>;
+  startCallAudio?(activate: boolean): Promise<void>;
   stopCallAudio?(): Promise<void>;
   setCallSpeaker?(on: boolean): Promise<void>;
   addListener?(event: 'onAudioInterruption', listener: () => void): { remove(): void };
+  addListener?(event: 'onCallRouteChange', listener: (body: { speaker?: boolean }) => void): { remove(): void };
 };
 
 /**
@@ -73,8 +74,13 @@ export function onAudioInterruption(listener: () => void): () => void {
 }
 
 /** Session and routing for a voice call (calls/callManager.ts). */
-export async function startCallAudio(): Promise<void> {
-  await attempt('startCallAudio', native?.startCallAudio?.bind(native));
+/**
+ * `activate` is false when CallKit is in charge of the call: it activates the
+ * session itself, and activating it here as well can leave a call silent.
+ */
+export async function startCallAudio(activate = true): Promise<void> {
+  const run = native?.startCallAudio?.bind(native);
+  await attempt('startCallAudio', run ? () => run(activate) : undefined);
 }
 
 export async function stopCallAudio(): Promise<void> {
@@ -84,4 +90,20 @@ export async function stopCallAudio(): Promise<void> {
 export async function setCallSpeaker(on: boolean): Promise<void> {
   const run = native?.setCallSpeaker?.bind(native);
   await attempt('setCallSpeaker', run ? () => run(on) : undefined);
+}
+
+/**
+ * Called when a call's sound moves to or from the speaker by some other means
+ * than the app's own button: iOS's call screen, headphones, a car.
+ */
+export function onCallRouteChange(listener: (speaker: boolean) => void): () => void {
+  try {
+    const subscription = native?.addListener?.('onCallRouteChange', (body: { speaker?: boolean }) =>
+      listener(body?.speaker === true),
+    );
+    return () => subscription?.remove();
+  } catch (error) {
+    console.warn('[audioSession] could not listen for call route changes', error);
+    return () => {};
+  }
 }

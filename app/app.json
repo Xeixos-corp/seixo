@@ -21,6 +21,10 @@
         "LSApplicationQueriesSchemes": [
           "comgooglemaps",
           "waze"
+        ],
+        "UIBackgroundModes": [
+          "voip",
+          "audio"
         ]
       },
       "associatedDomains": [

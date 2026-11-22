@@ -11,8 +11,19 @@ import { encryptForPeer } from '../messaging/encryptForPeer';
 import { encodePayload, type CallSignal } from '../messaging/payload';
 import { sendMessage } from '../transport/messages';
 import { useMessagesStore, type StoredCall } from '../store/messagesStore';
-import { useConversationsStore, DEFAULT_TTL_SECONDS } from '../store/conversationsStore';
-import { startCallAudio, stopCallAudio, setCallSpeaker } from '../../modules/audio-session-expo/src';
+import { useConversationsStore, DEFAULT_TTL_SECONDS, conversationDisplayName } from '../store/conversationsStore';
+import { startCallAudio, stopCallAudio, setCallSpeaker, onCallRouteChange } from '../../modules/audio-session-expo/src';
+import {
+  hasCallKit,
+  reportIncomingCall,
+  startOutgoingCall,
+  reportOutgoingConnected,
+  endCall as endCallKitCall,
+  setCallMuted,
+  onCallKitEvent,
+} from '../../modules/calls-expo/src';
+import { RTCAudioSession } from 'react-native-webrtc';
+import { requestCallPush } from './callPush';
 
 /**
  * Voice calls, one to one.
@@ -97,8 +108,27 @@ let callStartedAt: string | null = null;
 let ringTimer: ReturnType<typeof setTimeout> | null = null;
 let dropTimer: ReturnType<typeof setTimeout> | null = null;
 let clearEndedTimer: ReturnType<typeof setTimeout> | null = null;
+// The app's speaker button follows the route wherever it was changed.
+onCallRouteChange((speaker) => {
+  if (useCallStore.getState().phase !== 'idle') useCallStore.setState({ speaker });
+});
+
 /** Call ids already finished on this phone, so a late signal cannot revive one. */
 const finishedCalls = new Set<string>();
+/** Calls a VoIP push made ring, before their offer has been decrypted here. */
+const pushedCalls = new Set<string>();
+/**
+ * A call answered on the lock screen before its offer was read: the push
+ * woke the app, and the person was quicker than the sync. Answered as soon as
+ * the offer arrives.
+ */
+let answerOnArrival: string | null = null;
+
+/** What iOS's call screen shows: the name given to the contact on this phone, never sent anywhere. */
+function callerName(channelId: string): string | null {
+  const conversation = useConversationsStore.getState().conversations.find((c) => c.channelId === channelId);
+  return conversation ? conversationDisplayName(conversation) : null;
+}
 
 function newCallId(): string {
   // Random and meaningless: it only ties the signals of one call together.
@@ -192,6 +222,7 @@ function releaseMedia(): void {
  */
 function finish(outcome: StoredCall['outcome'] | 'ended', notify?: CallSignal['kind']): void {
   const state = useCallStore.getState();
+  if (__DEV__) console.log('[call] finish', outcome, 'notify', notify, 'phase', state.phase, new Error('where').stack?.split('\n').slice(1, 4).join(' | '));
   if (state.phase === 'idle' || !state.callId || !state.channelId || !state.peerUserId) return;
 
   const durationSeconds = state.connectedAt ? Math.round((Date.now() - state.connectedAt) / 1000) : undefined;
@@ -210,6 +241,22 @@ function finish(outcome: StoredCall['outcome'] | 'ended', notify?: CallSignal['k
   });
 
   finishedCalls.add(state.callId);
+  // Tell iOS's call screen. A local hang-up goes through CallKit as an action;
+  // anything else is reported as having ended, with the reason. When CallKit
+  // itself started the ending (the red button on the lock screen), the call
+  // is already gone there and this does nothing.
+  void endCallKitCall(
+    state.callId,
+    notify
+      ? 'local'
+      : outcome === 'missed'
+        ? 'unanswered'
+        : outcome === 'declined'
+          ? 'declined'
+          : outcome === 'failed'
+            ? 'failed'
+            : 'remote',
+  );
   clearTimers();
   releaseMedia();
   callStartedAt = null;
@@ -253,6 +300,7 @@ async function openConnection(): Promise<RTCPeerConnection> {
   pc.onconnectionstatechange = () => {
     if (peerConnection !== pc) return;
     const state = pc.connectionState;
+    if (__DEV__) console.log('[call] connection', state);
     if (state === 'connected') {
       if (dropTimer) clearTimeout(dropTimer);
       dropTimer = null;
@@ -260,9 +308,11 @@ async function openConnection(): Promise<RTCPeerConnection> {
       if (current.phase !== 'active') {
         Vibration.cancel();
         useCallStore.setState({ phase: 'active', connectedAt: current.connectedAt ?? Date.now() });
+        if (current.outgoing && current.callId) void reportOutgoingConnected(current.callId);
         // Applied again now that WebRTC has set up its own audio, which may
-        // have reset the route.
-        void setCallSpeaker(current.speaker);
+        // have reset the route -- but only to put the speaker back on; the
+        // earpiece is where a call starts anyway.
+        if (current.speaker) void setCallSpeaker(true);
       }
     } else if (state === 'disconnected') {
       // Often a moment's loss of signal; WebRTC recovers by itself. Only a
@@ -340,7 +390,8 @@ export async function startCall(channelId: string, peerUserId: string): Promise<
   });
 
   try {
-    await startCallAudio();
+    if (hasCallKit) await startOutgoingCall(callId, callerName(channelId));
+    await startCallAudio(!hasCallKit);
     const pc = await openConnection();
     const offer = await pc.createOffer({});
     await pc.setLocalDescription(offer);
@@ -350,6 +401,9 @@ export async function startCall(channelId: string, peerUserId: string): Promise<
     const sdp = pc.localDescription?.sdp;
     if (!sdp) throw new Error('no local description');
     await sendSignal(channelId, peerUserId, { callId, kind: 'offer', sdp });
+    // Wakes the other phone if the app there is closed. Best-effort: when it
+    // fails, an open app still rings from the offer itself.
+    requestCallPush(channelId, callId).catch((error) => console.warn('[call] push request failed', error));
   } catch (error) {
     console.warn('[call] could not start call', error);
     if (useCallStore.getState().callId === callId) finish('failed');
@@ -376,7 +430,7 @@ export async function acceptCall(): Promise<void> {
   useCallStore.setState({ phase: 'connecting' });
 
   try {
-    await startCallAudio();
+    await startCallAudio(!hasCallKit);
     const pc = await openConnection();
     await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: pendingOfferSdp }));
     const answer = await pc.createAnswer();
@@ -409,12 +463,18 @@ export function hangUp(): void {
   finish('ended', 'end');
 }
 
-export function toggleMute(): void {
-  const muted = !useCallStore.getState().muted;
+function applyMute(muted: boolean): void {
   localStream?.getAudioTracks().forEach((track) => {
     track.enabled = !muted;
   });
   useCallStore.setState({ muted });
+}
+
+export function toggleMute(): void {
+  const { muted, callId } = useCallStore.getState();
+  applyMute(!muted);
+  // Keeps iOS's own call screen showing the same state.
+  if (callId) void setCallMuted(callId, !muted);
 }
 
 export function toggleSpeaker(): void {
@@ -445,6 +505,8 @@ export function handleCallSignal(
         // Found late, by a catch-up fetch: it rang while this phone was away.
         logCall(channelId, signal.callId, false, createdAt, { outcome: 'missed' });
         finishedCalls.add(signal.callId);
+        pushedCalls.delete(signal.callId);
+        void endCallKitCall(signal.callId, 'unanswered');
         return;
       }
       if (state.phase !== 'idle') {
@@ -469,9 +531,19 @@ export function handleCallSignal(
         speaker: false,
         endedReason: null,
       });
-      // A pattern, repeated, until answered or given up on. A ringtone comes
-      // with CallKit in a later phase.
-      Vibration.vibrate([0, 600, 800], true);
+      pushedCalls.delete(signal.callId);
+      if (hasCallKit) {
+        // iOS rings, on the lock screen too, under the name this phone gave
+        // the contact. If a push already reported the call, this only names it.
+        void reportIncomingCall(signal.callId, callerName(channelId));
+        if (answerOnArrival === signal.callId) {
+          answerOnArrival = null;
+          void acceptCall();
+        }
+      } else {
+        // Builds without CallKit: a vibration pattern, until answered.
+        Vibration.vibrate([0, 600, 800], true);
+      }
       const remaining = Math.max(5, RING_SECONDS - ageSeconds) * 1000;
       ringTimer = setTimeout(() => {
         if (useCallStore.getState().callId === signal.callId && useCallStore.getState().phase === 'incoming') {
@@ -503,8 +575,75 @@ export function handleCallSignal(
       if (isCurrent) {
         // The caller gave up before this phone answered: a missed call.
         finish(state.phase === 'incoming' ? 'missed' : 'ended');
+      } else if (pushedCalls.has(signal.callId)) {
+        // Rang from a push, and ended before the offer was even read here.
+        pushedCalls.delete(signal.callId);
+        finishedCalls.add(signal.callId);
+        void endCallKitCall(signal.callId, 'remote');
+        logCall(channelId, signal.callId, false, createdAt, { outcome: 'missed' });
       }
       return;
     }
   }
+}
+
+let callKitUnsubscribe: (() => void) | null = null;
+
+/**
+ * Connects iOS's call screen (CallKit) and VoIP pushes to the calls here.
+ * Called once, when the identity is ready (identity/registerIdentity.ts).
+ */
+export function startCallKitBridge(onVoipToken: (token: string) => void): void {
+  if (!hasCallKit || callKitUnsubscribe) return;
+  callKitUnsubscribe = onCallKitEvent((event) => {
+    const state = useCallStore.getState();
+    if (__DEV__ && event.type !== 'voipToken') console.log('[call] CallKit event', JSON.stringify(event), 'phase', state.phase);
+    switch (event.type) {
+      case 'voipToken':
+        if (__DEV__) console.log('[calls] VoIP token event, empty:', !event.token);
+        if (event.token) onVoipToken(event.token);
+        return;
+      case 'incoming': {
+        // Rung by a push. The offer is on its way through the ordinary sync;
+        // give up if it never comes.
+        if (finishedCalls.has(event.callId)) {
+          void endCallKitCall(event.callId, 'remote');
+          return;
+        }
+        if (state.callId === event.callId) return;
+        pushedCalls.add(event.callId);
+        setTimeout(() => {
+          if (pushedCalls.has(event.callId) && useCallStore.getState().callId !== event.callId) {
+            pushedCalls.delete(event.callId);
+            void endCallKitCall(event.callId, 'unanswered');
+          }
+        }, RING_SECONDS * 1000);
+        return;
+      }
+      case 'answer':
+        if (state.callId === event.callId && state.phase === 'incoming') void acceptCall();
+        else answerOnArrival = event.callId;
+        return;
+      case 'end':
+        pushedCalls.delete(event.callId);
+        if (answerOnArrival === event.callId) answerOnArrival = null;
+        if (state.callId === event.callId) hangUp();
+        else finishedCalls.add(event.callId);
+        return;
+      case 'mute':
+        if (state.callId === event.callId && state.muted !== event.muted) applyMute(event.muted);
+        return;
+      case 'reset':
+        if (state.phase !== 'idle') finish('failed', 'end');
+        return;
+      case 'audioActivated':
+        // CallKit owns the audio session; WebRTC starts its audio only once
+        // told the session is live.
+        RTCAudioSession.audioSessionDidActivate();
+        return;
+      case 'audioDeactivated':
+        RTCAudioSession.audioSessionDidDeactivate();
+        return;
+    }
+  });
 }
