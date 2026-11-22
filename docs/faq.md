@@ -113,6 +113,18 @@ Quem recebe vê as coordenadas e um botão **«Abrir num mapa»**, que oferece o
 
 **Numa emergência, não contes com o Seixo.** Liga para o 112 ou usa a Emergência SOS do iPhone, que também envia a tua localização aos teus contactos de emergência. Uma mensagem depende de a outra pessoa ter o telemóvel ligado e ver a notificação.
 
+## Posso fazer chamadas de voz?
+
+Sim, numa conversa a dois. Carrega no telefone no topo da conversa. Quem recebe vê a chamada como uma chamada normal do iPhone, mesmo com o ecrã bloqueado e a app fechada, e atende ou recusa da forma habitual.
+
+A tua voz é cifrada no teu telemóvel e só a outra pessoa a ouve. O som passa sempre por um servidor de retransmissão, para que nenhum dos dois fique a saber o endereço IP do outro. Por isso a qualidade depende um pouco da ligação dos dois, como em qualquer chamada pela internet.
+
+O que o servidor fica a saber de uma chamada está na [política de privacidade](index.html): que alguém pediu para fazer tocar o telemóvel de outra pessoa, e quando. Não sabe se atendeste nem quanto durou.
+
+As chamadas do Seixo não aparecem no histórico da app Telefone e não se sincronizam com o iCloud. Na conversa fica uma linha com a duração, que desaparece com o temporizador.
+
+Por agora não há chamadas de vídeo nem chamadas de grupo. **E numa emergência, liga para o 112**: o Seixo não liga para números de telefone.
+
 ## A outra pessoa sabe se eu fizer uma captura de ecrã?
 
 Sim. Se fizeres uma captura de ecrã dentro de uma conversa, aparece nessa conversa, para todos, uma linha a dizer que o fizeste. Não gera notificação.
@@ -145,6 +157,7 @@ O que ele **vê**, e que dizemos por inteiro na [política de privacidade](index
 
 - Que conversas existem e quem pertence a cada uma: é o mínimo para saber a quem entregar cada mensagem.
 - De cada mensagem: a que conversa pertence, a hora e o tamanho. Nunca o conteúdo: a não ser o de uma mensagem que alguém nos denuncie, e só essa.
+- De cada chamada: que uma conta pediu para fazer tocar outra, e quando. Nunca o som, nem se foi atendida, nem quanto durou.
 - Numa conversa a dois, **não guarda quem enviou na base de dados**, mas os registos do alojamento permitem sabê-lo enquanto existirem. **Num grupo, guarda**: quem recebe precisa de saber com que chave decifrar. Dizemos isto porque é verdade, não porque nos agrade.
 - Das fotografias e dos ficheiros: um objecto cifrado por cada um, com o tamanho arredondado, e **quando foi descarregado**. O nome e o tipo de um ficheiro nunca lá chegam. Isto último é quase um aviso de leitura, e não o conseguimos impedir, mas existe só enquanto o ficheiro existir, no máximo um dia.
 - O teu endereço IP. Aqui há uma distinção que vale a pena: na nossa base de dados o IP é apagado a cada minuto, mas os registos de entrada do alojamento, que não controlamos, guardam o IP, a cidade e o código postal aproximados, o teu fornecedor de internet, o que foi pedido (nunca o conteúdo) e, na maioria dos casos, o identificador da tua conta. Ficam guardados segundo as regras do fornecedor. A app não esconde o teu IP; se isso te importa, usa uma VPN.

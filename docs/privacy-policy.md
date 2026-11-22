@@ -14,7 +14,7 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 ## Em resumo
 
 - Não pedimos número de telefone, nome, email nem acesso aos teus contactos.
-- O servidor nunca consegue ler as tuas mensagens: são cifradas no teu telemóvel antes de saírem. As únicas excepções são uma mensagem que alguém denuncie (quem a recebeu escolhe mostrá-la), e o que escreveres à nossa conta automática de demonstração.
+- O servidor nunca consegue ler as tuas mensagens nem ouvir as tuas chamadas: são cifradas no teu telemóvel antes de saírem. As únicas excepções são uma mensagem que alguém denuncie (quem a recebeu escolhe mostrá-la), e o que escreveres à nossa conta automática de demonstração.
 - Quase tudo o que o servidor guarda apaga-se sozinho: dizemos abaixo quando.
 - Não usamos publicidade, análise nem rastreio de terceiros.
 
@@ -27,6 +27,7 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 - **A data do último uso** (só o dia, nunca a hora) para podermos apagar contas abandonadas.
 - **A lista de pessoas que bloqueaste**, visível só para ti.
 - **Um token de notificações** do teu telemóvel e os textos genéricos que o teu telemóvel escolheu mostrar (por exemplo, «Tens uma mensagem nova.»). Nunca incluem o conteúdo nem quem enviou.
+- **Um token de chamadas** do teu telemóvel, diferente do anterior, que permite fazê-lo tocar quando alguém te liga (ver «Sobre as chamadas de voz»).
 
 **Sobre as tuas conversas:**
 
@@ -41,6 +42,14 @@ Responsável pelo tratamento de dados: Bruno, developer individual da app Seixo.
 - **Quando alguém o usa**, o servidor guarda que foi usado e quando, **mas não quem o usou**. A conversa que se abre a seguir fica no servidor como qualquer outra.
 - **Os convites usados ou expirados são apagados** um dia depois.
 - **O link** aponta para uma página nossa alojada no GitHub. O código vai na parte do link depois de «#», que o navegador nunca envia a nenhum servidor: o GitHub vê que alguém abriu a página (com o IP, como em qualquer site), mas não vê o convite. A página não tem rastreio nem cookies.
+
+**Sobre as chamadas de voz:**
+
+- **O som é cifrado ponta a ponta** no teu telemóvel, com chaves combinadas dentro da conversa cifrada pelo protocolo Signal. Ninguém pelo caminho o consegue ouvir, nem nós.
+- **Ligar, atender e desligar viajam como mensagens cifradas comuns.** O servidor guarda-as como qualquer outra mensagem e não as distingue: não sabe se a chamada foi atendida nem quanto durou.
+- **Para o telefone tocar com a app fechada**, o servidor pede à Apple que acorde o telemóvel de quem recebe. Por isso, **o servidor sabe que a tua conta pediu para fazer tocar o telemóvel de outra conta, e quando**. Isto não fica na nossa base de dados, mas o pedido fica nos registos do alojamento, como qualquer outro. A notificação que vai para a Apple leva apenas um número aleatório da chamada: nem o teu nome, nem o teu ID, nem a conversa. Só é possível fazer tocar alguém com quem já tens uma conversa a dois e que não te bloqueou.
+- **O som passa sempre por um servidor de retransmissão da Cloudflare**, mesmo entre contactos, para que a outra pessoa nunca fique a saber o teu endereço IP. A Cloudflare vê os endereços IP dos dois lados, a hora, a duração e a quantidade de dados da chamada, mas não o som, que vai cifrado.
+- **As chamadas não ficam no histórico da app Telefone do iPhone**, que se sincroniza com o iCloud. Na conversa fica uma linha («Chamada de voz · 3:12»), só nos vossos telemóveis, que desaparece com o temporizador da conversa.
 
 **Sobre as fotografias e os ficheiros que envias:**
 
@@ -91,7 +100,7 @@ A app não esconde o teu IP. Se isso for importante para ti, usa uma VPN ou Tor.
 - **Fotografias**: nenhum acesso à tua galeria. Quando escolhes uma fotografia para enviar, é o próprio iPhone que te mostra a galeria e entrega à app apenas a que escolheste.
 - **Ficheiros**: nenhum acesso aos teus ficheiros. Quando escolhes um para enviar, é o próprio iPhone que te mostra os ficheiros e entrega à app apenas o que escolheste.
 - **Localização**: só «durante a utilização», e só quando escolhes enviar a tua localização a uma conversa. É lida uma vez, nesse momento, e vai cifrada. Nunca em segundo plano.
-- **Microfone**: só para gravares mensagens de voz, quando carregas no botão. A gravação é cifrada no telemóvel antes de sair.
+- **Microfone**: só para gravares mensagens de voz, quando carregas no botão, e durante as chamadas de voz. A tua voz é cifrada no telemóvel antes de sair.
 - **Face ID**: só para desbloquear a app, se ativares o bloqueio. É tratado pelo próprio sistema do telemóvel; nada sai do aparelho.
 - **Notificações**: para saberes que chegou uma mensagem.
 
@@ -107,7 +116,7 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 - **Conversas**: uma conversa que nunca chegou a ter uma mensagem é apagada ao fim de **7 dias**. Uma conversa que já foi usada fica no servidor enquanto existirem as contas de quem a tem (mesmo depois de todas as mensagens terem expirado), para não desaparecer só por ter estado em silêncio.
 - **Chaves temporárias nunca usadas**: 30 dias.
 - **Contas**: apagadas ao fim de **6 meses sem abrires a app**, com tudo o que lhes pertence. Uma cópia de segurança dessa conta deixa de funcionar.
-- **Lista de bloqueados, token de notificações e credenciais da cópia de segurança**: enquanto a conta existir.
+- **Lista de bloqueados, tokens de notificações e de chamadas, e credenciais da cópia de segurança**: enquanto a conta existir.
 - **Denúncias**: 90 dias. A marca de conta suspensa ou expulsa: enquanto a conta existir.
 - **Endereços IP**: ver a secção acima.
 
@@ -115,7 +124,8 @@ Número de telefone, nome, email real (exceto se nos escreveres para suporte), l
 
 - **As pessoas da conversa**: só elas conseguem decifrar o conteúdo, nos telemóveis delas.
 - **Supabase Inc.**, que aloja a base de dados, o servidor e os ficheiros cifrados das fotografias e dos ficheiros enviados na União Europeia (Paris). Tem acesso aos dados descritos acima e ao conteúdo cifrado, que não consegue ler, bem como ao conteúdo das mensagens denunciadas. É uma empresa norte-americana: os servidores estão na Europa, mas a empresa que os opera está sujeita à lei dos Estados Unidos, e um pedido legal feito lá pode alcançá-la. O que existiria para entregar é exactamente o que está descrito nesta política: texto cifrado que ninguém fora da conversa consegue abrir, e metadados mínimos que se apagam sozinhos nos prazos indicados acima.
-- **Expo (650 Industries, Inc.) e Apple**, que encaminham as notificações até ao teu telemóvel. Recebem o token e o texto genérico da notificação: nunca o conteúdo nem o remetente.
+- **Expo (650 Industries, Inc.) e Apple**, que encaminham as notificações até ao teu telemóvel. Recebem o token e o texto genérico da notificação: nunca o conteúdo nem o remetente. As notificações de chamada vão diretamente do nosso servidor para a Apple, com o token de chamadas e um número aleatório da chamada.
+- **Cloudflare, Inc.**, que retransmite o som das chamadas de voz. Vê os endereços IP dos dois lados, a hora, a duração e a quantidade de dados de cada chamada, mas não o som, que vai cifrado ponta a ponta. Como a Supabase, é uma empresa norte-americana.
 - **Proton AG**, só se nos escreveres para seixo.app@proton.me.
 - **Resend (Resend, Inc.)**, que envia ao programador o email de aviso de cada denúncia. Esse email diz apenas que chegou uma denúncia, quantas pessoas denunciaram a conta e se ela está suspensa: nunca o texto denunciado nem identificadores.
 - **Ninguém mais.** Não vendemos, alugamos nem partilhamos dados com publicidade, redes sociais ou quaisquer outros terceiros.
@@ -139,13 +149,13 @@ Existe uma conta automática de demonstração, para que a app possa ser experim
 
 ## Os teus direitos
 
-- **Eliminar a tua conta e todos os dados**: a qualquer momento, em Definições → «Eliminar conta e todos os dados». Apaga do servidor a tua identidade, chaves, participação em conversas, lista de bloqueados, token de notificações e credenciais da cópia de segurança, e limpa os dados do teu telemóvel. As mensagens que já enviaste continuam cifradas até o temporizador as apagar, e qualquer cópia de segurança que tenhas guardado deixa de funcionar.
+- **Eliminar a tua conta e todos os dados**: a qualquer momento, em Definições → «Eliminar conta e todos os dados». Apaga do servidor a tua identidade, chaves, participação em conversas, lista de bloqueados, tokens de notificações e de chamadas, e credenciais da cópia de segurança, e limpa os dados do teu telemóvel. As mensagens que já enviaste continuam cifradas até o temporizador as apagar, e qualquer cópia de segurança que tenhas guardado deixa de funcionar.
 - **Aceder, corrigir ou pedir uma cópia dos teus dados**: escreve para seixo.app@proton.me. Como não sabemos quem és, podemos pedir-te o ID que aparece na app para encontrar os dados.
 - Se estiveres na União Europeia, estes direitos correspondem aos direitos de acesso, retificação, apagamento e portabilidade previstos no RGPD.
 
 ## Segurança
 
-As mensagens são cifradas ponta-a-ponta com o protocolo Signal (PQXDH e Double Ratchet), através da biblioteca oficial `libsignal`. As tuas chaves ficam cifradas no telemóvel, protegidas pelo Keychain (iOS) ou Keystore (Android), e as chaves temporárias de sessão são renovadas a cada 2 dias. Isto não é uma garantia absoluta: nenhuma app te protege se o teu próprio telemóvel estiver comprometido, ou se alguém fotografar o ecrã com outro aparelho.
+As mensagens são cifradas ponta-a-ponta com o protocolo Signal (PQXDH e Double Ratchet), através da biblioteca oficial `libsignal`. As tuas chaves ficam cifradas no telemóvel, protegidas pelo Keychain (iOS) ou Keystore (Android), e as chaves temporárias de sessão são renovadas a cada 2 dias. No iPhone, a chave que as protege só fica disponível depois de desbloqueares o telemóvel uma vez desde que o ligaste, e nunca sai dele: é o que permite atender uma chamada com o ecrã bloqueado. As chamadas de voz são cifradas com DTLS-SRTP, com as chaves combinadas dentro da sessão Signal. Isto não é uma garantia absoluta: nenhuma app te protege se o teu próprio telemóvel estiver comprometido, ou se alguém fotografar o ecrã com outro aparelho.
 
 ## Menores de idade
 
