@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../theme/ThemeProvider';
 import { useCallStore, acceptCall, declineCall, hangUp, toggleMute, toggleSpeaker } from '../calls/callManager';
 import { useConversationsStore, conversationDisplayName } from '../store/conversationsStore';
-import { HangUpIcon, MicOffIcon, PhoneIcon, SpeakerIcon } from './icons';
+import { HangUpIcon, MicOffIcon, MoreIcon, PhoneIcon, SpeakerIcon } from './icons';
+import { showCallSafetyMenu } from '../calls/callSafety';
 import { hasCallKit } from '../../modules/calls-expo/src';
 
 /** 0:07, 12:34, 1:02:03. */
@@ -30,6 +31,7 @@ export function CallOverlay() {
   const { t } = useTranslation();
   const phase = useCallStore((s) => s.phase);
   const channelId = useCallStore((s) => s.channelId);
+  const peerUserId = useCallStore((s) => s.peerUserId);
   const connectedAt = useCallStore((s) => s.connectedAt);
   const muted = useCallStore((s) => s.muted);
   const speaker = useCallStore((s) => s.speaker);
@@ -63,6 +65,18 @@ export function CallOverlay() {
   return (
     <Modal visible animationType="fade" presentationStyle="fullScreen" onRequestClose={hangUp}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Report and Block, where an abusive call is happening. */}
+        {phase !== 'idle' && channelId && peerUserId ? (
+          <Pressable
+            style={styles.more}
+            onPress={() => showCallSafetyMenu(channelId, peerUserId)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t('conversation.moreButton')}
+          >
+            <MoreIcon size={26} color={colors.textSecondary} />
+          </Pressable>
+        ) : null}
         <View style={styles.top}>
           <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
             {name}
@@ -147,6 +161,7 @@ function RoundButton({
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'space-between', paddingHorizontal: 24 },
   top: { alignItems: 'center', marginTop: 72 },
+  more: { position: 'absolute', top: 56, right: 24, zIndex: 1 },
   name: { fontSize: 30, fontWeight: '600', marginBottom: 10 },
   status: { fontSize: 17, fontVariant: ['tabular-nums'] },
   note: { fontSize: 12, marginTop: 18, textAlign: 'center' },

@@ -256,7 +256,10 @@
     "reportPhotoBody": "This photo and the ID of whoever sent it are sent to the Seixo team. It is the only way we can ever see it: you choose to show it to us. We review every report within 24 hours and expel anyone who breaks the terms.",
     "reportFileBody": "The name of this file and the ID of whoever sent it are sent to the Seixo team. The file itself is not sent. We review every report within 24 hours and expel anyone who breaks the terms.",
     "reportLocationBody": "This message is reported without the location: only the ID of whoever sent it goes. We review every report within 24 hours and expel anyone who breaks the terms.",
-    "reportVoiceBody": "This voice message and the ID of whoever sent it are sent to the Seixo team. It is the only way we can ever hear it: you choose to show it to us. We review every report within 24 hours and expel anyone who breaks the terms."
+    "reportVoiceBody": "This voice message and the ID of whoever sent it are sent to the Seixo team. It is the only way we can ever hear it: you choose to show it to us. We review every report within 24 hours and expel anyone who breaks the terms.",
+    "moreButton": "More options",
+    "verifyMenuItem": "Verify safety number",
+    "leaveGroupMenuItem": "Leave group"
   },
   "blockedPeers": {
     "unblockButton": "Unblock",
@@ -633,14 +636,21 @@
         "missed": "No answer",
         "declined": "Call declined",
         "busy": "Call: busy",
-        "failed": "Call failed"
+        "failed": "Call failed",
+        "notRung": "No answer"
       },
       "incoming": {
         "missed": "Missed call",
         "declined": "Call declined",
         "busy": "Missed call",
-        "failed": "Call failed"
+        "failed": "Call failed",
+        "notRung": "Call from someone you haven't talked to yet. It didn't ring: write to them first if you want to get their calls."
       }
-    }
+    },
+    "reportTitle": "Report this call?",
+    "reportBody": "Calls are not recorded, so there is nothing to send besides this person's identifier. The Seixo team reviews reports within 24 hours.",
+    "reportContent": "[Report of a voice call]",
+    "blockConfirmTitle": "Block this person?",
+    "blockConfirmBody": "The call ends, and this person can no longer call you or write to you. You can unblock them later in Settings."
   }
 }

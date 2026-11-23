@@ -256,7 +256,10 @@
     "reportPhotoBody": "Esta foto y el identificador de quien la envió se envían al equipo de Seixo. Es la única forma de que la veamos: tú decides mostrárnosla. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos.",
     "reportFileBody": "El nombre de este archivo y el identificador de quien lo envió se envían al equipo de Seixo. El archivo en sí no se envía. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos.",
     "reportLocationBody": "Este mensaje se denuncia sin la ubicación: solo se envía el identificador de quien lo envió. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos.",
-    "reportVoiceBody": "Este mensaje de voz y el identificador de quien lo envió se envían al equipo de Seixo. Es la única forma de que lo escuchemos: tú decides mostrárnoslo. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos."
+    "reportVoiceBody": "Este mensaje de voz y el identificador de quien lo envió se envían al equipo de Seixo. Es la única forma de que lo escuchemos: tú decides mostrárnoslo. Revisamos todas las denuncias en menos de 24 horas y expulsamos a quien incumpla los términos.",
+    "moreButton": "Más opciones",
+    "verifyMenuItem": "Verificar código de seguridad",
+    "leaveGroupMenuItem": "Salir del grupo"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -633,14 +636,21 @@
         "missed": "Llamada sin respuesta",
         "declined": "Llamada rechazada",
         "busy": "Llamada: ocupado",
-        "failed": "Llamada fallida"
+        "failed": "Llamada fallida",
+        "notRung": "Llamada sin respuesta"
       },
       "incoming": {
         "missed": "Llamada perdida",
         "declined": "Llamada rechazada",
         "busy": "Llamada perdida",
-        "failed": "Llamada fallida"
+        "failed": "Llamada fallida",
+        "notRung": "Llamada de alguien con quien aún no has hablado. No sonó: escríbele primero si quieres recibir sus llamadas."
       }
-    }
+    },
+    "reportTitle": "¿Denunciar esta llamada?",
+    "reportBody": "Las llamadas no se graban, así que no hay nada que enviar aparte del identificador de esta persona. El equipo de Seixo revisa las denuncias en menos de 24 horas.",
+    "reportContent": "[Denuncia de una llamada de voz]",
+    "blockConfirmTitle": "¿Bloquear a esta persona?",
+    "blockConfirmBody": "La llamada termina, y esta persona ya no puede llamarte ni escribirte. Puedes desbloquearla más tarde en Ajustes."
   }
 }

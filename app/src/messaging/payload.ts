@@ -142,8 +142,11 @@ type Encoded = {
 type EncodedCall = {
   /** The call's id, made on the caller's phone; ties the signals together. */
   i: string;
-  /** o: offer (ringing), a: answer, e: end, r: declined, b: busy. */
-  y: 'o' | 'a' | 'e' | 'r' | 'b';
+  /**
+   * o: offer (ringing), a: answer, e: end, r: declined, b: busy,
+   * u: a new offer mid-call (renegotiation), w: the answer to it.
+   */
+  y: 'o' | 'a' | 'e' | 'r' | 'b' | 'u' | 'w';
   /** The WebRTC session description, for an offer or an answer. */
   s?: string;
   /** For an end: how long the call lasted, in seconds, when it was answered. */
@@ -198,7 +201,13 @@ export type LocationPayload = {
   accuracyMeters?: number;
 };
 
-export type CallSignalKind = 'offer' | 'answer' | 'end' | 'declined' | 'busy';
+/**
+ * `renegotiate` and `renegotiateAnswer` change a call that is already
+ * connected: the other side adds or changes what it sends. Used by the demo
+ * account, whose echo comes from Cloudflare's SFU and can only be sent back
+ * after a second exchange (supabase/functions/demo-account).
+ */
+export type CallSignalKind = 'offer' | 'answer' | 'end' | 'declined' | 'busy' | 'renegotiate' | 'renegotiateAnswer';
 
 export type CallSignal = {
   callId: string;
@@ -213,6 +222,8 @@ const CALL_KIND_CODES: Record<CallSignalKind, EncodedCall['y']> = {
   end: 'e',
   declined: 'r',
   busy: 'b',
+  renegotiate: 'u',
+  renegotiateAnswer: 'w',
 };
 
 export type MessagePayload = {
@@ -430,7 +441,12 @@ function decodeCall(raw: unknown): CallSignal | undefined {
   if (typeof call.i !== 'string' || !call.i || call.i.length > 64) return undefined;
   const kind = (Object.keys(CALL_KIND_CODES) as CallSignalKind[]).find((k) => CALL_KIND_CODES[k] === call.y);
   if (!kind) return undefined;
-  if ((kind === 'offer' || kind === 'answer') && typeof call.s !== 'string') return undefined;
+  if (
+    (kind === 'offer' || kind === 'answer' || kind === 'renegotiate' || kind === 'renegotiateAnswer') &&
+    typeof call.s !== 'string'
+  ) {
+    return undefined;
+  }
   return {
     callId: call.i,
     kind,

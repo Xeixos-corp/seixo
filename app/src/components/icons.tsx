@@ -156,3 +156,14 @@ export function MicOffIcon({ size, color }: IconProps) {
     </Svg>
   );
 }
+
+/** Three dots: more actions. */
+export function MoreIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <Circle cx={5} cy={12} r={1.9} />
+      <Circle cx={12} cy={12} r={1.9} />
+      <Circle cx={19} cy={12} r={1.9} />
+    </Svg>
+  );
+}

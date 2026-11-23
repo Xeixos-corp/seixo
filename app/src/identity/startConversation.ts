@@ -43,5 +43,9 @@ export async function startConversationWithPeer(peerUserId: string): Promise<Con
     ttlSeconds: DEFAULT_TTL_SECONDS,
   };
   useConversationsStore.getState().addConversation(conversation);
+  // This user chose to start it: calls from this person may ring. Also wins
+  // over the realtime arrival of the same channel, which may have landed
+  // first marked as someone else's.
+  useConversationsStore.getState().markTalked(channelId);
   return conversation;
 }

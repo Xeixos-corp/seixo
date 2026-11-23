@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActionSheetIOS,
   Alert,
   Animated,
   AppState,
@@ -64,7 +65,7 @@ import {
 } from '../../modules/audio-session-expo/src';
 import { VoiceMessage } from '../components/VoiceMessage';
 import { ImageMessage } from '../components/ImageMessage';
-import { PaperclipIcon, PhoneIcon, TrashIcon } from '../components/icons';
+import { MoreIcon, PaperclipIcon, PhoneIcon, TrashIcon } from '../components/icons';
 import { startCall, useCallStore } from '../calls/callManager';
 import { callNoticeText } from '../calls/callNotice';
 import { FileMessage } from '../components/FileMessage';
@@ -444,6 +445,32 @@ export function ConversationScreen({ route, navigation }: Props) {
     startCall(channelId, peerUserId).catch(() => setSendError(t('call.startFailed')));
   }, [channelId, peerUserId, t]);
 
+  // Everything but the call behind one button. Four controls side by side in
+  // the header left the phone, the one people use most, lost among words;
+  // Report and Block are still one tap away, as App Store guideline 1.2 asks,
+  // in the system's own menu.
+  const handleMore = useCallback(() => {
+    const items: { label: string; run: () => void; destructive?: boolean }[] = isGroup
+      ? [
+          { label: t('conversation.membersButton'), run: () => setShowMembers(true) },
+          { label: t('conversation.reportButton'), run: handleReport },
+          { label: t('conversation.leaveGroupMenuItem'), run: handleLeaveGroup, destructive: true },
+        ]
+      : [
+          { label: t('conversation.verifyMenuItem'), run: () => setShowSafetyNumber(true) },
+          { label: t('conversation.reportButton'), run: handleReport },
+          { label: t('conversation.blockButton'), run: handleBlock, destructive: true },
+        ];
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [...items.map((item) => item.label), t('conversation.cancel')],
+        cancelButtonIndex: items.length,
+        destructiveButtonIndex: items.findIndex((item) => item.destructive),
+      },
+      (index) => items[index]?.run(),
+    );
+  }, [isGroup, handleReport, handleLeaveGroup, handleBlock, t]);
+
   useEffect(() => {
     navigation.setOptions({
       title: conversationName,
@@ -453,33 +480,20 @@ export function ConversationScreen({ route, navigation }: Props) {
           {!isGroup ? (
             <Pressable
               onPress={handleCall}
-              hitSlop={8}
+              hitSlop={10}
               accessibilityRole="button"
               accessibilityLabel={t('call.startButton')}
             >
-              <PhoneIcon size={19} color={colors.accent} />
+              <PhoneIcon size={24} color={colors.accent} />
             </Pressable>
           ) : null}
-          {isGroup ? (
-            <Pressable onPress={() => setShowMembers(true)} hitSlop={8}>
-              <Text style={{ color: colors.accent, fontSize: 13 }}>
-                {t('conversation.membersButton')}
-              </Text>
-            </Pressable>
-          ) : (
-            <Pressable onPress={() => setShowSafetyNumber(true)} hitSlop={8}>
-              <Text style={{ color: colors.accent, fontSize: 13 }}>
-                {t('conversation.verifyButton')}
-              </Text>
-            </Pressable>
-          )}
-          <Pressable onPress={handleReport} hitSlop={8}>
-            <Text style={{ color: colors.accent, fontSize: 13 }}>{t('conversation.reportButton')}</Text>
-          </Pressable>
-          <Pressable onPress={isGroup ? handleLeaveGroup : handleBlock} hitSlop={8}>
-            <Text style={{ color: colors.danger, fontSize: 13 }}>
-              {isGroup ? t('conversation.leaveGroupButton') : t('conversation.blockButton')}
-            </Text>
+          <Pressable
+            onPress={handleMore}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t('conversation.moreButton')}
+          >
+            <MoreIcon size={24} color={colors.accent} />
           </Pressable>
         </View>
       ),
@@ -492,6 +506,7 @@ export function ConversationScreen({ route, navigation }: Props) {
     handleLeaveGroup,
     handleReport,
     handleCall,
+    handleMore,
     isGroup,
     t,
     conversationName,
@@ -2139,7 +2154,24 @@ export function ConversationScreen({ route, navigation }: Props) {
           contentContainerStyle={styles.messagesContent}
           renderItem={({ item }) =>
             item.notice === 'call' && item.call ? (
-              <View style={styles.noticeRow}>
+              // Holding a call's line offers Report and Block, as for a message:
+              // the call itself left nothing else to point at.
+              <Pressable
+                style={styles.noticeRow}
+                onLongPress={() =>
+                  ActionSheetIOS.showActionSheetWithOptions(
+                    {
+                      options: [t('conversation.reportButton'), t('conversation.blockButton'), t('conversation.cancel')],
+                      cancelButtonIndex: 2,
+                      destructiveButtonIndex: 1,
+                    },
+                    (index) => {
+                      if (index === 0) handleReport();
+                      if (index === 1) handleBlock();
+                    },
+                  )
+                }
+              >
                 <Text
                   style={[
                     styles.noticeText,
@@ -2150,7 +2182,7 @@ export function ConversationScreen({ route, navigation }: Props) {
                   {' · '}
                   {formatSentAt(item.createdAt)}
                 </Text>
-              </View>
+              </Pressable>
             ) : item.notice === 'screenshot' ? (
               <View style={styles.noticeRow}>
                 <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
@@ -2739,7 +2771,8 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     flexDirection: 'row',
-    gap: 14,
+    alignItems: 'center',
+    gap: 20,
     paddingRight: 4,
   },
   container: {

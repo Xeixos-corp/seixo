@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../transport/supabaseClient';
 
 // Default per-message disappearing timer (1 day) for newly started
 // conversations — the schema requires expires_at on every row regardless
@@ -59,6 +60,23 @@ export type Conversation = {
    * unread item until opened. Local, like lastReadAt.
    */
   awaitingFirstOpen?: boolean;
+  /**
+   * Whether calls from this person may ring. False only for a one-to-one
+   * conversation someone else started and in which this user has not written
+   * yet: anyone with an ID can open a conversation, and a stranger should not
+   * be able to ring a phone on the lock screen before being answered. Set to
+   * true by this user's first message, or when this user started the
+   * conversation, and never set back, so messages expiring changes nothing.
+   * Their messages alone do not count: "hi" and a call straight after would
+   * defeat it.
+   *
+   * Undefined on every conversation that predates this field, and on those
+   * found on a phone's first reconcile (a new phone, a restored backup):
+   * both count as true, so nobody's existing contacts stop ringing.
+   * The server keeps the same fact (supabase/migrations/0040_accepts_calls.sql),
+   * because a closed app is rung by a push it cannot refuse.
+   */
+  talked?: boolean;
 };
 
 /**
@@ -151,6 +169,8 @@ type ConversationsState = {
     kind: { isGroup: boolean; peerUserId: string; ownerId?: string },
   ) => void;
   setConversationNickname: (channelId: string, nickname: string) => void;
+  /** Records that this conversation has had a message, or was started here. */
+  markTalked: (channelId: string) => void;
   /**
    * `newestMessageAt` lets this do nothing when there is nothing to mark --
    * see the implementation for why that matters more than it sounds.
@@ -200,6 +220,21 @@ export const useConversationsStore = create<ConversationsState>()(
         }));
       },
       hasConversation: (channelId) => get().conversations.some((c) => c.channelId === channelId),
+      markTalked: (channelId) => {
+        const conversation = get().conversations.find((c) => c.channelId === channelId);
+        if (!conversation || conversation.isGroup) return;
+        // Told to the server once per conversation; harmless to repeat, as
+        // the server only ever moves it to true.
+        if (conversation.talked !== true) {
+          supabase.rpc('accept_calls', { channel: channelId }).then(({ error }) => {
+            if (error) console.warn('[conversations] could not record accepts_calls', error.message);
+          });
+        }
+        if (conversation.talked === true) return;
+        set((state) => ({
+          conversations: state.conversations.map((c) => (c.channelId === channelId ? { ...c, talked: true } : c)),
+        }));
+      },
       setConversationTtl: (channelId, ttlSeconds) => {
         set((state) => ({
           conversations: state.conversations.map((c) =>

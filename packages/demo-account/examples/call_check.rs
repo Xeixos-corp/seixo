@@ -372,6 +372,18 @@ fn main() {
             let kind = call["y"].as_str().unwrap_or("");
             println!("call signal: {kind} (call {})", call["i"]);
             match kind {
+                "o" if !dial && call_id.is_empty() && std::env::var("DECLINE").is_ok() => {
+                    // Let it ring for a few seconds (ringback on the iPhone), then
+                    // decline (busy signal on the iPhone).
+                    call_id = s(&call["i"]);
+                    println!("ringing; declining in 8 seconds...");
+                    std::thread::sleep(Duration::from_secs(8));
+                    let id = phone.send_call(&channel, &peer, json!({ "i": call_id, "y": "r" }));
+                    seen.push(id);
+                    println!("declined");
+                    std::thread::sleep(Duration::from_secs(5));
+                    break 'outer;
+                }
                 "o" if !dial && call_id.is_empty() => {
                     call_id = s(&call["i"]);
                     let offer = s(&call["s"]);

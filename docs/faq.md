@@ -117,6 +117,12 @@ Quem recebe vê as coordenadas e um botão **«Abrir num mapa»**, que oferece o
 
 Sim, numa conversa a dois. Carrega no telefone no topo da conversa. Quem recebe vê a chamada como uma chamada normal do iPhone, mesmo com o ecrã bloqueado e a app fechada, e atende ou recusa da forma habitual.
 
+**O teu telemóvel só toca para quem já tem conversa contigo**: alguém a quem já escreveste pelo menos uma vez, ou com quem foste tu a começar a conversa. Se outra pessoa abrir uma conversa contigo e ligar logo, o telefone não toca: fica uma linha na conversa a dizer que ligou. Se lhe responderes, as chamadas seguintes já tocam. Isto não depende das mensagens: mesmo depois de desaparecerem, continua a contar.
+
+Durante uma chamada, o botão **«⋯»** tem **«Denunciar»** e **«Bloquear»**. Bloquear termina a chamada, e essa pessoa deixa de te conseguir ligar ou escrever.
+
+Podes experimentar uma chamada com a **conta de demonstração**: ela atende e devolve-te a tua própria voz, para ouvires como soas. Nessa chamada, e só nessa, o som não vai cifrado de ponta a ponta: o servidor da Cloudflare abre-o para to devolver.
+
 A tua voz é cifrada no teu telemóvel e só a outra pessoa a ouve. O som passa sempre por um servidor de retransmissão, para que nenhum dos dois fique a saber o endereço IP do outro. Por isso a qualidade depende um pouco da ligação dos dois, como em qualquer chamada pela internet.
 
 O que o servidor fica a saber de uma chamada está na [política de privacidade](index.html): que alguém pediu para fazer tocar o telemóvel de outra pessoa, e quando. Não sabe se atendeste nem quanto durou.
@@ -173,9 +179,9 @@ Uma conta automática, nossa, que responde sozinha com mensagens de exemplo. Exi
 
 ## Alguém me está a incomodar. O que faço?
 
-- **Numa conversa a dois:** abre a conversa e carrega em **«Bloquear»**. Essa pessoa deixa de te conseguir escrever.
-- **Num grupo:** abre **«Membros»** e bloqueia essa pessoa. As mensagens dela deixam de te chegar (no grupo e em qualquer conversa) enquanto ela continua no grupo e não fica a saber. Se preferires sair, há **«Sair»** no topo da conversa.
-- **Para nos dizeres:** mantém o dedo sobre a mensagem e escolhe **«Denunciar»**. A denúncia chega-nos de imediato, com essa mensagem (texto, fotografia ou áudio), e é a única forma de a vermos, porque não conseguimos ler as mensagens. Numa conversa a dois, também podes denunciar a pessoa no topo da conversa.
+- **Numa conversa a dois:** abre a conversa, carrega em **«⋯»** no topo e escolhe **«Bloquear»**. Essa pessoa deixa de te conseguir escrever e ligar. Durante uma chamada, o mesmo está no **«⋯»** do ecrã da chamada.
+- **Num grupo:** abre **«Membros»** e bloqueia essa pessoa. As mensagens dela deixam de te chegar (no grupo e em qualquer conversa) enquanto ela continua no grupo e não fica a saber. Se preferires sair, carrega em **«⋯»** no topo da conversa e escolhe **«Sair do grupo»**.
+- **Para nos dizeres:** mantém o dedo sobre a mensagem e escolhe **«Denunciar»**. A denúncia chega-nos de imediato, com essa mensagem (texto, fotografia ou áudio), e é a única forma de a vermos, porque não conseguimos ler as mensagens. Numa conversa a dois, também podes denunciar a pessoa no **«⋯»** no topo da conversa, ou no ecrã de uma chamada.
 - **O que fazemos:** analisamos cada denúncia em **menos de 24 horas** e expulsamos quem violar os termos. Se três pessoas diferentes denunciarem a mesma conta, ela fica suspensa de imediato, até decidirmos.
 
 Mensagens recebidas com linguagem ofensiva aparecem ocultadas, e as fotografias recebidas aparecem desfocadas, até tocares nelas.

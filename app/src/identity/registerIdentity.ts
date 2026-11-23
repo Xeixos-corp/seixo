@@ -250,7 +250,15 @@ export async function reconcileConversations(userId: string): Promise<void> {
       }
       const peerUserId = memberIds.find((id) => id !== userId);
       if (!peerUserId) return;
-      addConversation({ channelId, peerUserId, ttlSeconds: DEFAULT_TTL_SECONDS, awaitingFirstOpen });
+      // Started by someone else while away: calls from them do not ring until
+      // a message has been exchanged (conversationsStore, `talked`).
+      addConversation({
+        channelId,
+        peerUserId,
+        ttlSeconds: DEFAULT_TTL_SECONDS,
+        awaitingFirstOpen,
+        talked: awaitingFirstOpen ? false : undefined,
+      });
       setConversationKind(channelId, { isGroup: false, peerUserId });
       setConversationMuted(channelId, muted);
     });
@@ -369,6 +377,9 @@ async function finishRegistration(userId: string): Promise<void> {
         peerUserId: others[0],
         ttlSeconds: DEFAULT_TTL_SECONDS,
         awaitingFirstOpen: true,
+        // As above. On the side that started it this may win the race
+        // against startConversation, which marks it talked straight after.
+        talked: false,
       });
     } catch (error) {
       console.error('[registerIdentity] failed to resolve new channel membership', error);

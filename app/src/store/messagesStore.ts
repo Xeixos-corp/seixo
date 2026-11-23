@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useConversationsStore } from './conversationsStore';
 
 export type StoredImage = {
   /**
@@ -53,7 +54,7 @@ export type StoredFile = {
 
 export type StoredCall = {
   /** answered: talked; missed: rang and nobody picked up; declined; busy; failed: could not connect. */
-  outcome: 'answered' | 'missed' | 'declined' | 'busy' | 'failed';
+  outcome: 'answered' | 'missed' | 'declined' | 'busy' | 'failed' | 'notRung';
   /** Seconds of conversation, for an answered call. */
   durationSeconds?: number;
 };
@@ -245,6 +246,13 @@ export const useMessagesStore = create<MessagesState>()(
             [channelId]: [...existing, message],
           },
         }));
+        // Writing in a conversation makes it one in which calls may ring
+        // (conversationsStore, `talked`). Only this user's own messages count:
+        // otherwise a stranger could send "hi" and ring straight after.
+        // Instructions, call lines and notices do not count either.
+        if (message.isMine === true && !message.isControl && !message.notice) {
+          useConversationsStore.getState().markTalked(channelId);
+        }
       },
       replaceMessage: (channelId, localId, message) => {
         set((state) => ({

@@ -256,7 +256,10 @@
     "reportPhotoBody": "Esta fotografia e o identificador de quem a enviou são enviados à equipa do Seixo. É a única forma de a vermos: tu escolhes mostrá-la. Analisamos todas as denúncias em menos de 24 horas e expulsamos quem violar os termos.",
     "reportFileBody": "O nome deste ficheiro e o identificador de quem o enviou são enviados à equipa do Seixo. O ficheiro em si não é enviado. Analisamos todas as denúncias em menos de 24 horas e expulsamos quem violar os termos.",
     "reportLocationBody": "Esta mensagem é denunciada sem a localização: só segue o identificador de quem a enviou. Analisamos todas as denúncias em menos de 24 horas e expulsamos quem violar os termos.",
-    "reportVoiceBody": "Esta mensagem de voz e o identificador de quem a enviou são enviados à equipa do Seixo. É a única forma de a ouvirmos: tu escolhes mostrá-la. Analisamos todas as denúncias em menos de 24 horas e expulsamos quem violar os termos."
+    "reportVoiceBody": "Esta mensagem de voz e o identificador de quem a enviou são enviados à equipa do Seixo. É a única forma de a ouvirmos: tu escolhes mostrá-la. Analisamos todas as denúncias em menos de 24 horas e expulsamos quem violar os termos.",
+    "moreButton": "Mais opções",
+    "verifyMenuItem": "Verificar código de segurança",
+    "leaveGroupMenuItem": "Sair do grupo"
   },
   "blockedPeers": {
     "unblockButton": "Desbloquear",
@@ -633,14 +636,21 @@
         "missed": "Chamada sem resposta",
         "declined": "Chamada recusada",
         "busy": "Chamada: ocupado",
-        "failed": "Chamada falhada"
+        "failed": "Chamada falhada",
+        "notRung": "Chamada sem resposta"
       },
       "incoming": {
         "missed": "Chamada perdida",
         "declined": "Chamada recusada",
         "busy": "Chamada perdida",
-        "failed": "Chamada falhada"
+        "failed": "Chamada falhada",
+        "notRung": "Chamada de alguém com quem ainda não falaste. Não tocou: escreve-lhe primeiro, se quiseres receber chamadas."
       }
-    }
+    },
+    "reportTitle": "Denunciar esta chamada?",
+    "reportBody": "A chamada não é gravada, por isso não há nada para enviar além do identificador desta pessoa. A equipa do Seixo analisa a denúncia em menos de 24 horas.",
+    "reportContent": "[Denúncia de uma chamada de voz]",
+    "blockConfirmTitle": "Bloquear esta pessoa?",
+    "blockConfirmBody": "A chamada termina, e esta pessoa deixa de te conseguir ligar ou escrever. Podes desbloquear mais tarde em Definições."
   }
 }

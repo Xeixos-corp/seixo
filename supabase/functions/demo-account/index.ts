@@ -56,16 +56,82 @@ const SCRIPT_GREETING =
 const SCRIPT_OFFENSIVE =
   "You're a fucking idiot. (A sample offensive message: Seixo's filter hides messages like this until you tap them.)";
 const SCRIPT_HOW_TO =
-  "Try the safety features: press and hold any of my messages to Report it or Delete it, or tap Block at the top to block this account. Reports reach the Seixo team, who act on them within 24 hours.";
+  "Try the safety features: press and hold any of my messages to Report it or Delete it, or tap ⋯ at the top and choose Block. Reports reach the Seixo team, who act on them within 24 hours. You can also call me with the phone icon: I answer and play your own voice back.";
 const SHORT_REPLY =
-  "This is an automatic demo account, so it can't really chat. Press and hold any message to report or delete it, or tap Block at the top.";
-// Sent after declining a call. The demo account runs on the server and has no
-// way to carry sound, so a call to it is turned down at once rather than left
-// ringing; this says why and how calls can be tried.
+  "This is an automatic demo account, so it can't really chat. Press and hold any message to report or delete it, or tap ⋯ at the top and choose Block. Tap the phone icon to call me and hear your own voice.";
+// Sent only if the echo below cannot be set up (Cloudflare unreachable, or not
+// configured): the call is declined rather than left ringing, and this says
+// how calls can be tried instead.
 const CALL_REPLY =
-  "I'm an automatic account and can't take calls, so I declined it. To try voice calls, install Seixo on two iPhones, send an invite (or swap IDs) between them, and tap the phone icon at the top of the conversation.";
+  "I'm an automatic account and couldn't take your call just now, so I declined it. You can try again in a minute, or try voice calls between two iPhones: send an invite (or swap IDs) and tap the phone icon at the top of the conversation.";
 
-type Peers = Record<string, { scripted?: boolean; day?: string; count?: number }>;
+// ── Calls: an echo through Cloudflare's SFU ──────────────────────────────
+//
+// So a call can be tried with one phone (App Review, or anyone testing their
+// microphone). This function cannot hold a call open itself: it runs for
+// seconds. Cloudflare's SFU can. The caller's audio is published to an SFU
+// session, then the same session subscribes to it, which sends it straight
+// back. That second step needs a new offer to the phone mid-call, which the
+// app answers (messaging/payload.ts, `renegotiate`).
+//
+// The signalling still travels encrypted with Signal, like every message to
+// this account. The sound itself is not end-to-end encrypted on a call to the
+// demo account: the SFU decrypts it in order to send it back, as this account
+// reads the messages written to it. The privacy policy says both.
+//
+// Secrets: CF_SFU_APP_ID, CF_SFU_APP_SECRET (Cloudflare Realtime, Serverless
+// SFU). Its egress shares Cloudflare's free 1,000 GB with the TURN relay.
+
+const SFU_APP_ID = Deno.env.get("CF_SFU_APP_ID");
+const SFU_APP_SECRET = Deno.env.get("CF_SFU_APP_SECRET");
+
+async function sfu(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
+  const response = await fetch(`https://rtc.live.cloudflare.com/v1/apps/${SFU_APP_ID}${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${SFU_APP_SECRET}`, "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`sfu ${method} ${path.split("/").slice(-1)[0]} ${response.status} ${text.slice(0, 200)}`);
+  return text ? JSON.parse(text) : {};
+}
+
+/** The mid of the first audio section of an SDP. */
+function audioMid(sdp: string): string | null {
+  let inAudio = false;
+  for (const line of sdp.split(/\r?\n/)) {
+    if (line.startsWith("m=")) inAudio = line.startsWith("m=audio");
+    else if (inAudio && line.startsWith("a=mid:")) return line.slice(6).trim();
+  }
+  return null;
+}
+
+type CallSignal = { i: string; y: string; s?: string };
+
+/** A call signal carried by this message (app/src/messaging/payload.ts, `v`), if any. */
+function callSignal(plaintext: string): CallSignal | null {
+  if (!plaintext.startsWith("{")) return null;
+  try {
+    const parsed = JSON.parse(plaintext);
+    if (parsed?.k !== "seixo.msg.v1" || typeof parsed?.v?.i !== "string" || typeof parsed?.v?.y !== "string") return null;
+    return { i: parsed.v.i, y: parsed.v.y, s: typeof parsed.v.s === "string" ? parsed.v.s : undefined };
+  } catch {
+    return null;
+  }
+}
+
+const callPayload = (v: CallSignal) => JSON.stringify({ k: "seixo.msg.v1", t: "", v });
+
+type Peers = Record<
+  string,
+  {
+    scripted?: boolean;
+    day?: string;
+    count?: number;
+    /** The call in progress with this person: its id and its Cloudflare SFU session. */
+    call?: { id: string; session: string };
+  }
+>;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -231,22 +297,6 @@ function isControl(plaintext: string): boolean {
   }
 }
 
-/**
- * The id of a call being placed to the demo account, if this message is one
- * (app/src/messaging/payload.ts, field `v`, kind "o"). Other call signals are
- * plain control messages.
- */
-function callOfferId(plaintext: string): string | null {
-  if (!plaintext.startsWith("{")) return null;
-  try {
-    const parsed = JSON.parse(plaintext);
-    if (parsed?.k !== "seixo.msg.v1" || parsed?.v?.y !== "o") return null;
-    return typeof parsed.v.i === "string" ? parsed.v.i : null;
-  } catch {
-    return null;
-  }
-}
-
 class Conversation {
   constructor(
     private demo: SupabaseClient,
@@ -265,7 +315,7 @@ class Conversation {
   }
 
   /** Returns the new message's id, or null if the server refused it. */
-  async send(plaintext: string, serverTtlSeconds = DAY_SECONDS): Promise<string | null> {
+  async send(plaintext: string, serverTtlSeconds = DAY_SECONDS, silent = false): Promise<string | null> {
     const ciphertext = this.seal(plaintext);
     const { data, error } = await this.demo
       .from("messages")
@@ -273,7 +323,7 @@ class Conversation {
         channel_id: this.channelId,
         ciphertext,
         expires_at: new Date(Date.now() + serverTtlSeconds * 1000).toISOString(),
-        silent: false,
+        silent,
       })
       .select("id")
       .single();
@@ -422,16 +472,8 @@ async function answer(
     console.error("[demo-account] could not open a message");
     return state;
   }
-  const callId = callOfferId(plaintext);
-  if (callId) {
-    // Declined at once, so the caller's phone says "Call declined" instead of
-    // ringing for 45 seconds, then the reason. Not counted against the daily
-    // replies: it answers a call, not a message.
-    const conversation = new Conversation(demo, lease.user_id, item.peer_id, message.channel_id, state);
-    await conversation.send(JSON.stringify({ k: "seixo.msg.v1", t: "", v: { i: callId, y: "r" } }));
-    await conversation.send(CALL_REPLY);
-    return conversation.state;
-  }
+  const call = callSignal(plaintext);
+  if (call) return await answerCall(lease, demo, state, item.peer_id, message.channel_id, call);
   if (isControl(plaintext)) return state;
 
   const conversation = new Conversation(demo, lease.user_id, item.peer_id, message.channel_id, state);
@@ -451,6 +493,68 @@ async function answer(
       await conversation.send(SHORT_REPLY);
     }
   }
+  return conversation.state;
+}
+
+/**
+ * A call to the demo account: answered with an echo of the caller's own
+ * voice, through Cloudflare's SFU. Not counted against the daily replies.
+ */
+async function answerCall(
+  lease: Lease,
+  demo: SupabaseClient,
+  state: Uint8Array,
+  peerId: string,
+  channelId: string,
+  call: CallSignal,
+): Promise<Uint8Array> {
+  const peer = (lease.peers[peerId] ??= {});
+  const conversation = new Conversation(demo, lease.user_id, peerId, channelId, state);
+
+  if (call.y === "o" && call.s) {
+    try {
+      if (!SFU_APP_ID || !SFU_APP_SECRET) throw new Error("sfu not configured");
+      const mid = audioMid(call.s);
+      if (mid === null) throw new Error("no audio in offer");
+      const { sessionId } = (await sfu("/sessions/new", "POST")) as { sessionId: string };
+      const pushed = (await sfu(`/sessions/${sessionId}/tracks/new`, "POST", {
+        sessionDescription: { type: "offer", sdp: call.s },
+        tracks: [{ location: "local", mid, trackName: "voice" }],
+      })) as { sessionDescription: { sdp: string } };
+      await conversation.send(callPayload({ i: call.i, y: "a", s: pushed.sessionDescription.sdp }), DAY_SECONDS, true);
+      peer.call = { id: call.i, session: sessionId };
+      // Give the phone a moment to connect before asking for its own audio
+      // back: the SFU can only forward a track that has started arriving.
+      await sleep(2500);
+      const pulled = (await sfu(`/sessions/${sessionId}/tracks/new`, "POST", {
+        tracks: [{ location: "remote", sessionId, trackName: "voice" }],
+      })) as { requiresImmediateRenegotiation?: boolean; sessionDescription?: { sdp: string } };
+      if (pulled.requiresImmediateRenegotiation && pulled.sessionDescription) {
+        await conversation.send(callPayload({ i: call.i, y: "u", s: pulled.sessionDescription.sdp }), DAY_SECONDS, true);
+      }
+    } catch (error) {
+      console.error("[demo-account] could not answer a call:", error instanceof Error ? error.message : "unknown");
+      delete peer.call;
+      await conversation.send(callPayload({ i: call.i, y: "r" }), DAY_SECONDS, true);
+      await conversation.send(CALL_REPLY);
+    }
+    return conversation.state;
+  }
+
+  if (call.y === "w" && call.s && peer.call?.id === call.i) {
+    try {
+      await sfu(`/sessions/${peer.call.session}/renegotiate`, "PUT", {
+        sessionDescription: { type: "answer", sdp: call.s },
+      });
+    } catch (error) {
+      console.error("[demo-account] could not complete the echo:", error instanceof Error ? error.message : "unknown");
+    }
+    return conversation.state;
+  }
+
+  // An end, or anything else: the SFU drops a session on its own once no
+  // audio has arrived for 30 seconds, so there is nothing to close.
+  if (call.y === "e" && peer.call?.id === call.i) delete peer.call;
   return conversation.state;
 }
 

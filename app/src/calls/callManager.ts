@@ -25,6 +25,7 @@ import {
 } from '../../modules/calls-expo/src';
 import { RTCAudioSession } from 'react-native-webrtc';
 import { requestCallPush } from './callPush';
+import { startRingback, stopRingback, playBusy, BUSY_TONE_MS } from './callTones';
 
 /**
  * Voice calls, one to one.
@@ -136,6 +137,12 @@ const pushedCalls = new Set<string>();
  * the offer arrives.
  */
 let answerOnArrival: string | null = null;
+/**
+ * Changes to the connection, applied one after another. The demo account's
+ * renegotiation can arrive a moment after its answer, before the answer has
+ * been applied; running them in order keeps WebRTC's state machine happy.
+ */
+let negotiation: Promise<void> = Promise.resolve();
 
 /** What iOS's call screen shows: the name given to the contact on this phone, never sent anywhere. */
 function callerName(channelId: string): string | null {
@@ -214,8 +221,9 @@ function clearTimers(): void {
   dropTimer = null;
 }
 
-function releaseMedia(): void {
+function releaseMedia(keepAudioMs = 0): void {
   Vibration.cancel();
+  stopRingback();
   localStream?.getTracks().forEach((track) => track.stop());
   localStream = null;
   try {
@@ -225,7 +233,9 @@ function releaseMedia(): void {
   }
   peerConnection = null;
   pendingOfferSdp = null;
-  void stopCallAudio();
+  // Kept a moment longer when a busy signal is still playing in it.
+  if (keepAudioMs > 0) setTimeout(() => void stopCallAudio(), keepAudioMs);
+  else void stopCallAudio();
 }
 
 /**
@@ -254,24 +264,29 @@ function finish(outcome: StoredCall['outcome'] | 'ended', notify?: CallSignal['k
   });
 
   finishedCalls.add(state.callId);
+  // The caller hears a busy signal when turned down or when the other person
+  // is on another call. The call stays open in iOS until it has played: once
+  // CallKit ends the call, its audio session goes, and the tone with it.
+  const busyTone = state.outgoing && !notify && (outcome === 'declined' || outcome === 'busy');
+  if (busyTone) playBusy();
   // Tell iOS's call screen. A local hang-up goes through CallKit as an action;
   // anything else is reported as having ended, with the reason. When CallKit
   // itself started the ending (the red button on the lock screen), the call
   // is already gone there and this does nothing.
-  void endCallKitCall(
-    state.callId,
-    notify
-      ? 'local'
-      : outcome === 'missed'
-        ? 'unanswered'
-        : outcome === 'declined'
-          ? 'declined'
-          : outcome === 'failed'
-            ? 'failed'
-            : 'remote',
-  );
+  const endedCallId = state.callId;
+  const endReason = notify
+    ? 'local'
+    : outcome === 'missed'
+      ? 'unanswered'
+      : outcome === 'declined'
+        ? 'declined'
+        : outcome === 'failed'
+          ? 'failed'
+          : 'remote';
+  if (busyTone) setTimeout(() => void endCallKitCall(endedCallId, endReason), BUSY_TONE_MS);
+  else void endCallKitCall(endedCallId, endReason);
   clearTimers();
-  releaseMedia();
+  releaseMedia(busyTone ? BUSY_TONE_MS : 0);
   callStartedAt = null;
 
   useCallStore.setState({
@@ -414,6 +429,7 @@ export async function startCall(channelId: string, peerUserId: string): Promise<
     const sdp = pc.localDescription?.sdp;
     if (!sdp) throw new Error('no local description');
     await sendSignal(channelId, peerUserId, { callId, kind: 'offer', sdp });
+    if (useCallStore.getState().callId === callId && useCallStore.getState().phase === 'outgoing') startRingback();
     // Wakes the other phone if the app there is closed. Best-effort: when it
     // fails, an open app still rings from the offer itself.
     requestCallPush(channelId, callId).catch((error) => console.warn('[call] push request failed', error));
@@ -522,6 +538,16 @@ export function handleCallSignal(
         void endCallKitCall(signal.callId, 'unanswered');
         return;
       }
+      const conversation = useConversationsStore.getState().conversations.find((c) => c.channelId === channelId);
+      if (conversation?.talked === false) {
+        // Someone who has never exchanged a message here: not rung, only
+        // noted. The caller hears no answer, as from a phone that is off.
+        logCall(channelId, signal.callId, false, createdAt, { outcome: 'notRung' });
+        finishedCalls.add(signal.callId);
+        pushedCalls.delete(signal.callId);
+        void endCallKitCall(signal.callId, 'unanswered');
+        return;
+      }
       if (state.phase !== 'idle') {
         // Already on a call. The other side hears "busy"; this side keeps a
         // record that someone tried.
@@ -569,15 +595,38 @@ export function handleCallSignal(
       if (!isCurrent || state.phase !== 'outgoing' || !signal.sdp || !peerConnection) return;
       if (ringTimer) clearTimeout(ringTimer);
       ringTimer = null;
+      stopRingback();
       useCallStore.setState({ phase: 'connecting' });
-      peerConnection
-        .setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }))
+      const pcForAnswer = peerConnection;
+      negotiation = negotiation
+        .then(() => pcForAnswer.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp! })))
         .catch((error) => {
           console.warn('[call] could not apply answer', error);
           finish('failed', 'end');
         });
       return;
     }
+    case 'renegotiate': {
+      // The other side changes the call while it is on: here, the demo
+      // account's echo arriving as a new stream from Cloudflare's SFU. The
+      // connection already exists, so no new network candidates are needed:
+      // apply the offer, answer, send the answer back.
+      if (!isCurrent || !signal.sdp || !peerConnection || !state.channelId || !state.peerUserId) return;
+      const pc = peerConnection;
+      const { channelId: currentChannel, peerUserId: currentPeer } = state;
+      negotiation = negotiation.then(async () => {
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp! }));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        const sdp = pc.localDescription?.sdp;
+        if (!sdp) throw new Error('no local description');
+        await sendSignal(currentChannel, currentPeer, { callId: signal.callId, kind: 'renegotiateAnswer', sdp });
+      }).catch((error) => console.warn('[call] renegotiation failed', error));
+      return;
+    }
+    case 'renegotiateAnswer':
+      // This phone never starts a renegotiation itself; nothing to apply.
+      return;
     case 'declined':
       if (isCurrent) finish('declined');
       return;
