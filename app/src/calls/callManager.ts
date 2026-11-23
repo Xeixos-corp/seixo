@@ -10,6 +10,7 @@ import i18n from '../i18n';
 import { encryptForPeer } from '../messaging/encryptForPeer';
 import { encodePayload, type CallSignal } from '../messaging/payload';
 import { sendMessage } from '../transport/messages';
+import { supabase } from '../transport/supabaseClient';
 import { useMessagesStore, type StoredCall } from '../store/messagesStore';
 import { useConversationsStore, DEFAULT_TTL_SECONDS, conversationDisplayName } from '../store/conversationsStore';
 import { startCallAudio, stopCallAudio, setCallSpeaker, onCallRouteChange } from '../../modules/audio-session-expo/src';
@@ -79,11 +80,23 @@ export const useCallStore = create<CallState>(() => ({
 }));
 
 /**
- * STUN only, for now: it tells each phone its own public address so a direct
- * path can be tried. It sees that address and nothing else, and needs no
- * account. The TURN relay (Cloudflare) replaces direct paths before release.
+ * The relay this call goes through: short-lived Cloudflare TURN credentials
+ * from the call-turn Edge Function, made for this call.
+ *
+ * Relay only, always (`iceTransportPolicy: 'relay'` below), even between
+ * contacts. A direct connection would hand each phone the other's IP address,
+ * which for a messenger without phone numbers is often the most identifying
+ * thing about a person. Signal relays only calls with strangers; here every
+ * call is relayed, and the privacy policy says so. If no credentials can be
+ * had, the call fails rather than falling back to a direct path.
  */
-const ICE_SERVERS = [{ urls: 'stun:stun.cloudflare.com:3478' }, { urls: 'stun:stun.l.google.com:19302' }];
+async function relayServers(): Promise<{ urls: string[]; username?: string; credential?: string }[]> {
+  const { data, error } = await supabase.functions.invoke('call-turn', { body: {} });
+  if (error) throw error;
+  const servers = (data as { iceServers?: { urls: string[]; username?: string; credential?: string }[] })?.iceServers;
+  if (!servers?.length) throw new Error('no relay servers');
+  return servers;
+}
 
 /** How long a call rings before giving up, on both sides. */
 const RING_SECONDS = 45;
@@ -294,7 +307,7 @@ function waitForIceGathering(pc: RTCPeerConnection): Promise<void> {
 
 async function openConnection(): Promise<RTCPeerConnection> {
   localStream = await mediaDevices.getUserMedia({ audio: true, video: false });
-  const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  const pc = new RTCPeerConnection({ iceServers: await relayServers(), iceTransportPolicy: 'relay' });
   localStream.getTracks().forEach((track) => pc.addTrack(track, localStream!));
 
   pc.onconnectionstatechange = () => {
