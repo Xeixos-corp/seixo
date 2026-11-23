@@ -235,7 +235,7 @@ function releaseMedia(): void {
  */
 function finish(outcome: StoredCall['outcome'] | 'ended', notify?: CallSignal['kind']): void {
   const state = useCallStore.getState();
-  if (__DEV__) console.log('[call] finish', outcome, 'notify', notify, 'phase', state.phase, new Error('where').stack?.split('\n').slice(1, 4).join(' | '));
+  if (__DEV__) console.log('[call] finish', outcome, 'notify', notify, 'phase', state.phase);
   if (state.phase === 'idle' || !state.callId || !state.channelId || !state.peerUserId) return;
 
   const durationSeconds = state.connectedAt ? Math.round((Date.now() - state.connectedAt) / 1000) : undefined;
@@ -613,7 +613,6 @@ export function startCallKitBridge(onVoipToken: (token: string) => void): void {
     if (__DEV__ && event.type !== 'voipToken') console.log('[call] CallKit event', JSON.stringify(event), 'phase', state.phase);
     switch (event.type) {
       case 'voipToken':
-        if (__DEV__) console.log('[calls] VoIP token event, empty:', !event.token);
         if (event.token) onVoipToken(event.token);
         return;
       case 'incoming': {

@@ -59,6 +59,11 @@ const SCRIPT_HOW_TO =
   "Try the safety features: press and hold any of my messages to Report it or Delete it, or tap Block at the top to block this account. Reports reach the Seixo team, who act on them within 24 hours.";
 const SHORT_REPLY =
   "This is an automatic demo account, so it can't really chat. Press and hold any message to report or delete it, or tap Block at the top.";
+// Sent after declining a call. The demo account runs on the server and has no
+// way to carry sound, so a call to it is turned down at once rather than left
+// ringing; this says why and how calls can be tried.
+const CALL_REPLY =
+  "I'm an automatic account and can't take calls, so I declined it. To try voice calls, install Seixo on two iPhones, send an invite (or swap IDs) between them, and tap the phone icon at the top of the conversation.";
 
 type Peers = Record<string, { scripted?: boolean; day?: string; count?: number }>;
 
@@ -220,9 +225,25 @@ function isControl(plaintext: string): boolean {
   try {
     const parsed = JSON.parse(plaintext);
     if (parsed?.k !== "seixo.msg.v1") return false;
-    return ["x", "z", "e", "s", "n"].some((field) => parsed[field] !== undefined);
+    return ["x", "z", "e", "s", "n", "v"].some((field) => parsed[field] !== undefined);
   } catch {
     return false;
+  }
+}
+
+/**
+ * The id of a call being placed to the demo account, if this message is one
+ * (app/src/messaging/payload.ts, field `v`, kind "o"). Other call signals are
+ * plain control messages.
+ */
+function callOfferId(plaintext: string): string | null {
+  if (!plaintext.startsWith("{")) return null;
+  try {
+    const parsed = JSON.parse(plaintext);
+    if (parsed?.k !== "seixo.msg.v1" || parsed?.v?.y !== "o") return null;
+    return typeof parsed.v.i === "string" ? parsed.v.i : null;
+  } catch {
+    return null;
   }
 }
 
@@ -400,6 +421,16 @@ async function answer(
   } catch {
     console.error("[demo-account] could not open a message");
     return state;
+  }
+  const callId = callOfferId(plaintext);
+  if (callId) {
+    // Declined at once, so the caller's phone says "Call declined" instead of
+    // ringing for 45 seconds, then the reason. Not counted against the daily
+    // replies: it answers a call, not a message.
+    const conversation = new Conversation(demo, lease.user_id, item.peer_id, message.channel_id, state);
+    await conversation.send(JSON.stringify({ k: "seixo.msg.v1", t: "", v: { i: callId, y: "r" } }));
+    await conversation.send(CALL_REPLY);
+    return conversation.state;
   }
   if (isControl(plaintext)) return state;
 

@@ -43,5 +43,4 @@ export async function upsertVoipToken(userId: string, token: string): Promise<vo
     { onConflict: 'user_id' },
   );
   if (error) throw new Error(error.message);
-  if (__DEV__) console.log('[calls] VoIP token stored');
 }

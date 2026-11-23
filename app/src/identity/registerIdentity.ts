@@ -1,7 +1,7 @@
 import { AppState } from 'react-native';
 import { startCallKitBridge } from '../calls/callManager';
 import { upsertVoipToken } from '../calls/callPush';
-import { getVoipToken, hasCallKit } from '../../modules/calls-expo/src';
+import { getVoipToken } from '../../modules/calls-expo/src';
 import {
   initSignalDevice,
   generatePrekeyBundle,
@@ -320,7 +320,6 @@ async function finishRegistration(userId: string): Promise<void> {
   };
   startCallKitBridge(publishVoipToken);
   const knownToken = getVoipToken();
-  if (__DEV__) console.log('[calls] CallKit in this build:', hasCallKit, 'VoIP token known:', Boolean(knownToken));
   if (knownToken) publishVoipToken(knownToken);
 
   // Detect conversations other people start with us (the receiving side of
