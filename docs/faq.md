@@ -1,6 +1,6 @@
 # Seixo: Perguntas frequentes
 
-**Última atualização: 21 de novembro de 2026**
+**Última atualização: 25 de novembro de 2026**
 
 > Este ficheiro é a fonte de revisão. A versão publicada (com páginas também
 > em inglês e espanhol) vive no repositório público separado

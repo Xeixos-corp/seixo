@@ -1,6 +1,6 @@
 # Seixo: Termos de utilização
 
-**Última atualização: 17 de novembro de 2026**
+**Última atualização: 25 de novembro de 2026**
 
 > Fonte de revisão. A versão publicada (também em inglês e espanhol) vive no
 > repositório público `Xeixos-corp/Seixo-Legal`, ao lado da política de
